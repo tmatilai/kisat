@@ -166,12 +166,30 @@ function meetPhase(schedule, eventResults) {
 // Juoksut mode's schedule shows the track by default (docs/juoksut.md).
 const RUN_CATEGORIES = ['Track', 'Relay'];
 
+// Writes a start's time in UTC in the API's form, so that every row of one
+// start gives one key: one start's rows can write its instant under two
+// offsets (docs/tuloslista-api.md). A time with no offset stays as it is, as
+// its instant would depend on the reader's zone.
+function startTs(ts) {
+  const t = /(?:[+-]\d\d:\d\d|Z)$/.test(String(ts)) ? tsKey(ts) : Infinity;
+  return Number.isFinite(t) ? `${new Date(t).toISOString().slice(0, 19)}.0000000+00:00` : ts;
+}
+
+// Temporary: rewrites a start's key written under its row's own offset into
+// groupRounds' form (docs/shims.md).
+function startKeyOf(key) {
+  const bar = String(key).indexOf('|');
+  return bar > 0 ? `${startTs(key.slice(0, bar))}${key.slice(bar)}` : key;
+}
+
 // Returns the start a /g/ key names (groupRounds). The second find is a
-// temporary shim for a relay link whose key leaves out the relay's formula or
-// word (docs/shims.md).
+// temporary shim for a key written under its row's own offset, and the third
+// for a relay link whose key leaves out the relay's formula or word
+// (docs/shims.md).
 function groupForKey(groups, key) {
   return (
     (groups || []).find((g) => g.key === key) ||
+    (groups || []).find((g) => g.key === startKeyOf(key)) ||
     (groups || []).find((g) => classlessName(g.event) && `${g.ts}|${g.event.split(' ').slice(1).join(' ')}` === key) ||
     null
   );
@@ -185,7 +203,7 @@ function groupRounds(rounds, category = null) {
   for (const r of rounds) {
     if (wanted && !wanted.includes(r.Category)) continue;
     const p = parseEventName(r.EventName);
-    const key = `${r.BeginDateTimeWithTZ}|${p.event}`;
+    const key = `${startTs(r.BeginDateTimeWithTZ)}|${p.event}`;
     if (!map.has(key)) {
       map.set(key, { key, ts: r.BeginDateTimeWithTZ, event: p.event, category: r.Category, entries: [] });
     }
@@ -226,7 +244,7 @@ function startFinished(entries) {
 // Builds groupRounds' key for one schedule round, which must match groupRounds'
 // own exactly.
 function roundGroupKey(round) {
-  return `${round.BeginDateTimeWithTZ}|${parseEventName(round.EventName).event}`;
+  return `${startTs(round.BeginDateTimeWithTZ)}|${parseEventName(round.EventName).event}`;
 }
 
 // --- A class's field and counts ---
@@ -432,4 +450,5 @@ export {
   scheduleStatuses,
   startCounts,
   startFinished,
+  startKeyOf,
 };

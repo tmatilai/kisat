@@ -88,8 +88,8 @@ Traps:
 - **One class at `Official` says a start has been run** (2026-09).
 - **A schedule row's `CountEnrolled`, `CountConfirmed` and `CountAllocated` read 0**, even with real
   entrants (2026-08).
-- **`BeginDateTimeWithTZ` can write one meet's instants under two offsets.** The schedule is ordered
-  by the instant, and a start's key keeps the raw string, since one start's rows agree (2026-08).
+- **`BeginDateTimeWithTZ` can write one meet's instants under two offsets, even one start's.** The
+  schedule is ordered by the instant, and a start's key writes its time in UTC (2026-09).
 - **`SubCategory` is the discipline family, and it is reliable.** `Hurdles` marks every hurdle race
   and hurdle relay, and the steeplechase is `Steeples` or `Run`, so its name gates it (2026-09).
 - **An event's results resource can be missing.** It answers 404 with an XML `BlobNotFound` body on

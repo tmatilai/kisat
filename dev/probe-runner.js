@@ -35,17 +35,13 @@ const until = async (cond, ms = 15000) => {
 const ok = (name, cond) => log(`${name}: ${cond ? 'OK' : 'FAIL'}`);
 
 // Builds a start's key for today, since a demo competition is always today
-// (demoTs, demo.js). A key with a date written into it matches no start the
-// next morning, and every check then fails as though the view were broken.
-const p2 = (n) => String(n).padStart(2, '0');
+// (demoTs, demo.js), with its time in UTC as roundGroupKey writes it. A key
+// with a date written into it matches no start the next morning, and every
+// check then fails as though the view were broken.
 const groupKey = (hour, min, event) => {
   const d = new Date();
-  const off = -d.getTimezoneOffset();
-  const zone = `${off < 0 ? '-' : '+'}${p2(Math.floor(Math.abs(off) / 60))}:${p2(Math.abs(off) % 60)}`;
-  return (
-    `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}` +
-    `T${p2(hour)}:${p2(min)}:00.0000000${zone}|${event}`
-  );
+  d.setHours(hour, min, 0, 0);
+  return `${d.toISOString().slice(0, 19)}.0000000+00:00|${event}`;
 };
 
 const frame = document.createElement('iframe');

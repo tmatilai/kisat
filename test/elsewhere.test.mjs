@@ -692,7 +692,10 @@ test("olAloneMeet: a road championship off a mass race's files", () => {
   // The classes share the race's mass start, so they group into one start.
   // (Break on purpose: leave BeginDateTimeWithTZ null.)
   const road = groupRounds(olSchedule(DEMO_ROAD_ROW)['8.8.2026']);
-  assert.deepEqual([road.length, road[0].key, road[0].entries.length], [1, '2026-08-08T12:00:00+03:00|Maraton', 3]);
+  assert.deepEqual(
+    [road.length, road[0].key, road[0].entries.length],
+    [1, '2026-08-08T09:00:00.0000000+00:00|Maraton', 3],
+  );
   // A masters' class carries its age. (Break on purpose: give every class
   // age 0.)
   assert.deepEqual(

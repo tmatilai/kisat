@@ -40,6 +40,7 @@ import {
   tileDensity,
 } from '../lib/lap-counter.js';
 import { isRelayEventType, mergeHeats, parseResult, relayLegCount } from '../lib/results.js';
+import { startKeyOf } from '../lib/schedule.js';
 import { loadGroup } from './data.js';
 import { storedTrack } from './hurdles.js';
 import {
@@ -671,6 +672,18 @@ async function renderLaps(compId, groupKey) {
   const storeKey = lapsKey(compId, groupKey);
   let state;
   try {
+    // Temporary: a count in progress stored under the key its row's own offset
+    // wrote moves to this one (docs/shims.md).
+    if (localStorage.getItem(storeKey) == null) {
+      const prefix = lapsKey(compId, '');
+      const old = Object.keys(localStorage).find(
+        (k) => k.startsWith(prefix) && startKeyOf(k.slice(prefix.length)) === startKeyOf(groupKey),
+      );
+      if (old) {
+        localStorage.setItem(storeKey, localStorage.getItem(old));
+        localStorage.removeItem(old);
+      }
+    }
     state = JSON.parse(localStorage.getItem(storeKey)) || {};
   } catch {
     state = {};

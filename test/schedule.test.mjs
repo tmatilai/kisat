@@ -47,6 +47,7 @@ import {
   scheduleStatuses,
   startCounts,
   startFinished,
+  startKeyOf,
 } from '../public/lib/schedule.js';
 import { DEMO_CUP_ID, DEMO_EVENTS, DEMO_ID, demoResponse, demoSchedule } from '../public/demo.js';
 
@@ -92,7 +93,7 @@ test('A start whose name names no class', () => {
   const groups = groupRounds([relay, { ...relay, EventName: 'M17 60m', Age: '17', Category: 'Track' }]);
   assert.equal(groups[0].key, '2025-03-02T15:50:00.0000000+00:00|60m');
   assert.equal(groups[1].key, '2025-03-02T15:50:00.0000000+00:00|6x200m viesti');
-  // Temporary: groupForKey's second find opens a link shared before
+  // Temporary: groupForKey's third find opens a link shared before
   // 2026-09-16 (docs/shims.md). (Break on purpose: drop it, and the link
   // opens nothing.)
   assert.equal(groupForKey(groups, '2025-03-02T15:50:00.0000000+00:00|viesti'), groups[1], 'the key before 16.9.2026');
@@ -847,6 +848,38 @@ test('roundGroupKey', () => {
     const g = groups.find((x) => x.entries.some((e) => e.round === round));
     assert.equal(roundGroupKey(round), g.key, `roundGroupKey must match groupRounds' own key for ${round.EventName}`);
   }
+});
+
+// --- roundGroupKey: one start's rows under two offsets are one start ---
+// (docs/tuloslista-api.md). (Break on purpose: key on the raw
+// BeginDateTimeWithTZ, and the demo's Kolmiloikka splits in two.)
+test('roundGroupKey: one start under two offsets', () => {
+  const schedule = demoSchedule();
+  const day = Object.keys(schedule)[0];
+  const rows = schedule[day].filter((r) => /Kolmiloikka/.test(r.EventName));
+  assert.notEqual(rows[0].BeginDateTimeWithTZ, rows[1].BeginDateTimeWithTZ, 'the demo writes M15 under another offset');
+  const groups = groupRounds(rows);
+  assert.deepEqual(
+    groups.map((g) => g.entries.map((e) => e.label)),
+    [['M15', 'N15']],
+  );
+  for (const r of rows) assert.equal(roundGroupKey(r), groups[0].key);
+  assert.equal(
+    roundGroupKey({ BeginDateTimeWithTZ: '2026-09-19T12:00:00.0000000+03:00', EventName: 'M35 Polkujuoksu 8 km' }),
+    '2026-09-19T09:00:00.0000000+00:00|Polkujuoksu 8 km',
+  );
+  // A time with no offset has no instant of its own, so it stays as written.
+  assert.equal(
+    roundGroupKey({ BeginDateTimeWithTZ: '2026-08-08T11:00', EventName: 'H21 Sprintti' }),
+    '2026-08-08T11:00|Sprintti',
+  );
+  // Temporary: a key written under its row's own offset still opens its
+  // start, and a count stored under it moves to the new key (startKeyOf,
+  // docs/shims.md). (Break on purpose: drop groupForKey's second find.)
+  const old = `${rows.find((r) => roundGroupKey(r) !== `${r.BeginDateTimeWithTZ}|Kolmiloikka`).BeginDateTimeWithTZ}|Kolmiloikka`;
+  assert.equal(groupForKey(groups, old), groups[0], 'the key before 19.10.2026');
+  assert.equal(startKeyOf(old), groups[0].key);
+  assert.equal(startKeyOf('no bar'), 'no bar');
 });
 
 // --- previousRoundField: an undrawn round's field off the round before it,

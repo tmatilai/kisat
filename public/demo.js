@@ -23,6 +23,16 @@ function demoTs(h, m) {
   );
 }
 
+// Returns demoTs' instant under another offset than demoTs', as one class of a
+// start can carry it (docs/tuloslista-api.md): +00:00, or +03:00 where the
+// local zone is UTC.
+function demoOtherTs(h, m) {
+  const t = Date.parse(demoTs(h, m).replace(/\.\d+/, ''));
+  const off = new Date(t).getTimezoneOffset() === 0 ? 3 : 0;
+  const iso = new Date(t + off * 3_600_000).toISOString().slice(0, 19);
+  return `${iso}.0000000+0${off}:00`;
+}
+
 // Derives a stable 8-digit licence from the athlete id, the shape of a real
 // one. A follow-list stores the licence, because Athletes[].Id identifies an
 // entry and not a person (docs/tuloslista-api.md, "Categories, names and
@@ -591,7 +601,8 @@ const DEMO_STARTS = [
   },
   // Two field classes in one start do not share a heat. Each draws its own
   // order from 1, as a field event always does (laneDrawn in lib/results.js,
-  // docs/tuloslista-api.md).
+  // docs/tuloslista-api.md). M15's row writes the start's time under another
+  // offset, and the start is still one (roundGroupKey).
   {
     eventId: 'e24',
     roundId: 'r24',
@@ -608,7 +619,7 @@ const DEMO_STARTS = [
     round: 'Loppukilpailu',
     category: 'Field',
     status: 'Official',
-    ts: demoTs(13, 30),
+    ts: demoOtherTs(13, 30),
   },
   // Four classes share two heats down one draw. P13 is in heat 1, P11 in heat
   // 2, and T11 and T13 in both, so a class's own heat count can differ from

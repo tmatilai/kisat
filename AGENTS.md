@@ -143,7 +143,9 @@ sentence. Lists, tables and colons are fine. A doc points into the code in a lis
   small commit needs only the subject. Where the subject is not the whole story, a body follows a
   blank line, wrapped at 72 columns. It says in a few lines what the change rests on, such as the
   measurement, the test that proves it or the data rebuilt under a new key. It does not say how the
-  work went.
+  work went, nor what the diff shows. The body is short sentences that each say one thing, with the
+  problem first. A name from the code, a field or a value goes in backticks, such as
+  `BeginDateTimeWithTZ` or `+00:00`.
 
 ## Where to read next
 
