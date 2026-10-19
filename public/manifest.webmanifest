@@ -1,0 +1,11 @@
+{
+  "name": "Kisat",
+  "short_name": "Kisat",
+  "description": "Yleisurheilukisojen aikataulut ja tulokset, sekä urheilijoiden seuranta.",
+  "lang": "fi",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#10161d",
+  "theme_color": "#1d3557",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

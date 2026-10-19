@@ -1,0 +1,2945 @@
+<!doctype html>
+<html lang="fi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Kisat</title>
+    <!-- A link preview runs no script and reads these tags as they stand.
+         worker.js serves Juoksut's own (siteMeta, lib/routes.js). -->
+    <meta name="description" content="Yleisurheilukisojen aikataulut ja tulokset, sekä urheilijoiden seuranta." />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Kisat" />
+    <meta property="og:title" content="Kisat" />
+    <meta
+      property="og:description"
+      content="Yleisurheilukisojen aikataulut ja tulokset, sekä urheilijoiden seuranta."
+    />
+    <meta property="og:locale" content="fi_FI" />
+    <meta name="theme-color" content="#1d3557" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#294c76" media="(prefers-color-scheme: dark)" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <style>
+      :root {
+        /* Themes what the page cannot paint, such as a select's dropdown. */
+        color-scheme: light dark;
+        --bg: #f6f7f9;
+        --card: #ffffff;
+        --text: #16202b;
+        --muted: #64707d;
+        --line: #e2e6ea;
+        --accent: #1d3557;
+        --accent-text: #ffffff;
+        --warn-bg: #fdecea;
+        --warn-text: #a32014;
+        --watched-bg: rgba(29, 53, 87, 0.1);
+        /* The same tint blended over --card. A sticky ladder cell needs it
+           opaque, or the columns scrolling under it show through. */
+        --watched-bg-opaque: #e8ebee;
+        /* The medal disc's metals (medalEl, app/medals.js), one for both
+           themes. */
+        --gold: #d9a520;
+        --silver: #a3adb8;
+        --bronze: #b87333;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #10161d;
+          --card: #1a222c;
+          --text: #e8edf2;
+          --muted: #93a0ad;
+          --line: #2a3541;
+          --accent: #294c76;
+          --warn-bg: #46201c;
+          --warn-text: #ff9d92;
+          /* A tint of --accent does not show on the dark --card, so this is
+             .chip-Allocated's lighter blue. */
+          --watched-bg: rgba(111, 195, 247, 0.16);
+          --watched-bg-opaque: #283c4c;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-size: 16px;
+        -webkit-text-size-adjust: 100%;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: calc(env(safe-area-inset-top) + 10px) 14px 10px;
+        background: var(--accent);
+        color: var(--accent-text);
+      }
+      header a#back {
+        color: var(--accent-text);
+        text-decoration: none;
+        font-size: 24px;
+        line-height: 1;
+        padding: 2px 6px;
+      }
+      header h1 {
+        flex: 1;
+        margin: 0;
+        font-size: 17px;
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      /* The title as a menu button (setTitleMenu, app/shell.js), in the h1's
+         type with a taller tap target. The ellipsis is on the label, so a long
+         name shortens and the caret that marks the menu stays. */
+      .title-menu {
+        display: flex;
+        align-items: baseline;
+        max-width: 100%;
+        border: none;
+        background: none;
+        padding: 6px 0;
+        margin: -6px 0;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+      .title-text {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .title-caret {
+        flex: none;
+        opacity: 0.75;
+        font-size: 13px;
+      }
+      #updated {
+        font-size: 11px;
+        opacity: 0.75;
+        white-space: nowrap;
+      }
+      #updated.error {
+        color: #ffb4a9;
+        opacity: 1;
+      }
+      header button#help {
+        position: relative;
+        flex: none;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        border: 1px solid rgba(255, 255, 255, 0.45);
+        border-radius: 50%;
+        background: transparent;
+        color: var(--accent-text);
+        font-family: inherit;
+        font-size: 14px;
+        line-height: 1;
+      }
+      header button#help::after {
+        content: '';
+        position: absolute;
+        inset: -8px;
+      }
+      /* The results column's cap (docs/style.md, "Width"). A results table's
+         columns need more room than a row list. */
+      main {
+        padding: 14px 16px calc(env(safe-area-inset-bottom) + 28px);
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+      @media (min-width: 700px) {
+        main {
+          padding: 20px 28px 32px;
+        }
+      }
+      /* A ladder past LADDER_WIDE_THRESHOLD_PX (app/event.js). Without a cap,
+         an ultrawide screen draws one endless row. */
+      main.wide {
+        max-width: 1400px;
+      }
+      /* Row lists, such as home and the day schedule (docs/style.md, "Width").
+         A wider column parts a row's text from its chip. */
+      main.list {
+        max-width: 720px;
+      }
+      h2 {
+        font-size: 15px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+        margin: 20px 0 8px;
+      }
+      h3 {
+        font-size: 16px;
+        margin: 18px 0 6px;
+      }
+      .wind,
+      .round-name,
+      .scan-since,
+      .scope-short {
+        font-weight: 400;
+        font-size: 13px;
+        color: var(--muted);
+        text-transform: none;
+      }
+      .search {
+        width: 100%;
+        padding: 10px 12px;
+        margin-bottom: 10px;
+        font-size: 16px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--card);
+        color: var(--text);
+      }
+      .list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        color: inherit;
+        text-decoration: none;
+      }
+      .row:hover,
+      .row:active {
+        filter: brightness(0.95);
+      }
+      /* The championship page's piiri under its alue's row. */
+      .row.scope-piiri {
+        margin-left: 20px;
+      }
+      @media (min-width: 700px) {
+        .row.scope-piiri {
+          margin-left: 48px;
+        }
+      }
+      /* The championship page's meet with no medal under the age chips. */
+      .row.row-out {
+        opacity: 0.5;
+      }
+      /* A day-list row with lines under it, such as a watched row's athletes.
+         .row-head keeps the plain row's layout. The lines go under it at full
+         width, as beside the status chip they do not fit a phone. */
+      .row.watch-day-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .row-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .row-time {
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+        min-width: 44px;
+      }
+      .row-main {
+        flex: 1;
+        min-width: 0;
+      }
+      .row-title {
+        font-weight: 600;
+      }
+      /* The dot before a start's round is the separating space's background.
+         A line broken there drops the space, and the dot with it. */
+      .round-dot {
+        font-size: 13px;
+        letter-spacing: 0.7em;
+        background: radial-gradient(circle closest-side, var(--muted) 85%, transparent) center 56% / 3px 3px no-repeat;
+      }
+      .row-sub {
+        font-size: 13px;
+        color: var(--muted);
+        overflow-wrap: anywhere;
+      }
+      /* A chip per category group where a start's categories differ in phase
+         (rowHeadParts, app/meet.js). It wraps, as two pairs do not fit a
+         phone. */
+      .row-sub-statuses {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 10px;
+      }
+      .row-cat-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .chip {
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 99px;
+        white-space: nowrap;
+        background: var(--line);
+        text-transform: none;
+      }
+      .chip-Unallocated {
+        background: #f2c94c33;
+        color: #8a6d00;
+      }
+      .chip-Allocated {
+        background: #2d9cdb33;
+        color: #1b6ea8;
+      }
+      .chip-Progress {
+        background: #eb572f33;
+        color: #c2410c;
+      }
+      .chip-Official {
+        background: #27ae6033;
+        color: #1e824c;
+      }
+      /* A heat's two states (heatChip, app/event.js, docs/style.md,
+         "Components"). A run heat takes .chip-Official's green, and one still
+         to come is the plain chip. */
+      .chip-heat-done {
+        background: #27ae6033;
+        color: #1e824c;
+      }
+      .chip-heat-pending {
+        color: var(--muted);
+      }
+      @media (prefers-color-scheme: dark) {
+        .chip-Unallocated {
+          color: #f2c94c;
+        }
+        .chip-Allocated {
+          color: #6fc3f7;
+        }
+        .chip-Progress {
+          color: #ff9d6f;
+        }
+        .chip-Official {
+          color: #6fdc9c;
+        }
+        .chip-heat-done {
+          color: #6fdc9c;
+        }
+      }
+      .days {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 12px;
+      }
+      /* Juoksut's kenttä select ends the filter bar, as the kenttä is the whole
+         meet's. It is the native select, so a phone opens its own picker. */
+      .track-pick {
+        margin-left: auto;
+      }
+      .track-pick select {
+        font-family: inherit;
+        font-size: 13px;
+        color: var(--text);
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 5px 8px;
+        /* A select is as wide as its longest option, so each kenttä added would
+           widen the bar. A long name shows whole in the open list. */
+        max-width: 190px;
+        text-overflow: ellipsis;
+      }
+      .day-tab {
+        padding: 6px 12px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--card);
+        color: var(--text);
+        font-size: 14px;
+        text-decoration: none;
+      }
+      .day-tab[aria-current='page'] {
+        background: var(--accent);
+        border-color: var(--accent);
+        color: var(--accent-text);
+        font-weight: 600;
+      }
+      .cat-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin: 4px 0 14px;
+      }
+      .cat-badge {
+        font-size: 12px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 99px;
+        padding: 3px 9px;
+      }
+      .cat-badges .chip-toggle {
+        font-size: 13px;
+        padding: 4px 10px;
+      }
+      .tbl-wrap {
+        overflow-x: auto;
+        border-radius: 10px;
+      }
+      /* On /#/measure a wrapped "10 ms" reads as two values, so the cells never
+         wrap and .tbl-wrap scrolls. */
+      .tbl.measure td,
+      .tbl.measure th {
+        white-space: nowrap;
+      }
+      .tbl {
+        width: 100%;
+        border-collapse: collapse;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+        font-size: 14px;
+      }
+      .tbl th,
+      .tbl td {
+        padding: 7px 6px;
+        text-align: left;
+        border-top: 1px solid var(--line);
+        vertical-align: top;
+      }
+      /* .setup-cols is the same header row inside the day sheet's shared
+         table, where each start carries its own (renderHurdleSheet). */
+      .tbl thead th,
+      .tbl .setup-cols th {
+        border-top: none;
+        font-size: 12px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+      }
+      .tbl .num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .tbl th.num {
+        width: 30px;
+      }
+      /* The varmistus column on a pre-draw start list (enrollmentTable,
+         app/event.js), reserved on every row (docs/style.md, "Components"). */
+      .tbl th.conf {
+        width: 22px;
+      }
+      .tbl .conf {
+        text-align: center;
+        color: var(--muted);
+      }
+      /* The boxes of confirmSection and dayFilterBox (app/meet.js) and every
+         details.fold close to one muted summary line (docs/style.md,
+         "Components"). */
+      details.varmistus,
+      details.fold,
+      details.day-filter {
+        margin: 8px 0;
+      }
+      details.day-filter {
+        margin-top: 0;
+      }
+      details.day-filter.on > summary {
+        color: var(--text);
+      }
+      details.varmistus > summary,
+      details.fold > summary,
+      details.day-filter > summary {
+        cursor: pointer;
+        padding: 6px 2px;
+        font-size: 14px;
+        color: var(--muted);
+        /* The count is read against the page's other numbers. */
+        font-variant-numeric: tabular-nums;
+      }
+      details.varmistus[open] > summary,
+      details.fold[open] > summary,
+      details.day-filter[open] > summary {
+        margin-bottom: 4px;
+      }
+      /* Open, the box heads a region and its summary takes the h2's type. A
+         segmented control can follow it, so its own margin makes the gap. */
+      details.fold[open] {
+        margin-bottom: 14px;
+      }
+      details.fold[open] > summary {
+        font-size: 15px;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      /* A leg's ottelu standings fold, and the summary takes the h3's place
+         (standingsShell, app/event.js). */
+      details.ottelu {
+        margin: 18px 0 6px;
+      }
+      details.ottelu > summary {
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: bold;
+      }
+      details.ottelu[open] > summary {
+        margin-bottom: 6px;
+      }
+      .tbl .conf-ev,
+      .tbl .conf-when {
+        color: var(--muted);
+      }
+      .tbl .conf-when {
+        white-space: nowrap;
+      }
+      /* An entry still to confirm has a bold name and nothing louder, as it is
+         no warning. */
+      .tbl tr.unconfirmed .conf-name {
+        font-weight: 600;
+      }
+      /* The class column of the combined heat table (sharedHeatTable,
+         app/event.js). Its fixed width lines up the rows of a start's heats. */
+      .tbl th.cat {
+        width: 74px;
+      }
+      /* The class's own placing, muted so Sija stays the row's lead number. It
+         wraps under a long class name without widening the column. */
+      .cat-rank {
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .tbl th.result {
+        width: 64px;
+      }
+      .tbl .lane {
+        font-weight: 700;
+      }
+      .cell-name {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+      .org {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .result {
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        text-align: right;
+      }
+      tr.ku td {
+        opacity: 0.75;
+      }
+      /* A followed row (rowClass, app/event.js), drawn as docs/style.md,
+         "Emphasis" says. The ladder's sticky cells take their own tint below. */
+      tr.watched {
+        background: var(--watched-bg);
+      }
+      tr.watched td:first-child {
+        box-shadow: inset 3px 0 0 var(--accent);
+      }
+      tr.watched .name-main {
+        font-weight: 700;
+      }
+      .name-badge {
+        display: inline-block;
+        margin-left: 6px;
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        background: var(--warn-bg);
+        color: var(--warn-text);
+        border-radius: 4px;
+        padding: 1px 5px;
+        vertical-align: middle;
+      }
+      /* The heat a row ran in, on the merged view's club line
+         (athleteNameParts, app/event.js). The ::before dot wraps with the tag. */
+      .heat-tag::before {
+        content: ' · ';
+      }
+      /* The name cell's asides (athleteNameParts, app/event.js). An earlier
+         round's mark sits by the name and the bests on the club line. Both
+         stay muted (docs/style.md, "Components"), or a mark reads as this
+         round's result. */
+      .prev-mark {
+        font-size: 12px;
+        font-weight: 400;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .prev-mark::before {
+        content: ' · ';
+      }
+      .name-aside {
+        font-variant-numeric: tabular-nums;
+      }
+      .name-aside::before {
+        content: ' · ';
+      }
+      /* A best this row's result passed is not muted (docs/style.md,
+         "Components"). */
+      .name-aside-beaten {
+        color: var(--text);
+        font-weight: 600;
+      }
+      /* Attempt ladders (fieldLadderTable, verticalJumpTable, app/event.js).
+         Fixed layout lines up the columns of a round's heat tables. The name
+         column has no width, so it takes the slack (docs/style.md, "Width"). */
+      /* In Safari a sticky cell needs border-collapse: separate. It sticks to
+         .tbl-wrap's scroll only while the table's overflow is visible, so
+         .tbl-wrap rounds the corners. */
+      .tbl.ladder {
+        table-layout: fixed;
+        border-collapse: separate;
+        border-spacing: 0;
+        border: none;
+        border-radius: 0;
+        overflow: visible;
+      }
+      .tbl-wrap:has(.tbl.ladder) {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--card);
+      }
+      /* Under fixed layout th.num's 30px is a hard cap, too narrow for SIJA or
+         NRO with their padding. */
+      .tbl.ladder th.num,
+      .tbl.ladder td.num {
+        width: 40px;
+      }
+      /* The attempt columns state the 62px ladderWidth (app/event.js)
+         budgets. Left auto, they would take the slack meant for the names. */
+      .tbl.ladder th.att,
+      .tbl.ladder td.att {
+        width: 62px;
+        text-align: center;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      /* A multi-event's standings (combinedStandingsTable, app/event.js) is a
+         ladder with a column per leg. Its 88px must match STANDINGS_LEG_PX
+         (app/event.js). The heading wraps and the marks do not. */
+      .tbl.standings th.att,
+      .tbl.standings td.att {
+        width: 88px;
+      }
+      .tbl.standings th.att {
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+      /* The note under a leg under way (legStateEl, app/event.js), in lower
+         case and .chip-Progress's colour. */
+      .tbl.standings th.att .leg-state {
+        display: block;
+        font-size: 10px;
+        font-weight: 400;
+        letter-spacing: 0;
+        text-transform: none;
+        color: #c2410c;
+      }
+      @media (prefers-color-scheme: dark) {
+        .tbl.standings th.att .leg-state {
+          color: #ff9d6f;
+        }
+      }
+      /* A leg's heading and cells align left, unlike an attempt's. The points
+         lead and the mark is the muted line under them (standingsCell,
+         app/event.js). A centred heading sits off the cells' left edge. */
+      .tbl.standings th.att,
+      .tbl.standings td.att {
+        text-align: left;
+      }
+      .leg-points {
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      .leg-mark {
+        display: block;
+        font-size: 11px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      /* The gap to the leader under a row's total (gapEl, app/event.js). */
+      .total-gap {
+        display: block;
+        font-size: 11px;
+        font-weight: 400;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      /* SIJA, NRO and NIMI stay in view while the attempts scroll, at offsets
+         that sum the widths above. A meet without bibs drops NRO
+         (bibNumbersUsed, lib/results.js), so .no-bib sticks two columns. */
+      .tbl.ladder:not(.no-bib) th:nth-child(-n + 3),
+      .tbl.ladder:not(.no-bib) td:nth-child(-n + 3) {
+        position: sticky;
+        z-index: 1;
+        background: var(--card);
+      }
+      .tbl.ladder.no-bib th:nth-child(-n + 2),
+      .tbl.ladder.no-bib td:nth-child(-n + 2) {
+        position: sticky;
+        z-index: 1;
+        background: var(--card);
+      }
+      /* A followed row's sticky cells take the opaque tint. A sticky cell needs
+         a solid background, and --card would paint over the row's tint. */
+      .tbl.ladder:not(.no-bib) tr.watched th:nth-child(-n + 3),
+      .tbl.ladder:not(.no-bib) tr.watched td:nth-child(-n + 3) {
+        background: var(--watched-bg-opaque);
+      }
+      .tbl.ladder.no-bib tr.watched th:nth-child(-n + 2),
+      .tbl.ladder.no-bib tr.watched td:nth-child(-n + 2) {
+        background: var(--watched-bg-opaque);
+      }
+      .tbl.ladder th:nth-child(1),
+      .tbl.ladder td:nth-child(1) {
+        left: 0;
+      }
+      .tbl.ladder th:nth-child(2),
+      .tbl.ladder td:nth-child(2) {
+        left: 40px;
+      }
+      .tbl.ladder:not(.no-bib) th:nth-child(3),
+      .tbl.ladder:not(.no-bib) td:nth-child(3) {
+        left: 80px;
+      }
+      /* The emphasis belongs on the final result, not on each attempt along
+         the way to it. */
+      .tbl.ladder td.result {
+        font-weight: 700;
+      }
+      .att-wind {
+        display: block;
+        font-size: 10px;
+        color: var(--muted);
+      }
+      .att-x {
+        color: var(--warn-text);
+      }
+      .att-pass {
+        color: var(--muted);
+      }
+      .att-empty {
+        color: var(--line);
+      }
+      /* Below 700px, main's own split, a ladder does not fit even scrolled.
+         fieldLadderTable and verticalJumpTable (app/event.js) also render
+         cards, and one of the two shows. */
+      .ladder-views > .tbl-wrap {
+        display: none;
+      }
+      @media (min-width: 700px) {
+        .ladder-views > .tbl-wrap {
+          display: block;
+        }
+        .ladder-stack {
+          display: none;
+        }
+      }
+      .ladder-stack {
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--card);
+        overflow: hidden;
+        font-size: 14px;
+        /* The @container rules below measure the width every card shares. */
+        container-type: inline-size;
+      }
+      .ladder-card:not(:first-child) {
+        border-top: 1px solid var(--line);
+      }
+      .ladder-card-head {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 7px 10px;
+      }
+      .ladder-card-head .num {
+        flex: none;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        padding-top: 1px;
+      }
+      .ladder-card-head .cell-name {
+        flex: 1;
+      }
+      .ladder-card-head .result {
+        flex: none;
+        font-weight: 700;
+        padding-top: 1px;
+      }
+      /* One chip per attempt or height (ladderCardAttempt, ladderCardHeight,
+         app/event.js). A vertical jump's heights wrap freely. */
+      .ladder-card-attempts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 12px;
+        padding: 0 10px 8px;
+        font-size: 13px;
+      }
+      /* A throw's or horizontal jump's attempts (fieldLadderCards,
+         app/event.js), in 62px columns that line up down the cards. Three
+         columns split six attempts 3+3. A card of 4 to 6 (data-n) takes one
+         line once the list fits N*62 + (N-1)*10 + 20px. */
+      .ladder-card-attempts.rounds {
+        display: grid;
+        grid-template-columns: repeat(3, 62px);
+        gap: 4px 10px;
+      }
+      @container (min-width: 298px) {
+        .ladder-card-attempts.rounds[data-n='4'] {
+          grid-template-columns: repeat(4, 62px);
+        }
+      }
+      @container (min-width: 370px) {
+        .ladder-card-attempts.rounds[data-n='5'] {
+          grid-template-columns: repeat(5, 62px);
+        }
+      }
+      @container (min-width: 442px) {
+        .ladder-card-attempts.rounds[data-n='6'] {
+          grid-template-columns: repeat(6, 62px);
+        }
+      }
+      /* Left-aligned, so the numbers line up whatever the marks' widths. */
+      .ladder-card-attempts.rounds .att-item {
+        justify-content: flex-start;
+      }
+      .att-item {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 4px;
+      }
+      .att-n {
+        font-size: 10px;
+        color: var(--muted);
+      }
+      /* A followed card, drawn as tr.watched above. */
+      .ladder-card.watched {
+        background: var(--watched-bg);
+      }
+      .ladder-card.watched .ladder-card-head {
+        box-shadow: inset 3px 0 0 var(--accent);
+      }
+      .ladder-card.watched .name-main {
+        font-weight: 700;
+      }
+      .q-badge {
+        font-weight: 700;
+        color: #1e824c;
+      }
+      @media (prefers-color-scheme: dark) {
+        .q-badge {
+          color: #6fdc9c;
+        }
+      }
+      /* A q the round's other heats can still change (qualPending,
+         lib/results.js). */
+      .q-badge-pending {
+        color: var(--muted);
+      }
+      /* A leg's points under its mark (pointsEl, app/event.js). The 64px
+         result column cannot fit both on one line. */
+      .ce-points {
+        display: block;
+        font-size: 11px;
+        font-weight: 400;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      /* A result's cup points under the mark (pointsEl, app/event.js). The
+         points that counted take .name-aside-beaten's weight. */
+      .cup-points {
+        display: block;
+        font-size: 11px;
+        font-weight: 400;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .cup-points-scored {
+        color: var(--text);
+        font-weight: 600;
+      }
+      /* The meet and its day under a medal or cup page's header (renderMedals,
+         app/medals.js; renderCup, app/cup.js). */
+      .medals-meet {
+        margin: -4px 2px 10px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      /* The cup year's two tabs sit under the bar at their own width. The piiri
+         select leads the series chips' row (renderCupSeason, app/cup.js). */
+      .cup-tabs {
+        align-self: flex-start;
+        margin-bottom: 10px;
+      }
+      .cup-final-place {
+        white-space: nowrap;
+      }
+      .aidat-chip-row .track-pick {
+        margin-left: 0;
+        min-width: 0;
+      }
+      .aidat-chip-row .track-pick select {
+        max-width: 100%;
+      }
+      /* The series chips are one flex item, so a narrow row wraps them
+         together under the select. */
+      .cup-series-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      /* The clubs districts.json does not know, under a piiri's table
+         (renderMedals). */
+      .medals-unknown {
+        margin: 8px 2px 14px;
+        color: var(--muted);
+        font-size: 14px;
+      }
+      /* The medalists' and the cup's lines (medalistLineEl, app/medals.js;
+         cupLineEl, app/cup.js). Disc, place, mark and points have fixed slots
+         so the events line up.
+         The club on the title line takes the sub-line's weight. */
+      .medalist-club {
+        font-weight: 400;
+        color: var(--muted);
+      }
+      /* The whole head toggles its row (medalistHeadEl, app/medals.js), with a
+         chevron at the end. The lines under it keep its column so their medals
+         line up. The ▾ is the menu's alone (docs/style.md, "A menu is not a
+         dialog"). */
+      .medalist-head {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        width: 100%;
+        padding: 0;
+        border: 0;
+        margin: 0;
+        background: none;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+      .medalist-head-main {
+        flex: 1;
+        min-width: 0;
+      }
+      .medalist-head-main > * {
+        display: block;
+      }
+      .medalist-chevron {
+        flex: none;
+        width: 14px;
+        align-self: flex-start;
+        padding-top: 5px;
+        color: var(--muted);
+      }
+      .medalist-chevron::after {
+        content: '';
+        display: block;
+        width: 6px;
+        height: 6px;
+        margin: 0 auto;
+        border-right: 1.5px solid;
+        border-bottom: 1.5px solid;
+        transform: rotate(45deg);
+      }
+      .medalist-head[aria-expanded='true'] .medalist-chevron::after {
+        transform: translateY(3px) rotate(-135deg);
+      }
+      .medalist-chevron-none::after {
+        visibility: hidden;
+      }
+      .medalist-head + .medalist-entries {
+        padding-right: 24px;
+      }
+      .medalist-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+      .medalist-bar-end {
+        justify-content: flex-end;
+      }
+      /* The picked club's heading, whose × clears the pick. */
+      .pick-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .pick-clear {
+        position: relative;
+        flex: none;
+        padding: 0 4px;
+        border: 0;
+        background: none;
+        color: var(--muted);
+        font: inherit;
+        font-size: 20px;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .pick-clear::after {
+        content: '';
+        position: absolute;
+        inset: -10px;
+      }
+      .pick-clear:active {
+        color: var(--text);
+      }
+      .medalist-all {
+        padding: 0;
+        border: 0;
+        background: none;
+        color: var(--muted);
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .medalist-entries {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        margin-top: 4px;
+      }
+      .medalist-entry {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        font-size: 13px;
+        color: inherit;
+        text-decoration: none;
+      }
+      .medalist-disc {
+        flex: none;
+        width: 12px;
+      }
+      .medalist-event {
+        flex: 1;
+        min-width: 0;
+      }
+      .medalist-sub {
+        color: var(--muted);
+      }
+      .medalist-place {
+        flex: none;
+        min-width: 38px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .medalist-mark {
+        flex: none;
+        min-width: 42px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .medalist-result {
+        flex: none;
+        min-width: 48px;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .medal {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        vertical-align: -1px;
+      }
+      .medal-1 {
+        background: var(--gold);
+      }
+      .medal-2 {
+        background: var(--silver);
+      }
+      .medal-3 {
+        background: var(--bronze);
+      }
+      /* A medal table's picked club fills its row, a toggle's on state. Each
+         metal has a fixed slot so the counts line up (medalSlotsEl,
+         app/medals.js). */
+      .tbl tr:has(.club-pick) {
+        cursor: pointer;
+      }
+      .club-pick {
+        all: unset;
+      }
+      .club-pick:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .tbl tr.picked td {
+        background: var(--accent);
+        color: var(--accent-text);
+      }
+      .medal-slots {
+        flex: none;
+        align-self: center;
+        display: grid;
+        grid-template-columns: repeat(3, 34px);
+        font-size: 13px;
+        font-variant-numeric: tabular-nums;
+      }
+      .medal-slot {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      /* The hurdle setup box (hurdleBox, app/hurdles.js). A hurdle is placed
+         by its height and painted mark, so behind a mark the distances are
+         muted and the count is not. A row with no mark has its distances
+         unmuted, as they are what gets taped. */
+      .hurdle-dim {
+        color: var(--muted);
+      }
+      .hurdle-none {
+        color: var(--muted);
+      }
+      /* A heat's heading is a row inside the table, so a start's heats share
+         columns (hurdleSetupTable, app/hurdles.js). */
+      .tbl .hurdle-heat th {
+        padding-top: 11px;
+      }
+      details.hurdles .tbl-wrap + .tbl-wrap {
+        margin-top: 10px;
+      }
+      /* The lanes lead the row and the classes standing in them are the
+         context under it, drawn like the club under a name. */
+      .hurdle-lanes {
+        font-variant-numeric: tabular-nums;
+      }
+      .hurdle-cats {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      /* The glyph and the colour it names stay on one line in this narrow
+         cell. */
+      .hurdle-mark-name {
+        white-space: nowrap;
+      }
+      /* A mark keeps the paint's colours in both themes, and the stroke carries
+         the contrast (markGlyph, app/hurdles.js). */
+      .hurdle-mark {
+        width: 14px;
+        height: 14px;
+        margin-right: 6px;
+        vertical-align: -2px;
+        fill: var(--mark);
+        stroke: var(--muted);
+      }
+      .hurdle-mark-blue {
+        --mark: #1f5fbf;
+      }
+      .hurdle-mark-yellow {
+        --mark: #f2c200;
+      }
+      .hurdle-mark-green {
+        --mark: #2f9e44;
+      }
+      .hurdle-mark-black {
+        --mark: #14181d;
+      }
+      .hurdle-mark-white {
+        --mark: #ffffff;
+      }
+      /* A hurdle start's setting lines on the day list (hurdleRowLines,
+         app/hurdles.js). They are the row's payload and keep the text colour. */
+      .hurdle-line {
+        display: flex;
+        flex-wrap: wrap;
+        column-gap: 0.4em;
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+      }
+      .hurdle-bit + .hurdle-bit::before {
+        content: '· ';
+      }
+      /* The mitat sit at the right edge as on the sheet, and never break across
+         two lines. */
+      .hurdle-dims {
+        margin-left: auto;
+        white-space: nowrap;
+      }
+      /* The class leading a line is its label, so it stays muted. */
+      .hurdle-lead {
+        color: var(--muted);
+      }
+      /* The aitaviesti taping figure (shuttleTapeFigure, app/hurdles.js), a
+         lane per direction (docs/hurdles.md, "Aitaviesti"). */
+      .shuttle-legend {
+        margin: 8px 0 0;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .shuttle-tapes {
+        overflow-x: auto;
+        margin: 2px 0 6px;
+        cursor: pointer;
+      }
+      .shuttle-tapes svg {
+        display: block;
+      }
+      .shuttle-measure,
+      .shuttle-tick {
+        stroke: var(--muted);
+      }
+      .shuttle-end {
+        stroke: var(--muted);
+        stroke-width: 1.5;
+      }
+      .shuttle-tape {
+        fill: var(--text);
+      }
+      .shuttle-foot {
+        stroke: var(--text);
+        stroke-width: 2;
+      }
+      .shuttle-mark {
+        fill: var(--mark);
+        stroke: var(--muted);
+      }
+      .shuttle-num {
+        font-size: 11px;
+        fill: var(--text);
+        font-variant-numeric: tabular-nums;
+      }
+      /* Both 10 px sizes below are measured for the strip's margins
+         (labelWidth, app/hurdles.js). */
+      .shuttle-dim-label {
+        font-size: 10px;
+        fill: var(--muted);
+      }
+      .shuttle-lane-name {
+        font-size: 10px;
+        fill: var(--muted);
+      }
+      /* The printable day sheet (renderHurdleSheet, app/hurdles.js). */
+      .aidat-venue {
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+      /* A section's title takes the tables' own type, unlike a column's. */
+      .tbl .aidat-title th {
+        padding-top: 18px;
+        font-size: 14px;
+        color: var(--text);
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      .aidat-cats {
+        color: var(--muted);
+        font-weight: 400;
+      }
+      .aidat-figure {
+        padding: 2px 6px 10px;
+      }
+      /* The strip is sized to the app column (shuttleTapeFigure), a cell's
+         padding wider than the cell. It scales down, or the shared table would
+         widen past its wrap. */
+      .aidat-figure .shuttle-tapes svg {
+        max-width: 100%;
+        height: auto;
+      }
+      .aidat-tbl tbody {
+        break-inside: avoid;
+      }
+      /* The table pages (renderHurdleTable, renderImplementTable): the age
+         chips, and merged rows naming many classes, which have to wrap. */
+      .aidat-chips {
+        margin-bottom: 8px;
+      }
+      .aidat-chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 6px;
+      }
+      .aidat-chip-lead {
+        min-width: 3em;
+        margin-right: 4px;
+      }
+      .aidat-chips .chip-toggle {
+        font-size: 13px;
+        padding: 4px 10px;
+      }
+      .setup-tbl.aidat-all td:first-child {
+        white-space: normal;
+      }
+      /* Merkintä takes the slack, so the class list needs a width of its own or
+         wraps a class a line. This one fits two or three. */
+      .aidat-all .hurdle-cats-cell {
+        display: inline-block;
+        width: 11em;
+      }
+      .aidat-page h2 {
+        margin-top: 16px;
+      }
+      .aidat-print {
+        display: none;
+      }
+      .aidat-extra {
+        margin-top: 16px;
+      }
+      /* The mitat stay unmuted on this page, as it is read for the figures and
+         paper loses the muting. */
+      .aidat-all td.num.hurdle-dim {
+        color: var(--text);
+      }
+      /* In the implement tables a heading wraps and the weight never does. The
+         class column stays put when a wide table scrolls on a phone. */
+      .valineet-tbl .setup-cols th {
+        white-space: normal;
+      }
+      /* overflow and border-collapse as the ladder's, for its sticky cell's
+         two reasons (.tbl.ladder above). */
+      .valineet-tbl {
+        overflow: visible;
+        border-collapse: separate;
+        border-spacing: 0;
+      }
+      .valineet-tbl th:first-child,
+      .valineet-tbl td:first-child {
+        position: sticky;
+        left: 0;
+        background: var(--card);
+      }
+      /* The day sheet and a start's box share .setup-tbl and its five columns.
+         Merkintä takes the slack the classes have no use for. */
+      .setup-tbl th.setup-mark {
+        width: 100%;
+      }
+      /* Merkintä's slack squeezes the lead to its narrowest word, and a
+         class list or a lane list read broken is read wrong. */
+      .setup-tbl td:first-child,
+      .setup-tbl .hurdle-cats {
+        white-space: nowrap;
+      }
+      /* The columns need 417 px in the box and 437 on the sheet at the ordinary
+         size, where a phone offers 370. At this size they need 350, the widest
+         mitat in hurdles.json included. Print never matches a screen query. */
+      @media screen and (max-width: 520px) {
+        .setup-tbl {
+          font-size: 12px;
+        }
+        .setup-tbl th,
+        .setup-tbl td {
+          padding: 6px 3px;
+        }
+        .setup-tbl .setup-cols th {
+          font-size: 10px;
+          letter-spacing: 0;
+        }
+        /* The table page's merged rows name many classes, and the youngest
+           run two heights. An auto table cannot cap a cell, so the
+           class list is a capped span and Korkeus wraps at "tai".
+           dev/probe-aitataulukko.js measured 542 px against 343. */
+        .aidat-all {
+          font-size: 11px;
+        }
+        .aidat-all th,
+        .aidat-all td {
+          padding: 6px 2px;
+        }
+        .aidat-all .hurdle-cats-cell {
+          width: 5.5em;
+        }
+        .aidat-all td.num:nth-child(2) {
+          white-space: normal;
+        }
+        .valineet-tbl td.num {
+          white-space: nowrap;
+        }
+      }
+      .notice {
+        padding: 14px;
+        color: var(--muted);
+      }
+      .notice.error {
+        color: var(--warn-text);
+        background: var(--warn-bg);
+        border-radius: 10px;
+      }
+      /* A link in a .notice's muted text needs the accent to look clickable. */
+      .notice a {
+        color: var(--accent);
+        text-decoration: underline;
+      }
+      /* A small aside, at the weight of .wind and .round-name. */
+      .qual-note {
+        font-size: 13px;
+        color: var(--muted);
+        margin: -6px 0 12px;
+      }
+      .btn {
+        display: inline-block;
+        padding: 10px 16px;
+        margin: 8px 0;
+        border: none;
+        border-radius: 10px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 15px;
+        font-weight: 600;
+        font-family: inherit;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .btn:active {
+        filter: brightness(0.85);
+      }
+      .btn-secondary {
+        background: var(--card);
+        color: var(--text);
+        border: 1px solid var(--line);
+      }
+      /* Watches */
+      /* The schedule view's filter bar (filterBar, app/follow.js). It wraps
+         before any control gets too small to tap. */
+      .filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .filter-bar .btn {
+        margin: 0;
+      }
+      /* The segmented toggle. aria-pressed is its state and its style hook,
+         drawn like the current .day-tab. */
+      .seg {
+        display: inline-flex;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        overflow: hidden;
+        background: var(--card);
+      }
+      .seg-btn {
+        border: none;
+        background: none;
+        color: var(--text);
+        font-family: inherit;
+        font-size: 14px;
+        padding: 9px 12px;
+        cursor: pointer;
+      }
+      .seg a.seg-btn {
+        text-decoration: none;
+      }
+      .seg-btn[aria-pressed='true'],
+      .seg-btn[aria-current] {
+        background: var(--accent);
+        color: var(--accent-text);
+        font-weight: 600;
+      }
+      /* The athlete quick-filter's chip reuses .watch-chip but at control
+         size, so it reads as a peer of the buttons beside it. */
+      .filter-bar .watch-chip {
+        font-size: 14px;
+        padding: 8px 8px 8px 14px;
+      }
+      /* The "Näytä:" prefix is muted, so the name stays what is read. */
+      .watch-chip-prefix {
+        color: var(--muted);
+      }
+      /* Padding grows the × to a touch target and an equal negative margin
+         keeps the chip's size (dev/probe.js). */
+      .filter-bar .watch-chip-remove {
+        font-size: 17px;
+        padding: 8px 12px;
+        margin: -7px -10px -7px -10px;
+      }
+      /* Links inside dense lines, such as a results row's name and club or a
+         leg's heading. A dotted underline in the text's colour keeps them from
+         outshouting the numbers. */
+      .athlete-link,
+      .leg-link,
+      .club-link,
+      .cup-final-link,
+      .cup-site-link,
+      .medals-meet a {
+        color: inherit;
+        text-decoration: underline dotted;
+        text-underline-offset: 2px;
+        cursor: pointer;
+      }
+      /* The row a reader looks for, with tr.watched's tint and bar
+         (docs/style.md, "Emphasis"). */
+      .row.watched {
+        background: var(--watched-bg);
+        box-shadow: inset 3px 0 0 var(--accent);
+      }
+      .watch-create {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      /* The picker's results scroll on their own, so many matches cannot push
+         the inputs out of the sheet. */
+      .watch-search-results {
+        max-height: 38vh;
+        overflow-y: auto;
+      }
+      .watch-picks {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .watch-picks:empty {
+        display: none;
+      }
+      .watch-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 6px 4px 10px;
+        border-radius: 999px;
+        background: var(--line);
+        font-size: 13px;
+      }
+      .watch-chip-off {
+        opacity: 0.6;
+      }
+      .watch-chip-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .watch-chip-remove {
+        border: none;
+        background: none;
+        color: inherit;
+        font-size: 15px;
+        line-height: 1;
+        padding: 2px;
+        cursor: pointer;
+        opacity: 0.7;
+      }
+      .watch-chip-remove:active {
+        opacity: 1;
+      }
+      /* A followed athlete on a front-page row, checked by dev/probe-home.js.
+         Name and club are fixed widths so they line up down the page. The
+         events take the rest, and as the last column they push nothing apart. */
+      .scan-athletes {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        margin-top: 4px;
+      }
+      .scan-athlete {
+        display: grid;
+        grid-template-columns: 140px 52px minmax(0, 1fr);
+        align-items: baseline;
+        column-gap: 6px;
+        font-size: 13px;
+      }
+      .scan-athlete-name {
+        overflow-wrap: anywhere;
+      }
+      .scan-athlete-club {
+        color: var(--muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .scan-athlete-events {
+        color: var(--muted);
+        overflow-wrap: anywhere;
+      }
+      @media (max-width: 420px) {
+        /* One entry's events can need the whole row at phone width (2026-08),
+           so they take a line of their own. The name keeps its 140px and the
+           club takes the rest. An auto club column would give each row its
+           own name width. */
+        .scan-athlete {
+          grid-template-columns: 140px minmax(0, 1fr);
+        }
+        .scan-athlete-events {
+          grid-column: 1 / -1;
+        }
+      }
+      .scan-more {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .scan-pending {
+        margin-top: 10px;
+      }
+      .watch-row-athletes {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        margin-top: 2px;
+      }
+      .watch-provisional-note {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 4px;
+      }
+      /* A followed athlete's line on the day list. Every column
+         is fixed, so all lines share their x. A phone's row is 346px, and the
+         gaps and the four columns beside the name take 200px. */
+      .watch-row-athlete {
+        display: grid;
+        grid-template-columns: 30px 140px 48px 40px 58px;
+        align-items: baseline;
+        column-gap: 6px;
+        font-size: 13px;
+        /* A grid is a block box, so without this it fills its parent past its
+           fixed columns (dev/probe.js). */
+        width: fit-content;
+      }
+      .watch-row-cat {
+        font-weight: 600;
+        color: var(--muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .watch-row-name {
+        overflow-wrap: anywhere;
+      }
+      .watch-row-legs {
+        color: var(--muted);
+        font-size: 12px;
+      }
+      /* A relay's runner followed by name, unmuted among the legs
+         (relayLegEls, app/follow.js). */
+      .leg-followed {
+        color: var(--text);
+        font-weight: 600;
+      }
+      /* A missing short name leaves the club's full name, so it truncates. The
+         title carries the whole name. */
+      .watch-row-team {
+        color: var(--muted);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .watch-row-pos {
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        text-align: right;
+      }
+      /* A round-wide rank that the round's other heats can still change
+         (allocPosition, lib/results.js). It is muted, as it is real but not
+         final. */
+      .watch-row-pos-pending {
+        color: var(--muted);
+      }
+      /* The badge's slot is reserved on every row (qualBadgeEl, app/follow.js),
+         so the mark's right edge lines up with or without one. It comes out of
+         the 58px, as the row is at its 346px budget. */
+      .watch-row-result {
+        display: grid;
+        grid-template-columns: 1fr 13px;
+        column-gap: 2px;
+        align-items: baseline;
+        white-space: nowrap;
+      }
+      .watch-row-mark {
+        font-variant-numeric: tabular-nums;
+        font-weight: 700;
+        text-align: right;
+      }
+      /* A multi-event line's points unit sits in the badge's slot, muted
+         (combinedWatchLine, app/meet.js). */
+      .watch-row-unit {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .help-list,
+      .help-text {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-height: 60vh;
+        overflow-y: auto;
+        margin: 2px 0 6px;
+        font-size: 14px;
+        line-height: 1.4;
+      }
+      .help-item {
+        display: flex;
+        gap: 10px;
+        align-items: baseline;
+      }
+      .help-term {
+        flex: none;
+        width: 88px;
+        font-weight: 600;
+      }
+      .help-sub {
+        margin-top: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+      }
+      .help-what {
+        flex: 1;
+        min-width: 0;
+        color: var(--muted);
+      }
+      .help-text p {
+        margin: 0;
+      }
+      .help-text a {
+        color: inherit;
+        text-decoration: underline;
+      }
+      .sheet {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.45);
+        padding: 12px;
+        padding-bottom: calc(env(safe-area-inset-bottom) + 12px);
+      }
+      @media (min-width: 700px) {
+        .sheet {
+          align-items: center;
+        }
+      }
+      .sheet-card {
+        width: 100%;
+        max-width: 460px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 14px;
+        border-radius: 16px;
+        background: var(--card);
+        border: 1px solid var(--line);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        /* .sheet does not scroll, so a card taller than the viewport scrolls
+           itself. The 24px is .sheet's padding. */
+        max-height: calc(100vh - 24px);
+        overflow-y: auto;
+      }
+      /* The title and ×, sticky in the card's scroll so the only way out stays
+         in reach. Its background hides the content scrolling under it. */
+      .sheet-head {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding-bottom: 6px;
+        background: var(--card);
+      }
+      .sheet-title {
+        flex: 1;
+        min-width: 0;
+        font-weight: 700;
+        font-size: 16px;
+        margin-bottom: 2px;
+      }
+      .sheet-close {
+        position: relative;
+        flex: none;
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--muted);
+        font-family: inherit;
+        font-size: 22px;
+        line-height: 1;
+        cursor: pointer;
+      }
+      /* As header#help's, the hit area grows past the 28px circle without
+         moving the layout. */
+      .sheet-close::after {
+        content: '';
+        position: absolute;
+        inset: -8px;
+      }
+      .sheet-close:active {
+        color: var(--text);
+      }
+      /* A quiet line of context inside a sheet, such as the picker's
+         competition. A .notice would read as news. */
+      .sheet-hint {
+        font-size: 13px;
+        color: var(--muted);
+        margin: -2px 2px 0;
+      }
+      /* A dialog's buttons span the card, and a menu has none
+         (docs/style.md, "A menu is not a dialog"). */
+      .sheet-card .btn {
+        margin: 0;
+        width: 100%;
+        text-align: center;
+      }
+
+      /* --- A menu ------------------------------------------------------
+         A list of choices on the same layer as a sheet (openMenu,
+         app/shell.js). It is anchored to its button, does not dim the page
+         and closes when the button moves. */
+      /* Absolute, so 100% is .sheet's padding box. min() keeps the 12px margin
+         menuAnchorPos (lib/routes.js) places it against below 364px. */
+      .sheet-menu .sheet-card {
+        max-width: min(340px, 100% - 24px);
+      }
+      .sheet-menu.sheet-anchored {
+        background: transparent;
+      }
+      /* .sheet is fixed and inset: 0, so absolute here is in viewport
+         coordinates, the ones openMenu measures the button in. */
+      .sheet-menu.sheet-anchored .sheet-card {
+        position: absolute;
+      }
+      /* Baseline, as the selected row is two lines tall and a centred tick
+         lands between them. */
+      .menu .row {
+        align-items: baseline;
+        cursor: pointer;
+      }
+      /* The tick's column is on every row so the labels line up. It also holds
+         the + of the row that creates a Watch. */
+      .menu-check {
+        flex: none;
+        width: 14px;
+        text-align: center;
+        color: var(--muted);
+      }
+      /* What can be done to the selected Watch, one per line under its row
+         (watchMenu, app/follow.js, docs/style.md, "A menu is not a dialog").
+         Each button stretches to a full-width target. 5px of padding leaves
+         10px between labels, closer than the choice rows, or the actions read
+         as items of their own. */
+      .menu-actions {
+        display: flex;
+        flex-direction: column;
+        margin-top: 2px;
+      }
+      .menu-action {
+        border: none;
+        background: none;
+        padding: 5px 0;
+        color: inherit;
+        font-family: inherit;
+        font-size: 14px;
+        text-align: left;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        cursor: pointer;
+      }
+      .menu-action:disabled {
+        color: var(--muted);
+        text-decoration: none;
+      }
+      /* A cover's classes, one chip each, head its event list (openCoverSheet,
+         app/follow.js). The chips take the hurdle table's size, as they are
+         tapped. */
+      .cover-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 8px;
+      }
+      .cover-chips .chip-toggle {
+        font-size: 13px;
+        padding: 4px 10px;
+      }
+      /* The sheets a tapped row opens and the scopes sheet (openAthleteSheet,
+         app/follow.js), each with a class a probe can name. A round's name is
+         muted and its mark is not. */
+      .athlete-sheet,
+      .club-sheet,
+      .scope-sheet {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .athlete-marks {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 14px;
+      }
+      .athlete-mark {
+        display: flex;
+        gap: 10px;
+        align-items: baseline;
+      }
+      .athlete-mark-round {
+        flex: 1;
+        min-width: 0;
+        color: var(--muted);
+      }
+      .athlete-mark-result {
+        flex: none;
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+      }
+      /* --- The lap counter (Juoksut mode) ------------------------------
+         Nothing here changes what the rest of the page draws. Its comments state
+         the look: each call's colour, the pulses, the flashes and what reduced
+         motion keeps. Where it departs from docs/style.md is in
+         docs/lap-counter.md, "Where the look departs from the shared style".
+         .tab is the heat selector, with a larger touch target than .day-tab
+         for cold hands. */
+
+      /* This column shows the coming event to anyone not watching the tiles. */
+      .tbl th.next {
+        width: 46px;
+      }
+      tr.row-finished td {
+        background: #27ae6014;
+      }
+      tr.row-tappable {
+        cursor: pointer;
+      }
+      tr.row-tappable:active td {
+        filter: brightness(0.94);
+      }
+      tr.row-out td {
+        opacity: 0.5;
+      }
+      .mark {
+        font-weight: 700;
+        color: var(--warn-text);
+      }
+
+      /* The place is the drag handle for correcting the order. Without
+         touch-action: none the page scrolls under the finger and cancels the
+         drag. */
+      .tbl .grip {
+        display: flex;
+        align-items: baseline;
+        /* The handle sits at the left edge and the place at the right, as in
+           every .num column. */
+        justify-content: space-between;
+        gap: 3px;
+        width: calc(100% + 12px);
+        margin: -7px -6px;
+        padding: 7px 6px;
+        border: none;
+        background: none;
+        color: inherit;
+        font: inherit;
+        font-variant-numeric: tabular-nums;
+        cursor: grab;
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      /* The grip is muted and smaller than the place, as it is an affordance
+         and not read down the column. */
+      .grip-mark {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .tbl.reorderable th.num:first-child {
+        width: 44px;
+      }
+      /* The dragged row follows the finger and the rows it passes step aside,
+         both by transform. Only the rows in the dragged span transition. */
+      tr.row-movable {
+        transition: transform 120ms ease;
+      }
+      tr.row-dragging {
+        position: relative;
+        z-index: 2;
+        transition: none;
+        cursor: grabbing;
+      }
+      tr.row-dragging td {
+        background: var(--card);
+        box-shadow: 0 2px 10px #0006;
+      }
+      tr.row-dragging .grip {
+        cursor: grabbing;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        tr.row-movable {
+          transition: none;
+        }
+      }
+
+      .sheet-cancel {
+        opacity: 0.75;
+      }
+
+      /* The clock's correction readout shows where the zero lands and what
+         that does to every time. */
+      .adj-readout {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        font-variant-numeric: tabular-nums;
+      }
+      .adj-start {
+        font-size: 14px;
+      }
+      .adj-shift {
+        font-size: 20px;
+        font-weight: 700;
+      }
+      .adj-shift.none {
+        font-size: 14px;
+        font-weight: 400;
+        color: var(--muted);
+      }
+      .adj-warn {
+        font-size: 13px;
+        color: var(--warn-text);
+      }
+      .adj-note {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .adj-warn:empty {
+        display: none;
+      }
+      /* Four nudges, one and five seconds each way, share a row (NUDGES,
+         app/laps.js). They are wide targets, as the tiles are. */
+      .adj-nudges {
+        display: flex;
+        gap: 6px;
+      }
+      .adj-nudges .btn {
+        flex: 1;
+        margin: 0;
+        padding: 12px 4px;
+        text-align: center;
+      }
+      .adj-label {
+        font-size: 13px;
+        color: var(--muted);
+        margin-top: 2px;
+      }
+      /* The anchor is a competitor and their real time. Native controls give a
+         phone's own picker and the numeric keypad. */
+      .adj-select,
+      .adj-time {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--line);
+        background: var(--card);
+        color: var(--text);
+        font: inherit;
+        font-size: 16px; /* under 16px iOS zooms the whole page on focus */
+      }
+      .adj-time {
+        font-variant-numeric: tabular-nums;
+      }
+      /* This sheet picks the competitors this phone counts. Its list scrolls,
+         so a large heat keeps the buttons on screen. */
+      .pick-count {
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .pick-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        max-height: 46vh;
+        overflow-y: auto;
+        margin: 2px 0 4px;
+      }
+      .pick-row {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        width: 100%;
+        padding: 9px 10px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--card);
+        color: var(--text);
+        font: inherit;
+        font-size: 14px;
+        text-align: left;
+        cursor: pointer;
+      }
+      .pick-row.on {
+        border-color: #3d8bfd;
+        background: #3d8bfd1f;
+      }
+      .pick-tick {
+        width: 14px;
+        color: transparent;
+        font-weight: 800;
+      }
+      .pick-row.on .pick-tick {
+        color: #3d8bfd;
+      }
+      .pick-num {
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        min-width: 42px;
+      }
+      .pick-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .laps-toolbar {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin: 8px 0;
+      }
+      .laps-toolbar .btn {
+        margin: 0;
+      }
+      /* A tap on the clock starts it, and a long press opens its sheet. */
+      .clock {
+        position: relative;
+        overflow: hidden;
+        font-size: 32px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        min-width: 82px;
+        padding: 2px 8px;
+        line-height: 1.15;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--card);
+        color: var(--text);
+        font-family: inherit;
+        cursor: pointer;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+        touch-action: manipulation;
+      }
+      .clock:active {
+        filter: brightness(0.92);
+      }
+      /* The clock fills up while held, so the sheet is never a surprise. */
+      .clock::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        height: 4px;
+        width: 0;
+        background: var(--warn-text);
+      }
+      .clock.holding::after {
+        width: 100%;
+        transition: width 700ms linear;
+      }
+      .clock-hint {
+        flex: 1;
+        min-width: 0;
+        font-size: 10px;
+        line-height: 1.4;
+        color: var(--muted);
+      }
+      /* The unofficial-times note sits under the standings and in the pack
+         sheet. It wraps, as a second line there costs the grid nothing. */
+      .laps-info {
+        margin-top: 8px;
+        font-size: 12px;
+        line-height: 1.4;
+        color: var(--muted);
+      }
+      /* The age chips and the counter's split share this toggling chip. */
+      .chip-toggle {
+        font-size: 11px;
+        font-family: inherit;
+        border: 1px solid var(--line);
+        background: var(--card);
+        color: var(--muted);
+        cursor: pointer;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+      }
+      .chip-toggle.on {
+        border-color: #27ae60;
+        color: #27ae60;
+      }
+      /* The pack chip counts the crossings still to record, in the overdue
+         tiles' colour. It sits between the two toggles, which space-between
+         pins to the ends, so neither moves under a finger. */
+      .chip-pack {
+        font-size: 11px;
+        font-family: inherit;
+        border: 1px solid var(--warn-text);
+        background: var(--warn-bg);
+        color: var(--warn-text);
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+      }
+      /* The pack sheet notes whose crossings are missing beside their name. */
+      .pick-note {
+        margin-left: auto;
+        padding-left: 8px;
+        font-size: 11px;
+        color: var(--muted);
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+      }
+      /* A lap down is muted and on the name's line, as it is a fact about the
+         competitor. */
+      .laps-down {
+        margin-left: 6px;
+        font-size: 11px;
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+      .laps-info-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: nowrap;
+        gap: 10px;
+        margin: 6px 0 8px;
+        /* Holds its height while empty, as the finished chip appears mid-race
+           and a taller row would push the grid under the referee's finger. */
+        min-height: 28px;
+      }
+      .heat-tabs {
+        display: flex;
+        gap: 6px;
+        margin: 8px 0;
+      }
+      /* A crowded heat trades the clock's size for a row of tiles. */
+      .laps-toolbar.dense {
+        gap: 6px;
+        margin: 6px 0;
+      }
+      .laps-toolbar.dense .clock {
+        font-size: 25px;
+        min-width: 64px;
+        padding: 2px 7px;
+      }
+      .laps-toolbar.dense .btn {
+        padding: 7px 12px;
+        font-size: 14px;
+      }
+      .tab {
+        padding: 8px 14px;
+        border: 1px solid var(--line);
+        border-radius: 99px;
+        background: var(--card);
+        color: var(--text);
+        font-size: 14px;
+        font-family: inherit;
+      }
+      .tab.active {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
+      /* Density comes from the field's size (d2/d3/d4, app/laps.js), and the
+         queries below add columns by width alone. A tier that changed with
+         height would move the grid under a finger mid-race. */
+      /* pan-y lets a two-finger brush mid-race scroll or do nothing, never
+         zoom. iOS ignores user-scalable=no but honours this. */
+      .tile-grid {
+        display: grid;
+        gap: 8px;
+        touch-action: pan-y;
+      }
+      .tile-grid.d2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .tile-grid.d3 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
+      }
+      .tile-grid.d4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 5px;
+      }
+      @media (min-width: 560px) {
+        .tile-grid.d2 {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+        .tile-grid.d3 {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+        .tile-grid.d4 {
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+      }
+      @media (min-width: 900px) {
+        .tile-grid.d2 {
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+        .tile-grid.d3 {
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+        .tile-grid.d4 {
+          grid-template-columns: repeat(6, minmax(0, 1fr));
+        }
+      }
+      .tile {
+        display: block;
+        text-align: left;
+        padding: 10px 12px;
+        min-height: 96px;
+        background: var(--card);
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        font-family: inherit;
+        font-size: 14px;
+        cursor: pointer;
+        -webkit-user-select: none;
+        user-select: none;
+        touch-action: manipulation;
+      }
+      .tile:active {
+        transform: scale(0.97);
+      }
+      .tile .t-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 6px;
+      }
+      .tile .bib {
+        font-size: 26px;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+      .tile .t-name {
+        font-weight: 600;
+        overflow-wrap: anywhere;
+      }
+      .tile .t-sub {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .tile .t-laps {
+        margin-top: 6px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      /* In the denser tiers the bib stays the biggest thing on the tile. The
+         name is clamped so every row keeps its height. */
+      .tile-grid.d3 .tile {
+        min-height: 76px;
+        padding: 8px 9px;
+        border-radius: 10px;
+      }
+      .tile-grid.d3 .bib {
+        font-size: 22px;
+      }
+      .tile-grid.d3 .t-name {
+        font-size: 13px;
+      }
+      .tile-grid.d3 .t-laps {
+        margin-top: 4px;
+        font-size: 13px;
+      }
+      .tile-grid.d4 .tile {
+        min-height: 64px;
+        padding: 6px 7px;
+        border-radius: 9px;
+      }
+      .tile-grid.d4 .bib {
+        font-size: 19px;
+      }
+      .tile-grid.d4 .t-name {
+        font-size: 11px;
+      }
+      .tile-grid.d4 .t-laps {
+        margin-top: 3px;
+        font-size: 11px;
+      }
+      .tile-grid.d3 .t-name,
+      .tile-grid.d4 .t-name {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        overflow-wrap: anywhere;
+      }
+      /* The call says what to shout, ring or record at the coming crossing.
+         Each kind has its own colour, so it reads before it is read. */
+      .tile .call {
+        font-size: 21px;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+      .tile-grid.d3 .call {
+        font-size: 18px;
+      }
+      .tile-grid.d4 .call {
+        font-size: 15px;
+      }
+      .tile .t-meta {
+        margin-left: 7px;
+        font-weight: 400;
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .tile-grid.d4 .t-meta {
+        font-size: 10px;
+        margin-left: 5px;
+      }
+      .tile.call-bell .call {
+        color: #e8a13c;
+      }
+      .tile.call-finish .call {
+        color: #27ae60;
+      }
+      /* The handover has its own colour. Its action is to send the next runner
+         to the zone. */
+      .tile.call-exchange .call {
+        color: #b06ae0;
+      }
+
+      /* A due tile's competitor is inside their warning window. It lights up in
+         its call's colour and bumps to catch the eye. */
+      .tile.due {
+        border-width: 2px;
+      }
+      .tile.call-laps.due {
+        border-color: #3d8bfd;
+        background: #3d8bfd1f;
+      }
+      .tile.call-bell.due {
+        border-color: #e8a13c;
+        background: #e8a13c2e;
+      }
+      .tile.call-finish.due {
+        border-color: #27ae60;
+        background: #27ae602e;
+      }
+      .tile.call-exchange.due {
+        border-color: #b06ae0;
+        background: #b06ae02e;
+      }
+      .tile.due {
+        animation: tile-bump 1s ease-in-out infinite;
+      }
+      /* An overdue tile's press was likely missed. It is louder and faster. */
+      .tile.overdue {
+        border-width: 2px;
+        border-color: var(--warn-text);
+        background: var(--warn-bg);
+        animation: tile-bump 520ms ease-in-out infinite;
+      }
+      .tile.overdue .call,
+      .tile.overdue .t-meta {
+        color: var(--warn-text);
+      }
+      @keyframes tile-bump {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.035);
+        }
+      }
+      /* The flash confirms that a press landed, without a look for it. The
+         tiles share it with the clock when it is started. */
+      .tile.tapped,
+      .clock.tapped {
+        animation: tap-flash 450ms ease-out;
+      }
+      /* A press refused as a double tap shakes, and gets no buzz. */
+      .tile.rejected {
+        animation: tap-reject 520ms ease-out;
+      }
+      @keyframes tap-reject {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        15% {
+          transform: translateX(-5px);
+          background: var(--warn-bg);
+          border-color: var(--warn-text);
+        }
+        45% {
+          transform: translateX(5px);
+          background: var(--warn-bg);
+          border-color: var(--warn-text);
+        }
+        75% {
+          transform: translateX(-2px);
+        }
+      }
+      @keyframes tap-reject-still {
+        0%,
+        60% {
+          background: var(--warn-bg);
+          border-color: var(--warn-text);
+        }
+        100% {
+          background: var(--card);
+        }
+      }
+      .tile.tapped-big {
+        animation: tap-flash-big 600ms ease-out;
+      }
+      @keyframes tap-flash {
+        0% {
+          background: var(--accent);
+          border-color: var(--accent);
+        }
+        100% {
+          background: var(--card);
+        }
+      }
+      @keyframes tap-flash-big {
+        0%,
+        40% {
+          background: var(--accent);
+          border-color: var(--accent);
+          transform: scale(1.05);
+        }
+        100% {
+          background: var(--card);
+          transform: scale(1);
+        }
+      }
+      .tile.finished {
+        border-color: #27ae6066;
+        opacity: 0.55;
+      }
+      .tile.finished .call {
+        color: #27ae60;
+      }
+      .tile.out {
+        opacity: 0.4;
+      }
+      .tile.out .call,
+      .tile.out .t-meta {
+        color: var(--warn-text);
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .tile.due,
+        .tile.overdue,
+        .tile.tapped,
+        .tile.tapped-big,
+        .clock.tapped {
+          animation: none;
+        }
+        /* Still says no, without the shake. */
+        .tile.rejected {
+          animation: tap-reject-still 520ms ease-out;
+        }
+      }
+
+      /* The next-up band holds the arrivals in slots that never sort, one line
+         each (bandSlots, lib/lap-counter.js). It carries the tiles' state
+         classes, so due, overdue and the tap flash read the same. */
+      .band {
+        display: flex;
+        gap: 6px;
+        margin: 0 0 8px;
+      }
+      .band-slot {
+        display: flex;
+        align-items: baseline;
+        gap: 5px;
+        flex: 1;
+        min-width: 0;
+        padding: 6px 8px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--card);
+        color: var(--text);
+        font-family: inherit;
+        text-align: left;
+        cursor: pointer;
+        /* A slot sets its own height, so a band filling as the field comes
+           round does not push the grid under a finger. */
+        min-height: 34px;
+        box-sizing: border-box;
+      }
+      .band-who {
+        font-size: 17px;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+      .band-call {
+        font-size: 15px;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+      .band-away {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        font-size: 11px;
+        color: var(--muted);
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      /* An empty slot is a held place and is disabled, so a press meant for a
+         runner already through it lands on nobody. */
+      .band-slot.empty {
+        border-style: dashed;
+        opacity: 0.4;
+        cursor: default;
+      }
+      /* A crowded heat buys the band's row back off its own height, the way
+         the toolbar trades the clock's size for a row of tiles. */
+      .band.dense {
+        gap: 5px;
+        margin-bottom: 5px;
+      }
+      .band.dense .band-slot {
+        min-height: 27px;
+        padding: 3px 6px;
+      }
+      .band.dense .band-slot.due,
+      .band.dense .band-slot.overdue {
+        padding: 2px 5px;
+      }
+      .band.dense .band-who {
+        font-size: 15px;
+      }
+      .band.dense .band-call {
+        font-size: 13px;
+      }
+      .band-slot.call-bell .band-call {
+        color: #e8a13c;
+      }
+      .band-slot.call-finish .band-call {
+        color: #27ae60;
+      }
+      .band-slot.call-exchange .band-call {
+        color: #b06ae0;
+      }
+      .band-slot.due {
+        border-width: 2px;
+        padding: 5px 7px;
+      }
+      .band-slot.call-laps.due {
+        border-color: #3d8bfd;
+        background: #3d8bfd1f;
+      }
+      .band-slot.call-bell.due {
+        border-color: #e8a13c;
+        background: #e8a13c2e;
+      }
+      .band-slot.call-finish.due {
+        border-color: #27ae60;
+        background: #27ae602e;
+      }
+      .band-slot.call-exchange.due {
+        border-color: #b06ae0;
+        background: #b06ae02e;
+      }
+      .band-slot.due {
+        animation: tile-bump 1s ease-in-out infinite;
+      }
+      .band-slot.overdue {
+        border-width: 2px;
+        padding: 5px 7px;
+        border-color: var(--warn-text);
+        background: var(--warn-bg);
+        animation: tile-bump 520ms ease-in-out infinite;
+      }
+      .band-slot.overdue .band-call,
+      .band-slot.overdue .band-away {
+        color: var(--warn-text);
+      }
+      .band-slot.tapped {
+        animation: tap-flash 450ms ease-out;
+      }
+      .band-slot.tapped-big {
+        animation: tap-flash-big 600ms ease-out;
+      }
+      .band-slot.rejected {
+        animation: tap-reject 520ms ease-out;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .band-slot.due,
+        .band-slot.overdue,
+        .band-slot.tapped,
+        .band-slot.tapped-big {
+          animation: none;
+        }
+        .band-slot.rejected {
+          animation: tap-reject-still 520ms ease-out;
+        }
+      }
+
+      /* The lap board strip mirrors the board at the track, one number counting
+         down to zero. It rides in the clock's row and stays quiet, as it is for
+         keeping in step with whoever turns the board. */
+      .board {
+        display: flex;
+        align-items: baseline;
+        gap: 5px;
+        flex: 1;
+        min-width: 0;
+        padding: 3px 8px;
+        border: 1px solid var(--line);
+        border-radius: 9px;
+        background: var(--card);
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .board-num {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--text);
+        font-variant-numeric: tabular-nums;
+      }
+      .board-next {
+        font-size: 13px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+      .board-sub {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      /* Inside the last 100 m the number about to go up is the one that
+         matters, so it takes over the size and the one on its way out shrinks. */
+      .board.swap .board-num {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--muted);
+      }
+      .board.swap .board-next {
+        font-size: 21px;
+        font-weight: 800;
+        color: var(--text);
+      }
+      /* The leader is coming, so the next number is passed on now. */
+      .board.due {
+        border-color: #3d8bfd;
+      }
+      .board.due .board-next {
+        color: #3d8bfd;
+      }
+      .board.swap.due .board-next {
+        color: #3d8bfd;
+      }
+      .board.done {
+        opacity: 0.55;
+      }
+      .toast {
+        position: fixed;
+        top: calc(env(safe-area-inset-top) + 56px);
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 50;
+        max-width: 92vw;
+        padding: 12px 18px;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 700;
+        background: var(--card);
+        color: var(--text);
+        border: 1px solid var(--line);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      /* Print comes last, so its light tokens win over the dark scheme's.
+         Backgrounds do not print, so text and borders carry the ink. */
+      @media print {
+        :root {
+          --bg: #fff;
+          --card: #fff;
+          --text: #000;
+          --muted: #444;
+          --line: #999;
+        }
+        /* Every .btn is something to tap, and paper offers none of it. */
+        .no-print,
+        #back,
+        #help,
+        #updated,
+        .days,
+        .btn {
+          display: none;
+        }
+        /* The header names the meet and the day, so it prints without its
+           controls. */
+        header {
+          position: static;
+          padding: 0 0 10px;
+          background: none;
+          color: inherit;
+        }
+        header h1 {
+          font-size: 18px;
+          white-space: normal;
+          overflow: visible;
+        }
+        .title-text {
+          white-space: normal;
+          overflow: visible;
+        }
+        main {
+          max-width: none;
+          padding: 0;
+        }
+        a {
+          color: inherit;
+          text-decoration: none;
+        }
+        /* Of the filter bar only the kenttä prints, as text. It says which
+           board the marks were read off. */
+        .filter-bar > :not(.track-pick) {
+          display: none;
+        }
+        .track-pick {
+          margin-left: 0;
+        }
+        .track-pick select {
+          appearance: none;
+          border: 0;
+          background: none;
+          padding: 0;
+          max-width: none;
+        }
+        /* A start's phase is news, and paper carried to the track has none. A
+           mixed row keeps its category labels and only the chips go. */
+        .row .chip {
+          display: none;
+        }
+        .row {
+          break-inside: avoid;
+        }
+        /* A medal is only a disc, so its metal prints as on screen. The ring
+           keeps the disc where backgrounds are off. */
+        .medal {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+          outline: 1px solid var(--line);
+          outline-offset: -1px;
+        }
+        /* The taping figure is sized to the screen column it was drawn in
+           (shuttleTapeFigure, app/hurdles.js). It scales to the paper, or the
+           edge would cut it off. */
+        .shuttle-tapes {
+          overflow: visible;
+          break-inside: avoid;
+        }
+        .shuttle-tapes svg {
+          width: 100%;
+          height: auto;
+        }
+        /* A ladder too wide for the sheet prints as the stacked cards, as paper
+           cannot scroll. ladderViews (app/event.js) picks those starts. */
+        .print-stack > .tbl-wrap {
+          display: none;
+        }
+        .print-stack > .ladder-stack {
+          display: block;
+        }
+        .ladder-card {
+          break-inside: avoid;
+        }
+        /* A page break can cut a table in half, so no box is drawn round one.
+           The row rules are the table. */
+        .tbl,
+        .tbl-wrap:has(.tbl.ladder),
+        .ladder-stack {
+          border: none;
+          border-radius: 0;
+        }
+        /* The chip's tint does not print, so a border keeps it a chip. */
+        .chip {
+          border: 1px solid var(--line);
+        }
+        /* The hurdle table prints one table per sheet, headed by the chosen
+           classes and the kenttä. A folded section prints nothing. */
+        .aidat-page + .aidat-page {
+          break-before: page;
+        }
+        .aidat-all th,
+        .aidat-all td {
+          padding: 4px 3px;
+        }
+        .aidat-all .aidat-title th {
+          padding-top: 12px;
+        }
+        .aidat-print {
+          display: inline;
+          font-weight: 400;
+        }
+        .aidat-extra:not([open]) {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <a id="back" href="/" hidden aria-label="Takaisin">‹</a>
+      <h1 id="title">Kisat</h1>
+      <span id="updated"></span>
+      <button id="help" hidden aria-label="Ohje">?</button>
+    </header>
+    <main id="app"></main>
+    <!-- The browser fetches every module named here at once, and not one level
+         of imports at a time. test/source.test.mjs checks the list. -->
+    <link rel="modulepreload" href="/app/data.js" />
+    <link rel="modulepreload" href="/app/shell.js" />
+    <link rel="modulepreload" href="/lib/ages.js" />
+    <link rel="modulepreload" href="/lib/combined.js" />
+    <link rel="modulepreload" href="/lib/dates.js" />
+    <link rel="modulepreload" href="/lib/digest.js" />
+    <link rel="modulepreload" href="/lib/districts.js" />
+    <link rel="modulepreload" href="/lib/elsewhere.js" />
+    <link rel="modulepreload" href="/lib/home.js" />
+    <link rel="modulepreload" href="/lib/indexes.js" />
+    <link rel="modulepreload" href="/lib/render-log.js" />
+    <link rel="modulepreload" href="/lib/results.js" />
+    <link rel="modulepreload" href="/lib/routes.js" />
+    <link rel="modulepreload" href="/lib/schedule.js" />
+    <link rel="modulepreload" href="/lib/watch.js" />
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

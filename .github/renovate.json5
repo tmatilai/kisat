@@ -1,0 +1,26 @@
+{
+  $schema: 'https://docs.renovatebot.com/renovate-schema.json',
+  extends: [
+    'config:recommended',
+    // Keep GitHub Actions pinned to commit SHAs (with the version comment).
+    'helpers:pinGitHubActionDigests',
+    'schedule:weekly',
+  ],
+  // pnpm installs nothing younger either (pnpm-workspace.yaml).
+  minimumReleaseAge: '3 days',
+  // Security fixes wait too, since pnpm refuses a younger version.
+  vulnerabilityAlerts: { minimumReleaseAge: '3 days' },
+  // Weekly update of the transitive dependencies.
+  lockFileMaintenance: {
+    enabled: true,
+    commitMessageAction: 'Refresh pnpm-lock.yaml',
+  },
+  packageRules: [
+    {
+      // The build image cannot switch to a pnpm 12
+      // (docs/deployment.md, "The live site").
+      matchPackageNames: ['pnpm'],
+      allowedVersions: '<12',
+    },
+  ],
+}

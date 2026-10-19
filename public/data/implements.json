@@ -1,0 +1,173 @@
+{
+  "validFrom": "2026-01-01",
+  "checked": "2026-09-12",
+  "sources": [
+    {
+      "id": "SUL",
+      "name": "Heittovälineiden perusmitat",
+      "url": "https://www.yleisurheilu.fi/wp-content/uploads/2025/04/Heittovalineidenperusmitat.xlsx"
+    },
+    {
+      "id": "WMA",
+      "name": "Suomessa käytettävät WMA:n aita-, este- ja välinemitat",
+      "url": "https://www.saul.fi/wp-content/uploads/2026/02/Suomessa-kaytettavat-WMAn-aita-este-ja-valinemitat-2026.pdf"
+    }
+  ],
+  "categories": [
+    { "row": "P8", "gender": "Male", "age": [8, 8], "source": "SUL" },
+    { "row": "P9", "gender": "Male", "age": [9, 9], "source": "SUL" },
+    { "row": "P10", "gender": "Male", "age": [10, 10], "source": "SUL" },
+    { "row": "P11", "gender": "Male", "age": [11, 11], "source": "SUL" },
+    { "row": "P12", "gender": "Male", "age": [12, 12], "source": "SUL" },
+    { "row": "P13", "gender": "Male", "age": [13, 13], "source": "SUL" },
+    { "row": "P14", "gender": "Male", "age": [14, 14], "source": "SUL" },
+    { "row": "P15", "gender": "Male", "age": [15, 15], "source": "SUL" },
+    { "row": "M17", "gender": "Male", "age": [16, 17], "source": "SUL" },
+    { "row": "M19", "gender": "Male", "age": [18, 19], "source": "SUL" },
+    { "row": "M22", "gender": "Male", "age": [20, 22], "source": "SUL" },
+    { "row": "M", "gender": "Male", "age": [23, 34], "source": "SUL", "adult": true },
+    { "row": "M 35-49", "gender": "Male", "age": [35, 49], "source": "WMA" },
+    { "row": "M 50-59", "gender": "Male", "age": [50, 59], "source": "WMA" },
+    { "row": "M 60-69", "gender": "Male", "age": [60, 69], "source": "WMA" },
+    { "row": "M 70-79", "gender": "Male", "age": [70, 79], "source": "WMA" },
+    { "row": "M 80+", "gender": "Male", "age": [ 80, null ], "source": "WMA" },
+    { "row": "T8", "gender": "Female", "age": [8, 8], "source": "SUL" },
+    { "row": "T9", "gender": "Female", "age": [9, 9], "source": "SUL" },
+    { "row": "T10", "gender": "Female", "age": [10, 10], "source": "SUL" },
+    { "row": "T11", "gender": "Female", "age": [11, 11], "source": "SUL" },
+    { "row": "T12", "gender": "Female", "age": [12, 12], "source": "SUL" },
+    { "row": "T13", "gender": "Female", "age": [13, 13], "source": "SUL" },
+    { "row": "T14", "gender": "Female", "age": [14, 14], "source": "SUL" },
+    { "row": "T15", "gender": "Female", "age": [15, 15], "source": "SUL" },
+    { "row": "N17", "gender": "Female", "age": [16, 17], "source": "SUL" },
+    { "row": "N19", "gender": "Female", "age": [18, 19], "source": "SUL" },
+    { "row": "N22", "gender": "Female", "age": [20, 22], "source": "SUL" },
+    { "row": "N", "gender": "Female", "age": [23, 34], "source": "SUL", "adult": true },
+    { "row": "N 35-49", "gender": "Female", "age": [35, 49], "source": "WMA" },
+    { "row": "N 50-59", "gender": "Female", "age": [50, 59], "source": "WMA" },
+    { "row": "N 60-74", "gender": "Female", "age": [60, 74], "source": "WMA" },
+    { "row": "N 75+", "gender": "Female", "age": [ 75, null ], "source": "WMA" }
+  ],
+  "implements": [
+    {
+      "id": "keihas",
+      "name": "Keihäs",
+      "columns": [
+        { "key": "diameter", "label": "Halkaisija enint.", "unit": "mm" },
+        { "key": "length", "label": "Pituus", "unit": "cm" },
+        { "key": "balance", "label": "Painopiste kärjestä", "unit": "cm" },
+        { "key": "grip", "label": "Kädensija", "unit": "mm" },
+        { "key": "head", "label": "Metallikärki", "unit": "mm" }
+      ]
+    },
+    {
+      "id": "kiekko",
+      "name": "Kiekko",
+      "columns": [
+        { "key": "diameter", "label": "Halkaisija", "unit": "mm" },
+        { "key": "thickness", "label": "Paksuus", "unit": "mm" },
+        { "key": "plate", "label": "Keskilaippa", "unit": "mm" }
+      ]
+    },
+    {
+      "id": "kuula",
+      "name": "Kuula",
+      "columns": [
+        { "key": "diameter", "label": "Halkaisija", "unit": "mm" }
+      ]
+    },
+    {
+      "id": "moukari",
+      "name": "Moukari",
+      "columns": [
+        { "key": "diameter", "label": "Halkaisija", "unit": "mm" },
+        { "key": "length", "label": "Pituus enint.", "unit": "mm" }
+      ]
+    },
+    {
+      "id": "painonheitto",
+      "name": "Painonheitto",
+      "columns": [
+        { "key": "diameter", "label": "Halkaisija ulkona", "unit": "mm" },
+        { "key": "diameterIndoor", "label": "Halkaisija sisällä", "unit": "mm" },
+        { "key": "length", "label": "Pituus enint.", "unit": "mm" }
+      ]
+    }
+  ],
+  "weights": [
+    { "row": "P8", "kuula": 2000, "kiekko": 600, "moukari": 2500, "keihas": 400 },
+    { "row": "P9", "kuula": 2000, "kiekko": 600, "moukari": 2500, "keihas": 400 },
+    { "row": "P10", "kuula": 2500, "kiekko": 600, "moukari": 2500, "keihas": 400 },
+    { "row": "P11", "kuula": 2500, "kiekko": 600, "moukari": 2500, "keihas": 400 },
+    { "row": "P12", "kuula": 3000, "kiekko": 750, "moukari": 3000, "keihas": 400 },
+    { "row": "P13", "kuula": 3000, "kiekko": 750, "moukari": 3000, "keihas": 400 },
+    { "row": "P14", "kuula": 4000, "kiekko": 1000, "moukari": 4000, "keihas": 600 },
+    { "row": "P15", "kuula": 4000, "kiekko": 1000, "moukari": 4000, "keihas": 600 },
+    { "row": "M17", "kuula": 5000, "kiekko": 1500, "moukari": 5000, "keihas": 700 },
+    { "row": "M19", "kuula": 6000, "kiekko": 1750, "moukari": 6000, "keihas": 800 },
+    { "row": "M22", "kuula": 7260, "kiekko": 2000, "moukari": 7260, "keihas": 800 },
+    { "row": "M", "kuula": 7260, "kiekko": 2000, "moukari": 7260, "keihas": 800 },
+    { "row": "M 35-49", "kuula": 7260, "kiekko": 2000, "moukari": 7260, "keihas": 800, "painonheitto": 15880 },
+    { "row": "M 50-59", "kuula": 6000, "kiekko": 1500, "moukari": 6000, "keihas": 700, "painonheitto": 11340 },
+    { "row": "M 60-69", "kuula": 5000, "kiekko": 1000, "moukari": 5000, "keihas": 600, "painonheitto": 9080 },
+    { "row": "M 70-79", "kuula": 4000, "kiekko": 1000, "moukari": 4000, "keihas": 500, "painonheitto": 7260 },
+    { "row": "M 80+", "kuula": 3000, "kiekko": 1000, "moukari": 3000, "keihas": 400, "painonheitto": 5450 },
+    { "row": "T8", "kuula": 2000, "kiekko": 600, "moukari": 2500, "keihas": 400 },
+    { "row": "T9", "kuula": 2000, "kiekko": 600, "moukari": 2500, "keihas": 400 },
+    { "row": "T10", "kuula": 2000, "kiekko": 600, "moukari": 2500, "keihas": 400 },
+    { "row": "T11", "kuula": 2000, "kiekko": 600, "moukari": 2500, "keihas": 400 },
+    { "row": "T12", "kuula": 2500, "kiekko": 600, "moukari": 2500, "keihas": 400 },
+    { "row": "T13", "kuula": 2500, "kiekko": 600, "moukari": 2500, "keihas": 400 },
+    { "row": "T14", "kuula": 3000, "kiekko": 750, "moukari": 3000, "keihas": 400 },
+    { "row": "T15", "kuula": 3000, "kiekko": 750, "moukari": 3000, "keihas": 400 },
+    { "row": "N17", "kuula": 3000, "kiekko": 1000, "moukari": 3000, "keihas": 500 },
+    { "row": "N19", "kuula": 4000, "kiekko": 1000, "moukari": 4000, "keihas": 600 },
+    { "row": "N22", "kuula": 4000, "kiekko": 1000, "moukari": 4000, "keihas": 600 },
+    { "row": "N", "kuula": 4000, "kiekko": 1000, "moukari": 4000, "keihas": 600 },
+    { "row": "N 35-49", "kuula": 4000, "kiekko": 1000, "moukari": 4000, "keihas": 600, "painonheitto": 9080 },
+    { "row": "N 50-59", "kuula": 3000, "kiekko": 1000, "moukari": 3000, "keihas": 500, "painonheitto": 7260 },
+    { "row": "N 60-74", "kuula": 3000, "kiekko": 1000, "moukari": 3000, "keihas": 500, "painonheitto": 5450 },
+    { "row": "N 75+", "kuula": 2000, "kiekko": 750, "moukari": 2000, "keihas": 400, "painonheitto": 4000 }
+  ],
+  "specs": [
+    { "implement": "kuula", "weight": 7260, "source": "SUL", "diameter": [110, 130] },
+    { "implement": "kuula", "weight": 6000, "source": "SUL", "diameter": [105, 125] },
+    { "implement": "kuula", "weight": 5000, "source": "SUL", "diameter": [100, 120] },
+    { "implement": "kuula", "weight": 4000, "source": "SUL", "diameter": [95, 110] },
+    { "implement": "kuula", "weight": 3000, "source": "SUL", "diameter": [85, 110] },
+    { "implement": "kuula", "weight": 2500, "source": "SUL", "diameter": [85, 95] },
+    { "implement": "kuula", "weight": 2000, "source": "SUL", "diameter": [80, 90] },
+    { "implement": "kiekko", "weight": 2000, "source": "SUL", "diameter": [219, 221], "thickness": [44, 46], "plate": [50, 57] },
+    { "implement": "kiekko", "weight": 1750, "source": "SUL", "diameter": [210, 212], "thickness": [41, 43], "plate": [50, 57] },
+    { "implement": "kiekko", "weight": 1500, "source": "SUL", "diameter": [200, 202], "thickness": [38, 40], "plate": [50, 57] },
+    { "implement": "kiekko", "weight": 1000, "source": "SUL", "diameter": [180, 182], "thickness": [37, 39], "plate": [50, 57] },
+    { "implement": "kiekko", "weight": 750, "source": "SUL", "diameter": [165, 172], "thickness": [33, 37], "plate": [45, 55] },
+    { "implement": "kiekko", "weight": 600, "source": "SUL", "diameter": [155, 161], "thickness": [28, 35], "plate": [45, 55] },
+    { "implement": "moukari", "weight": 7260, "source": "SUL", "diameter": [110, 130], "length": 1215 },
+    { "implement": "moukari", "weight": 6000, "source": "SUL", "diameter": [105, 125], "length": 1215 },
+    { "implement": "moukari", "weight": 5000, "source": "SUL", "diameter": [100, 120], "length": 1200 },
+    { "implement": "moukari", "weight": 4000, "source": "SUL", "diameter": [95, 110], "length": 1195 },
+    { "implement": "moukari", "weight": 3000, "source": "SUL", "diameter": [85, 100], "length": 1195 },
+    { "implement": "moukari", "weight": 2500, "source": "SUL", "diameter": [85, 95], "length": 990 },
+    { "implement": "keihas", "weight": 800, "source": "SUL", "diameter": [25, 30], "length": [260, 270], "balance": [90, 106], "grip": [150, 160], "head": [250, 330] },
+    { "implement": "keihas", "weight": 700, "source": "SUL", "diameter": [23, 28], "length": [240, 250], "balance": [85, 99], "grip": [150, 160], "head": [250, 330] },
+    { "implement": "keihas", "weight": 600, "source": "SUL", "diameter": [20, 25], "length": [220, 230], "balance": [80, 92], "grip": [140, 150], "head": [250, 330] },
+    { "implement": "keihas", "weight": 400, "source": "SUL", "diameter": [17, 23], "length": [185, 205], "balance": "kädensijalla", "grip": [125, 145], "head": [null, 270] },
+    { "implement": "keihas", "weight": 500, "source": "SUL", "diameter": [20, 24], "length": [200, 210], "balance": [78, 88], "grip": [135, 145], "head": [220, 270] },
+    { "implement": "kuula", "weight": 7260, "source": "WMA", "diameter": [110, 130] },
+    { "implement": "kuula", "weight": 6000, "source": "WMA", "diameter": [105, 130] },
+    { "implement": "kuula", "weight": 5000, "source": "WMA", "diameter": [100, 130] },
+    { "implement": "kuula", "weight": 4000, "source": "WMA", "diameter": [95, 130] },
+    { "implement": "kuula", "weight": 3000, "source": "WMA", "diameter": [85, 130] },
+    { "implement": "kuula", "weight": 2000, "source": "WMA", "diameter": [80, 110] },
+    { "implement": "kiekko", "weight": 750, "source": "WMA", "diameter": [166, 182], "thickness": [33, 39], "plate": [50, 57] },
+    { "implement": "keihas", "weight": 400, "source": "WMA", "diameter": [20, 23], "length": [185, 195], "balance": [75, 80], "grip": [130, 140], "head": [200, 250] },
+    { "implement": "moukari", "weight": 2000, "source": "WMA", "diameter": [75, 100], "length": 1195 },
+    { "implement": "painonheitto", "weight": 15880, "source": "WMA", "diameter": [145, 165], "diameterIndoor": [145, 180], "length": 410 },
+    { "implement": "painonheitto", "weight": 11340, "source": "WMA", "diameter": [130, 150], "diameterIndoor": [130, 165], "length": 410 },
+    { "implement": "painonheitto", "weight": 9080, "source": "WMA", "diameter": [120, 140], "diameterIndoor": [120, 155], "length": 410 },
+    { "implement": "painonheitto", "weight": 7260, "source": "WMA", "diameter": [110, 130], "diameterIndoor": [110, 145], "length": 410 },
+    { "implement": "painonheitto", "weight": 5450, "source": "WMA", "diameter": [100, 120], "diameterIndoor": [100, 135], "length": 410 },
+    { "implement": "painonheitto", "weight": 4000, "source": "WMA", "diameter": [95, 110], "diameterIndoor": [95, 110], "length": 410 }
+  ]
+}

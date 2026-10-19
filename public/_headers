@@ -1,0 +1,12 @@
+# Cloudflare adds these to what the assets binding serves, the document
+# included, and not to a response worker.js builds. style-src allows the
+# <style> in index.html. connect-src allows this origin and Tuloslista.
+/*
+  Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://cached-public-api.tuloslista.com; img-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+
+# A bundled chunk is named by its content (build.mjs), so a browser keeps it
+# for a year and never asks again.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

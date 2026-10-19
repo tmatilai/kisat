@@ -1,0 +1,14 @@
+{
+  "checked": "2026-08-16",
+  "marks": [
+    { "distance": 110, "count": 10, "toFirst": 13.72, "interval": 9.14, "colour": "sininen", "symbol": "viiva" },
+    { "distance": 100, "count": 10, "toFirst": 13, "interval": 8.5, "colour": "keltainen", "symbol": "viiva" },
+    { "distance": 80, "count": 8, "toFirst": 12, "interval": 8, "colour": "vihreä", "symbol": "suorakulmio" },
+    { "distance": 60, "count": 6, "toFirst": 11.5, "interval": 7.5, "colour": "valkoinen", "symbol": "suorakulmio" },
+    { "distance": 60, "count": 7, "toFirst": 10.5, "interval": 6.5, "colour": "vihreä", "symbol": "ympyrä" },
+    { "distance": 200, "count": 10, "toFirst": 18.29, "interval": 18.29, "colour": "valkoinen", "symbol": "ympyrä" },
+    { "distance": 200, "count": 10, "toFirst": 16, "interval": 19, "colour": "musta", "symbol": "kolmio" },
+    { "distance": 300, "count": 7, "toFirst": 50, "interval": 35, "colour": "vihreä", "symbol": "viiva" },
+    { "distance": 400, "count": 10, "toFirst": 45, "interval": 35, "colour": "vihreä", "symbol": "viiva" }
+  ]
+}

@@ -1,0 +1,168 @@
+{
+  "name": "kisat",
+  "compatibility_date": "2026-08-08",
+  "main": "worker.js",
+  // dist/ is public/ with the page's modules bundled (build.mjs). wrangler
+  // builds it before dev and deploy, and `make dev` serves public/ by default.
+  "build": { "command": "make -s build" },
+  "assets": {
+    "directory": "dist",
+    "binding": "ASSETS",
+    // A path that matches a file in dist/ reaches the Worker only when it
+    // is listed here. The document, the manifest and the icons differ per
+    // host (siteMeta and siteAssetPath, lib/routes.js). The paths with no
+    // file reach the Worker unlisted on wrangler dev (/mitat and /c/demo
+    // answered 200 with their lines deleted, 2026-09-12), and production is
+    // not measured.
+    "run_worker_first": [
+      "/",
+      "/index.html",
+      "/mitat",
+      "/mestaruudet",
+      "/seuracup",
+      "/aidat",
+      "/sarjat",
+      "/c/*",
+      "/manifest.webmanifest",
+      "/icon.svg",
+      "/apple-touch-icon.png",
+    ],
+  },
+  "kv_namespaces": [
+    {
+      "binding": "ROSTER",
+      "id": "d1ec5de82c7249e080db04e2438449ba",
+    },
+    {
+      "binding": "WATCHES",
+      "id": "d620ee3d85df4d41a819ea0e0a827fde",
+    },
+  ],
+  // Each binding caps one IP's requests at a guessed figure. docs/backend.md
+  // ("Abuse protection, layered") says what each counts. A namespace_id is a
+  // number chosen here, not a resource to create.
+  "ratelimits": [
+    {
+      "name": "ROSTER_LIMITER",
+      "namespace_id": "1",
+      "simple": { "limit": 20, "period": 60 },
+    },
+    {
+      "name": "WATCH_LIMITER",
+      "namespace_id": "2",
+      "simple": { "limit": 10, "period": 60 },
+    },
+    {
+      // SCAN_BUILD_LIMIT and SEASON_ROUND (worker.js) keep a cold fill-in
+      // loop's rounds under this cap.
+      "name": "SCAN_LIMITER",
+      "namespace_id": "3",
+      "simple": { "limit": 10, "period": 60 },
+    },
+    {
+      "name": "CALENDAR_LIMITER",
+      "namespace_id": "4",
+      "simple": { "limit": 20, "period": 60 },
+    },
+    {
+      "name": "SEARCH_LIMITER",
+      "namespace_id": "6",
+      "simple": { "limit": 60, "period": 60 },
+    },
+    {
+      "name": "META_LIMITER",
+      "namespace_id": "5",
+      "simple": { "limit": 20, "period": 60 },
+    },
+  ],
+  // The cron runs runCron (worker.js): the meet index's crawler, the year's
+  // warming and the athlete index's backfill. `wrangler dev --test-scheduled`
+  // runs it locally through /__scheduled.
+  "triggers": {
+    "crons": ["*/10 * * * *"],
+  },
+  // The dashboard's Logs view keeps the Worker's console output, which
+  // `make tail` shows only live.
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true,
+    },
+    "traces": {
+      "enabled": false,
+    },
+  },
+  // Both modes are this one Worker, which picks the mode by host
+  // (docs/architecture.md, "The two modes"). Workers Builds fails on a
+  // domain that another Worker holds, so the domain is first removed from
+  // that Worker.
+  "routes": [
+    {
+      "pattern": "kisat.matilainen.fi",
+      "custom_domain": true,
+    },
+    {
+      "pattern": "juoksut.matilainen.fi",
+      "custom_domain": true,
+    },
+  ],
+  // Each uploaded version gets a workers.dev URL of its own. A branch's host
+  // comes from Workers Builds' Preview builds instead (PREVIEW_HOST, Makefile).
+  "preview_urls": true,
+  // Workers Builds makes a branch's build a preview, which inherits no
+  // binding. So this block repeats the top level's, and test/source.test.mjs
+  // checks that the two are equal. The namespaces of a preview's own data go
+  // here too (previewEnv, lib/routes.js).
+  "previews": {
+    "kv_namespaces": [
+      {
+        "binding": "ROSTER",
+        "id": "d1ec5de82c7249e080db04e2438449ba",
+      },
+      {
+        "binding": "WATCHES",
+        "id": "d620ee3d85df4d41a819ea0e0a827fde",
+      },
+      {
+        "binding": "ROSTER_PREVIEW",
+        "id": "0ee31029fba64f59b4cb38d99ab4a1eb",
+      },
+      {
+        "binding": "WATCHES_PREVIEW",
+        "id": "92054dc895fa46e2aa9bf97e413abc08",
+      },
+    ],
+    "ratelimits": [
+      {
+        "name": "ROSTER_LIMITER",
+        "namespace_id": "1",
+        "simple": { "limit": 20, "period": 60 },
+      },
+      {
+        "name": "WATCH_LIMITER",
+        "namespace_id": "2",
+        "simple": { "limit": 10, "period": 60 },
+      },
+      {
+        "name": "SCAN_LIMITER",
+        "namespace_id": "3",
+        "simple": { "limit": 10, "period": 60 },
+      },
+      {
+        "name": "CALENDAR_LIMITER",
+        "namespace_id": "4",
+        "simple": { "limit": 20, "period": 60 },
+      },
+      {
+        "name": "SEARCH_LIMITER",
+        "namespace_id": "6",
+        "simple": { "limit": 60, "period": 60 },
+      },
+      {
+        "name": "META_LIMITER",
+        "namespace_id": "5",
+        "simple": { "limit": 20, "period": 60 },
+      },
+    ],
+  },
+}

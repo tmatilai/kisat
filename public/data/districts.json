@@ -1,0 +1,374 @@
+{
+  "outside": {
+    "clubs": ["PuiU"],
+    "names": ["Puistolan Urheilijat"]
+  },
+  "alueet": [
+    { "id": "etelainen", "name": "Eteläinen" },
+    { "id": "lounainen", "name": "Lounainen" },
+    { "id": "lantinen", "name": "Läntinen" },
+    { "id": "itainen", "name": "Itäinen" },
+    { "id": "pohjoinen", "name": "Pohjoinen" }
+  ],
+  "piirit": [
+    {
+      "id": "eky", "name": "Etelä-Karjalan Yleisurheilu", "short": "EKY", "alue": "etelainen",
+      "clubs": [
+        "ImU", "JoutsKu", "LappUM", "LuumPo", "ParikkU", "SavitU", "TaipKi",
+        "TaipVei", "YlämPy"
+      ],
+      "names": [
+        "Imatran Urheilijat", "Joutsenon Kullervo",
+        "Lappeenrannan Urheilu-Miehet", "Parikkalan Urheilijat",
+        "Savitaipaleen Urheilijat", "Taipalsaaren Kisa", "Ylämaan Pyrkijät"
+      ]
+    },
+    {
+      "id": "helsy", "name": "Helsingin Seudun Yleisurheilu", "short": "Helsy", "alue": "etelainen",
+      "clubs": [
+        "Downt", "Downtown65", "EspTa", "HelsJuo", "HelsJy", "HelsKT",
+        "HelsPV", "HelsTa", "HKV", "KirkkonU", "KorsKai", "KU-58", "LeppSi",
+        "PakVe", "PakVi", "RekRai", "RunClub", "SPOVE", "TapE", "VantSa",
+        "VeikkVei", "ViipU"
+      ],
+      "names": [
+        "Downtown 65 Endurance", "Espoon Tapiot",
+        "Helsingin Juoksijat - Helsinki Runners", "Helsingin Jyry",
+        "Helsingin Kisa-Toverit", "Helsingin Poliisi-Voimailijat ry",
+        "Helsingin Tarmo", "Helsingin Kisa-Veikot",
+        "Kirkkonummen Urheilijat", "Kenttäurheilijat-58",
+        "Leppävaaran Sisu", "Pakilan Veto", "Rekolan Raikas",
+        "Runner`s Club", "SpoVe", "Tapanilan Erä", "Vantaan Salamat",
+        "Veikkolan Veikot", "Viipurin Urheilijat"
+      ]
+    },
+    {
+      "id": "kymy", "name": "Kymenlaakson Yleisurheilu", "short": "KymY", "alue": "etelainen",
+      "clubs": [
+        "AnjLi", "ElimVau", "InkerTe", "KarhKa", "KarhU", "KorPo", "KouvU",
+        "KuusKi", "KuusUS", "KURHVE", "KymKP", "KymUV", "MiehVi", "PyhtY",
+        "SippKu", "ValkKa", "VehkVei", "VirolSa"
+      ],
+      "names": [
+        "Anjalan Liitto", "Inkeroisten Terho", "Karhulan Katajaiset",
+        "Karhulan Urheilijat", "Korian Ponsi", "Kouvolan Urheilijat", "Kuusankosken Kisa",
+        "Kymen urheiluveteraanit", "Kymin Koskenpojat", "Miehikkälän Vilkas",
+        "Pyhtään Yritys", "Sippolan Kunto", "Valkealan Kajo",
+        "Vehkalahden Veikot", "Virolahden Sampo"
+      ]
+    },
+    {
+      "id": "lasy", "name": "Lahden Seudun Yleisurheilu", "short": "LaSY", "alue": "etelainen",
+      "clubs": [
+        "AsikkRai", "HartVoi", "HeinI", "HollU", "IitPy", "KuhmKu", "LahdA",
+        "LahtiSp", "MyrskMy", "NastNa", "OrimJy", "PadasjY", "PertPo",
+        "SysmSi"
+      ],
+      "names": [
+        "Asikkalan Raikas", "Hartolan Voima", "Heinolan Isku",
+        "Hollolan Urheilijat -46", "Iitin Pyrintö", "Kuhmoisten Kumu",
+        "Lahden Ahkera", "Lahti Sport", "Myrskylän Myrsky",
+        "Nastolan Naseva", "Orimattilan Jymy", "Padasjoen Yritys",
+        "Sysmän Sisu"
+      ]
+    },
+    {
+      "id": "naid", "name": "Nyland-Åbolands Idrottsdistrikt", "short": "NÅID", "alue": "etelainen",
+      "clubs": [
+        "BorgåAk", "EsboIF", "HIFK", "HangöIK", "IFRaseb", "IFSibboV", "IngåIF",
+        "IsnäsSt", "IsnStart", "KyrkslIF", "LapptrI", "LiljIK", "LovTor", "NaguIF",
+        "PargIF", "SjundeåIF", "ÅIFK"
+      ],
+      "names": [
+        "Borgå Akilles", "Esbo IF", "HIFK Friidrott", "HIK Friidrott",
+        "IF Raseborg", "IF Sibbo-Vargarna", "Ingå IF", "Isnäs Start",
+        "Kyrkslätt IF",
+        "Lapinjärven Urheilijat-Lappträsk Idrottare", "Liljendal IK",
+        "Lovisa Tor", "Pargas IF", "Sjundeå IF", "ÅIFK Friidrott"
+      ]
+    },
+    {
+      "id": "uudy", "name": "Uudenmaan Yleisurheilu", "short": "UudY", "alue": "etelainen",
+      "clubs": [
+        "Endurance", "HausjU", "HiisiM", "HiisMa", "HyvJuo", "HyvsU", "JanJa",
+        "KarkkPo", "KerkkU", "KerU", "KeskiUYU", "LiitLe", "LopU", "LänsiUU",
+        "MäntsU", "NummKip", "NurmijYU", "PorvU", "RiihimKi", "VihdUV",
+        "VihdVie", "VIUVET"
+      ],
+      "names": [
+        "Hausjärven Urheilijat", "Hiisi Masters", "Hyvinkään Juoksijat",
+        "Hyvinkään seudun Urheilijat", "Janakkalan Jana", "Karkkilan Pojat",
+        "Keravan Urheilijat", "Keski-Uudenmaan Yleisurheilu",
+        "Liitävät Lenkkarit", "Lopen Urheilijat",
+        "Länsi-Uudenmaan Urheilijat", "Mäntsälän Urheilijat",
+        "Nummen Kipinä", "Nurmijärven Yleisurheilu", "Porvoon Urheilijat",
+        "Riihimäen Kisko", "Vihdin Urheiluveteraanit", "Vihdin Viesti"
+      ]
+    },
+    {
+      "id": "hamsy", "name": "Hämeen Seudun Yleisurheilu", "short": "HämSY", "alue": "lounainen",
+      "clubs": [
+        "ForssA", "ForssSa", "HauhSi", "HirsPy", "HämeenlTa", "IkaalU",
+        "IkurinVi", "KangKi", "KangU", "KuntoP", "KylmäkVei", "KyröskPo",
+        "LammKo", "LempKiYU", "LielKi", "MäntänU", "NokPy", "NokU", "OrivPo",
+        "PirkkP", "PälkLL", "SahalYUT", "STRahola", "TammRy", "TampMK", "TampPy",
+        "TampU", "TeivoSt", "ToijVau", "UrjU", "ValkHa", "VehmU", "VesilVi",
+        "ViialVa", "VilppVei", "VirtU", "YlöjU", "YUTeam"
+      ],
+      "names": [
+        "Forssan Salama", "Hauhon Sisu", "Hämeenlinnan Tarmo",
+        "Ikaalisten Urheilijat", "Ikurin Vire", "Kangasalan Kisa",
+        "Kangasalan Urheilijat -68", "Kunto-Pirkat", "Kylmäkosken Veikot",
+        "Lamminpään Korpi", "Lempäälän Kisa Yleisurheilu",
+        "Lielahden Kipinä", "Mäntän Urheilijat", "Nokian Pyry",
+        "Nokian Urheilijat", "Oriveden Ponnistus", "Pirkkalan Pirkat",
+        "Pälkäneen Luja-Lukko", "Tammelan Ryske", "Tampereen Pyrintö",
+        "Tampereen Urheilijat -38", "Teivo Stayers", "Toijalan Vauhti",
+        "Urjalan Urheilijat", "Valkeakosken Haka", "Vehmaisten Urheilijat",
+        "Vesilahden Visa", "Viialan Valtti", "Vilppulan Veikot",
+        "Virtain Urheilijat", "Yleisurheilu-Team", "Ylöjärven Urheilijat"
+      ]
+    },
+    {
+      "id": "saty", "name": "Satakunnan Yleisurheilu", "short": "SatY", "alue": "lounainen",
+      "clubs": [
+        "EurajVei", "EurRai", "HarjavTU", "KanksLei", "KankU", "KarvKi",
+        "KiukKi", "KokemKV", "KöylLa", "LapSa", "LauttLu", "MerikI",
+        "NakkVire", "NoormNo", "ParkU", "PorinTa", "PorinYU", "PunkalKu",
+        "RaumTU", "RaumU", "SiikSi", "SuodennU", "SäkU", "UlvST", "VammsVoi",
+        "VampU"
+      ],
+      "names": [
+        "Eurajoen Veikot", "Euran Raiku", "Harjavallan Työväen Urheilijat",
+        "Kankaanpään Seudun Leisku", "Kankaanpään Urheilijat",
+        "Karvian Kiri", "Kiukaisten Kisailijat",
+        "Kokemäen Kova-Väki Yleisurheilu", "Köyliön Lallit", "Lapin Salama",
+        "Lauttakylän Luja", "Merikarvian Into", "Nakkilan Vire",
+        "Noormarkun Nopsa", "Parkanon Urheilijat", "Porin Tarmo",
+        "Porin Yleisurheilu", "Punkalaitumen Kunto", "Rauman Urheilijat",
+        "Siikaisten Sisu", "Suodenniemen Urheilijat", "Säkylän Urheilijat",
+        "Ulvila Sport Team", "Vammalan seudun Voima", "Vampulan Urheilijat"
+      ]
+    },
+    {
+      "id": "varsy", "name": "Varsinais-Suomen Yleisurheilu", "short": "VarsY", "alue": "lounainen",
+      "clubs": [
+        "AuVa", "FinnMR", "KaarUra", "KalVa", "KoskKai", "KuusjHu", "LaitJy",
+        "LiedPa", "LittTU", "LoimJa", "LoimLei", "LoimVoi", "MaarMa", "MarttMu",
+        "MaskKa", "MietMP", "MynämI", "NaantLöy", "NousSu", "OripVe", "PaimU",
+        "PernU", "PerttPei", "PiikkKa", "PiikkKe", "PöytU", "RaisKu", "RuskY",
+        "SalVil", "SalVilYU", "SauvU", "SomE", "SomernVei", "SomVoi", "TarvasjU", "TmRaju", "TRaju",
+        "TurKU", "TurSen", "TurunSU", "TurWei", "TuTo", "TuUL", "UudKK",
+        "VahdTui", "VirttNou",
+        "VehmKi", "VSMasters", "VSMSTR", "YlänKi"
+      ],
+      "names": [
+        "Auran Vannas", "Kaarinan Ura", "Kalannin Vankka", "Kosken Kaiku", "Kuusjoen Humu",
+        "Laitilan Jyske", "Liedon Parma", "Littoisten Työväen Urheilijat",
+        "Loimaan Jankko", "Loimaan Leisku", "Loimaan Voima", "Maarian Mahti",
+        "Marttilan Murto", "Maskun Kataja", "Mietoisten Maununpojat",
+        "Mynämäen Isku", "Naantalin Löyly", "Nousiaisten Susi",
+        "Oripään Vesa", "Paimion Urheilijat", "Perniön Urheilijat",
+        "Piikkiön Karhu", "Piikkiön Kehitys", "Raision Kuula",
+        "Ruskon Yritys", "Salon Vilpas", "Salon Vilpas Yleisurheilu",
+        "Sauvon Urheilijat", "Somerniemen Veikot", "Someron Esa", "Someron Voima", "Team Raju",
+        "Tarvasjoen Urheilijat", "Turunseudun Kenttäurheilijat",
+        "Turun Senioriurheilijat", "Turun Weikot Yleisurheilu",
+        "Turun Toverit", "Turun Urheiluliitto",
+        "Uudenkaupungin Kenttäkarhut", "V-S Masters", "Vahdon Tuisku", "Vehmaan Kiisto",
+        "Virttaan Nousu", "Yläneen Kiri"
+      ]
+    },
+    {
+      "id": "aid", "name": "Ålands Idrottsdistrikt", "short": "ÅID", "alue": "lounainen",
+      "clubs": [
+        "IFÅland"
+      ],
+      "names": [
+        "IF Åland rf"
+      ]
+    },
+    {
+      "id": "epu", "name": "Etelä-Pohjanmaan Yleisurheilu", "short": "EPU", "alue": "lantinen",
+      "clubs": [
+        "AlahKi", "AlajA", "AlavU", "EPohjUV", "EPUVET", "EvijU", "Häjyt", "IlmajKi",
+        "JalasjJa", "JurvU", "KarijTa", "KauhajKa", "KauhWi", "KortJV",
+        "KristU", "KuortKu", "KurikRy", "KyrVoi", "LaihLu", "LappVei",
+        "LapVi", "LehtimJy", "PalosUS", "SeinäjSU", "SoinSi", "TeuvRi",
+        "TöysVe", "VaasTo", "VaasVa", "VimpVe", "VähänkVie", "YlihJu",
+        "YlistKV", "ÄhtU"
+      ],
+      "names": [
+        "Alahärmän Kisa", "Alajärven Ankkurit", "Alavuden Urheilijat",
+        "Etelä-Pohjanmaan UrheiluVeteraanit",
+        "Evijärven Urheilijat", "Häjyt", "Ilmajoen Kisailijat",
+        "Jalasjärven Jalas", "Karijoen Tappara", "Kauhajoen Karhu",
+        "Kauhavan Wisa", "Kristiinan Urheilijat", "Kuortaneen Kunto",
+        "Kurikan Ryhti", "Laihian Luja", "Lappajärven Veikot",
+        "Lapuan Virkiä", "Lehtimäen Jyske", "Palosaaren Urheiluseura",
+        "Seinäjoen Seudun Urheilijat", "Soinin Sisu", "Teuvan Rivakka",
+        "Töysän Veto", "Vaasan Toverit", "Vaasan Vasama", "Vimpelin Veto",
+        "Vähänkyrön Viesti", "Ylihärmän Junkkarit",
+        "Ylistaron Kilpa-Veljet", "Ähtärin Urheilijat"
+      ]
+    },
+    {
+      "id": "kepy", "name": "Keski-Pohjanmaan Yleisurheilu", "short": "KePY", "alue": "lantinen",
+      "clubs": [
+        "AlavVi", "HaapajKi", "HalsToi", "HimU", "KalajJu", "KannU",
+        "KaustPV", "KokkTU", "KokkVei", "KälvTa", "LohtVei", "NivU", "PerhKi",
+        "PyhäjPo", "RautKi", "ReisjPi", "ToholU", "UllKi", "VetU", "WCUltraR",
+        "YlivKu"
+      ],
+      "names": [
+        "Alavieskan Viri", "Haapajärven Kiilat", "Halsuan Toivo",
+        "Himangan Urheilijat", "Kalajoen Junkkarit", "Kannuksen Ura",
+        "Kaustisen Pohjan-Veikot", "Kokkolan Työväen Urheilijat",
+        "Kokkolan Veikot", "Kälviän Tarmo", "Lohtajan Veikot",
+        "Nivalan Urheilijat", "Perhon Kiri", "Pyhäjärven Pohti",
+        "Reisjärven Pilke", "Toholammin Urheilijat", "Ullavan Kilpa",
+        "Vetelin Urheilijat", "Ylivieskan Kuula"
+      ]
+    },
+    {
+      "id": "kesy", "name": "Keski-Suomen Yleisurheilu", "short": "KeSY", "alue": "lantinen",
+      "clubs": [
+        "AlvajRy", "HankasHa", "HippMK", "JoutsPo", "JyväskKU", "JämsI",
+        "KaipVi", "KannKi", "KarstKi", "KeurKi", "KivijKi", "KoivKi",
+        "KonnevU", "KyyjKy", "LaukU", "MultJy", "MuurY", "PetäjävPe",
+        "PihtipTui", "PylkYr", "SaarijPu", "SuolU", "SäynSP", "ToivRi", "UurU",
+        "VaajKuo", "ViitVie", "ÄänekU"
+      ],
+      "names": [
+        "Hankasalmen Hanka", "Hippoksen Maratonkerho", "Joutsan Pommi",
+        "Jyväskylän Kenttäurheilijat", "Jämsänkosken Ilves",
+        "Kaipolan Vire", "Kannonkosken Kiho", "Karstulan Kiva",
+        "Keuruun Kisailijat", "Kivijärven Kivekkäät", "Koiviston Kipinä",
+        "Kyyjärven Kyky", "Laukaan Urheilijat", "Muuramen Yritys",
+        "Petäjäveden Petäjäiset", "Pihtiputaan Tuisku", "Pylkönmäen Yrittävä",
+        "Saarijärven Pullistus", "Suolahden Urho",
+        "Säynätsalon Saarenpojat", "Uuraisten Urheilijat",
+        "Vaajakosken Kuohu", "Viitasaaren Viesti", "Äänekosken Urheilijat"
+      ]
+    },
+    {
+      "id": "oid", "name": "Österbottens Idrottsdistrikt", "short": "ÖID", "alue": "lantinen",
+      "clubs": [
+        "DrumsöIK", "GamlakIF", "IFDrott", "IFFemman", "IFFyren", "IFKraft",
+        "IFLänken", "IFNykn", "IFVom", "IFÅsar", "IKFalken", "LarsmoIF",
+        "MalaxIF", "MaxmoSK", "SolfIK", "TjöckIK", "VasaIS"
+      ],
+      "names": [
+        "Gamlakarleby IF", "IF Drott", "IF Femman", "IF Fyren", "IF Kraft",
+        "IF Länken", "IF Nykarlebynejden", "IF VOM", "IF Åsarna", "IK Falken",
+        "Larsmo IF", "Malax IF", "Solf IK", "Vasa IS"
+      ]
+    },
+    {
+      "id": "esy", "name": "Etelä-Savon Yleisurheilu", "short": "ESY", "alue": "itainen",
+      "clubs": [
+        "HaukivKi", "JorU", "JuvU", "KangasnKa", "KerimU", "KuvKuo", "MikkKV",
+        "MäntyhVi", "PieksVe", "PuumVi", "RantasU", "RistU", "RuokotPo",
+        "SavonlJy", "SavonlRie", "SulkU"
+      ],
+      "names": [
+        "Haukivuoren Kisailijat", "Joroisten Urheilijat",
+        "Juvan Urheilijat", "Kangasniemen Kalske", "Kerimäen Urheilijat",
+        "Kuvansin Kuohu", "Mikkelin Kilpa-Veikot", "Mäntyharjun Virkistys",
+        "Pieksämäen Veikot", "Puumalan Viri", "Rantasalmen Urheilijat",
+        "Ristiinan Urheilijat", "Savonlinnan Riento",
+        "Sulkavan Urheilijat -41"
+      ]
+    },
+    {
+      "id": "pokary", "name": "Pohjois-Karjalan Yleisurheilu", "short": "Pokary", "alue": "itainen",
+      "clubs": [
+        "IlomU", "JoensKa", "JuuanJä", "JuuanU", "KiihtU", "KitU", "LieksU",
+        "LipTai", "OutokPa", "PolvijU", "PolvijVau", "PyhäsU", "TohmajU",
+        "TuupovU", "UltraS"
+      ],
+      "names": [
+        "Ilomantsin Urheilijat", "Joensuun Kataja", "Juuan Jänne",
+        "Juuan Urheilijat", "Kiihtelysvaaran Urheilijat",
+        "Kiteen Urheilijat", "Lieksan Urheilijat", "Liperin Taimi",
+        "Outokummun Partio", "Polvijärven Urheilijat", "Polvijärven Vauhti",
+        "Pyhäselän Urheilijat", "Tohmajärven Urheilijat",
+        "Tuupovaaran Urheilijat", "Ultrajuoksuseura Sisu"
+      ]
+    },
+    {
+      "id": "psy", "name": "Pohjois-Savon Yleisurheilu", "short": "PSY", "alue": "itainen",
+      "clubs": [
+        "HeinävYU", "IisVi", "JuankKuo", "KaavKai", "KarttU", "KeitKu",
+        "KeitNu", "KiuruvU", "KuopRei", "LapinlVe", "LeppävU", "LeppävVi",
+        "MaanMa", "MäntylVe", "NilsNu", "PielavSa", "RauhalRR", "SiilHS",
+        "SiilPo", "SonkajPa", "SuonVa", "TervonU", "VarkKV", "VarpVi", "VesU",
+        "VierKoi"
+      ],
+      "names": [
+        "Heinäveden Yleisurheilijat", "Iisalmen Visa", "Juankosken Kuohu",
+        "Kaavin Kaiku", "Keiteleen Kunto", "Keiteleen Nuju",
+        "Kiuruveden Urheilijat", "Kuopion Reipas", "Lapinlahden Veto",
+        "Leppävirran Urheilijat", "Leppävirran Viri", "Maaningan Mahti",
+        "Nilsiän Nujakka", "Pielaveden Sampo", "Rauhalahti Road Runners",
+        "Siilinjärven Hiihtoseura", "Siilinjärven Ponnistus",
+        "Sonkajärven Pahka", "Suonenjoen Vasama", "Varkauden Kenttä-Veikot",
+        "Varpaisjärven Vire", "Vesannon Urheilijat", "Vieremän Koitto"
+      ]
+    },
+    {
+      "id": "kaiy", "name": "Kainuun Yleisurheilu", "short": "KaiY", "alue": "pohjoinen",
+      "clubs": [
+        "KajKi", "KajU", "KuhmKi", "PaltU", "RiPy", "SotkJy", "SuomRa"
+      ],
+      "names": [
+        "Kajaanin Kipinä", "Kajaanin Urheilijat", "Kuhmon Kiva",
+        "Paltamon Urheilijat", "Ristijärven Pyry", "Sotkamon Jymy",
+        "Suomussalmen Rasti"
+      ]
+    },
+    {
+      "id": "ly", "name": "Lapin Yleisurheilu", "short": "LY", "alue": "pohjoinen",
+      "clubs": [
+        "KittVoi", "LapLu", "LapSu", "LapTo", "LapVei", "MuurKV", "PohjKoi",
+        "PosPy", "RanPeu", "RovanRR"
+      ],
+      "names": [
+        "Kittilän Voima", "Lapin Lukko", "Lapin Toivot", "Lapin Veikot",
+        "Muurolan Kisaveikot", "Pohjan Koitto", "Posion Pyrintö",
+        "Ranuan Peura", "Rovaniemen Roadrunners"
+      ]
+    },
+    {
+      "id": "lpy", "name": "Länsi-Pohjan Yleisurheilu", "short": "LPY", "alue": "pohjoinen",
+      "clubs": [
+        "AlatPi", "LohijKuo", "PellPo", "SimKi", "TervTe", "VeitsilKV"
+      ],
+      "names": [
+        "Alatornion Pirkat", "Pellon Ponsi", "Veitsiluodon Kisaveikot"
+      ]
+    },
+    {
+      "id": "ppyu", "name": "Pohjois-Pohjanmaan Yleisurheilu", "short": "PPYU", "alue": "pohjoinen",
+      "clubs": [
+        "HaapavU", "HaukVei", "IinY", "KempKi", "KempMK", "KiimU", "KuivAu",
+        "KuusEV", "LaitasVe", "LimNM", "MerijKe", "OulHui", "OULIKI", "OulIL", "Oulun",
+        "OulNMKY", "OulPy", "OulTaru", "OulunsHei", "PudasjU", "PulkkPo",
+        "PyhäjWi", "RaahVe", "RantsRai", "SalSa", "SiikalU", "TaivKuo",
+        "TyrnTe", "UtajU", "VaalKa", "YliINa", "YlikNM", "YppU"
+      ],
+      "names": [
+        "Haapaveden Urheilijat", "Haukiputaan Veikot", "Iin Yritys",
+        "Kempeleen Kiri", "Kempeleen Maratonklubi", "Kiimingin Urheilijat",
+        "Kuivasjärven Aura", "Kuusamon Erä-Veikot", "Limingan Niittomiehet",
+        "Merijärven Kestävä", "Oulaisten Huima", "Oulun Ikiliikkujat",
+        "Oulun NMKY:n Urheilijat",
+        "Oulun Pyrintö", "Oulaisten Taru", "Oulunsuun Heitto",
+        "Pudasjärven Urheilijat", "Pyhäjoen Wirta", "Raahen Vesa",
+        "Rantsilan Raikas", "Saloisten Salama", "Siikalatvan Urheilijat", "Taivalkosken Kuohu",
+        "Tyrnävän Tempaus", "Utajärven Urheilijat", "Vaalan Karhu",
+        "Yli-Iin Naseva", "Ylikiimingin Nuijamiehet", "Yppärin Urheilijat"
+      ]
+    }
+  ]
+}

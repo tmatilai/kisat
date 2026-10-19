@@ -1,0 +1,11 @@
+{
+  "checked": "2025-01-12",
+  "marks": [
+    { "distance": 60, "count": 5, "toFirst": 13.72, "interval": 9.14, "colour": "valkoinen", "symbol": "neliö" },
+    { "distance": 60, "count": 5, "toFirst": 13, "interval": 8.5, "colour": "vihreä", "symbol": "kolmio" },
+    { "distance": 60, "count": 6, "toFirst": 12, "interval": 8, "colour": "vihreä", "symbol": "neliö" },
+    { "distance": 60, "count": 5, "toFirst": 12, "interval": 7, "colour": "keltainen", "symbol": "neliö" },
+    { "distance": 60, "count": 6, "toFirst": 11.5, "interval": 7.5, "colour": "musta", "symbol": "neliö" },
+    { "distance": 60, "count": 7, "toFirst": 10.5, "interval": 6.5, "colour": "vihreä", "symbol": "ympyrä" }
+  ]
+}

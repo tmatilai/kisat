@@ -1,0 +1,9 @@
+{
+  "venues": [
+    { "id": "helsinki-elaintarha", "locality": "Helsinki", "name": "Eläintarha", "length": 400 },
+    { "id": "helsinki-heteniitty", "locality": "Helsinki", "name": "Heteniitty", "length": 400 },
+    { "id": "helsinki-liikuntamylly", "locality": "Helsinki", "name": "Liikuntamylly", "length": 200 },
+    { "id": "tampere-pirkkahalli", "locality": "Tampere", "name": "Pirkkahalli", "length": 300 },
+    { "id": "turku-kupittaa", "locality": "Turku", "name": "Kupittaa", "length": 170 }
+  ]
+}

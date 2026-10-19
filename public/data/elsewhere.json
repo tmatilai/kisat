@@ -1,0 +1,135 @@
+{
+  "clubs": {
+    "Helsingin Juoksijat": "HelsJuo", "Helsingin Juoksijat - Helsinki": "HelsJuo", "IF Kraft Närpiö": "IFKraft",
+    "Finnish Maraton Runners": "FinnMR", "Sports Team Rahola": "STRahola", "Maxmo Sportklubb": "MaxmoSK",
+    "West Coast Ultra Runners": "WCUltraR", "Iin Yritys": "IinY"
+  },
+  "meets": [
+    { "comp": 16637, "t4r": "2025/smhallit" },
+    { "comp": 17868, "t4r": "2025/kalevankisat" },
+    { "comp": 18874, "t4r": "2026/1415smhallit" },
+    { "comp": 18962, "t4r": "2026/smhallit" },
+    { "comp": 20107, "t4r": "2026/kalevankisat" },
+    {
+      "comp": 16793, "ol": "2025_salosm",
+      "classes": {
+        "M puolimaraton": 6, "N puolimaraton": 7, "M15 Maantiejuoksu": 0, "N15 Maantiejuoksu": 1,
+        "M17 Maantiejuoksu": 2, "N17 Maantiejuoksu": 4, "M19 Maantiejuoksu": 3, "N19 Maantiejuoksu": 5
+      }
+    },
+    {
+      "comp": 16794, "ol": "2025_salosm",
+      "classes": {
+        "N30 puolimaraton": 21, "M30 puolimaraton": 8, "N35 puolimaraton": 22, "M35 puolimaraton": 9,
+        "N40 puolimaraton": 23, "M40 puolimaraton": 10, "N45 puolimaraton": 24, "M45 puolimaraton": 11,
+        "N50 puolimaraton": 25, "M50 puolimaraton": 12, "N55 puolimaraton": 26, "M55 puolimaraton": 13,
+        "N60 puolimaraton": 27, "M60 puolimaraton": 14, "N65 puolimaraton": 28, "M65 puolimaraton": 15,
+        "N70 puolimaraton": 29, "M70 puolimaraton": 16, "N75 puolimaraton": 30, "M75 puolimaraton": 17,
+        "N80 puolimaraton": 31, "M80 puolimaraton": 18, "N85 puolimaraton": 32, "M85 puolimaraton": 19,
+        "N90 puolimaraton": 33, "M90 puolimaraton": 20
+      }
+    },
+    {
+      "comp": 18117, "ol": "2025_saulmtk",
+      "classes": {
+        "N30 Maantiejuoksu": 11, "M30 Maantiejuoksu": 0, "N35 Maantiejuoksu": 12, "M35 Maantiejuoksu": 1,
+        "N40 Maantiejuoksu": 13, "M40 Maantiejuoksu": 2, "N45 Maantiejuoksu": 14, "M45 Maantiejuoksu": 3,
+        "N50 Maantiejuoksu": 15, "M50 Maantiejuoksu": 4, "N55 Maantiejuoksu": 16, "M55 Maantiejuoksu": 5,
+        "N60 Maantiejuoksu": 17, "M60 Maantiejuoksu": 6, "N65 Maantiejuoksu": 18, "M65 Maantiejuoksu": 7,
+        "N70 Maantiejuoksu": 19, "M70 Maantiejuoksu": 8, "N75 Maantiejuoksu": 20, "M75 Maantiejuoksu": 9,
+        "N80 Maantiejuoksu": 21, "M80 Maantiejuoksu": 10
+      }
+    },
+    {
+      "comp": 18634, "ol": "2025_vantaa",
+      "classes": {
+        "M maraton": 0, "N maraton": 1
+      }
+    },
+    {
+      "comp": 18635, "ol": "2025_vantaa",
+      "classes": {
+        "M30 maraton": 2, "M35 maraton": 3, "M40 maraton": 4, "M45 maraton": 5, "M50 maraton": 6,
+        "M55 maraton": 7, "M60 maraton": 8, "M65 maraton": 9, "M70 maraton": 10, "M75 maraton": 11,
+        "M80 maraton": 12, "N30 maraton": 13, "N35 maraton": 14, "N40 maraton": 15, "N45 maraton": 16,
+        "N50 maraton": 17, "N55 maraton": 18, "N60 maraton": 19, "N65 maraton": 20, "N70 maraton": 21
+      }
+    },
+    {
+      "comp": 18642, "ol": "2025_saulsmmaasto",
+      "classes": {
+        "N30 Maastojuoksu 6km": 18, "M30 Maastojuoksu 6km": 22, "N35 Maastojuoksu 6km": 19,
+        "M35 Maastojuoksu 6km": 23, "N40 Maastojuoksu 6km": 20, "M40 Maastojuoksu 6km": 24,
+        "N45 Maastojuoksu 6km": 21, "M45 Maastojuoksu 6km": 25, "N50 Maastojuoksu 4km": 10,
+        "M50 Maastojuoksu 6km": 16, "N55 Maastojuoksu 4km": 11, "M55 Maastojuoksu 6km": 17,
+        "N60 Maastojuoksu 4km": 12, "M60 Maastojuoksu 4km": 14, "N65 Maastojuoksu 4km": 13,
+        "M65 Maastojuoksu 4km": 15, "N70 Maantiejuoksu": 0, "M70 Maastojuoksu 2km": 6,
+        "N75 Maastojuoksu 2km": 1, "M75 Maastojuoksu 2km": 7, "N80 Maastojuoksu 1km": 2,
+        "M80 Maastojuoksu 2km": 8, "N85 Maastojuoksu 1km": 3, "M85 Maastojuoksu 2km": 9,
+        "N90 Maastojuoksu 1km": 4, "M90 Maastojuoksu 1km": 5
+      }
+    },
+    {
+      "comp": 18643, "ol": "2025_smmaasto",
+      "classes": {
+        "N Maastojuoksu 10km": 0, "M Maastojuoksu 10km": 1, "N Maastojuoksu 4km": 8, "M Maastojuoksu 4km": 9,
+        "T15 Maastojuoksu 4km": 2, "P15 Maastojuoksu 4km": 3, "N17 Maastojuoksu 4km": 4,
+        "M17 Maastojuoksu 4km": 5, "N19 Maastojuoksu 4km": 6, "M19 Maastojuoksu 4km": 7
+      }
+    },
+    {
+      "comp": 18650, "ol": "2025_solvalla",
+      "classes": {
+        "N30 Maantiejuoksu": 7, "M30 Maantiejuoksu": 6, "N35 Maantiejuoksu": 9, "M35 Maantiejuoksu": 8,
+        "N40 Maantiejuoksu": 11, "M40 Maantiejuoksu": 10, "N45 Maantiejuoksu": 13, "M45 Maantiejuoksu": 12,
+        "N50 Maantiejuoksu": 15, "M50 Maantiejuoksu": 14, "N55 Maantiejuoksu": 17, "M55 Maantiejuoksu": 16,
+        "N60 Maantiejuoksu": 19, "M60 Maantiejuoksu": 18, "N65 Maantiejuoksu": 21, "M65 Maantiejuoksu": 20,
+        "N70 Maantiejuoksu": 23, "M70 Maantiejuoksu": 22, "N75 Maantiejuoksu": 25, "M75 Maantiejuoksu": 24,
+        "N80 Maantiejuoksu": 27, "M80 Maantiejuoksu": 26
+      }
+    },
+    {
+      "comp": 19103, "ol": "2026_smmaantie",
+      "classes": {
+        "N puolimaraton": 20, "M puolimaraton": 6, "M15 Maantiejuoksu": 0, "N15 Maantiejuoksu": 1,
+        "M17 Maantiejuoksu": 2, "N17 Maantiejuoksu": 4, "M19 Maantiejuoksu": 3, "N19 Maantiejuoksu": 5
+      }
+    },
+    {
+      "comp": 19104, "ol": "2026_smmaantie",
+      "classes": {
+        "N30 puolimaraton": 21, "M30 puolimaraton": 7, "N35 puolimaraton": 22, "M35 puolimaraton": 8,
+        "N40 puolimaraton": 23, "M40 puolimaraton": 9, "N45 puolimaraton": 24, "M45 puolimaraton": 10,
+        "N50 puolimaraton": 25, "M50 puolimaraton": 11, "N55 puolimaraton": 26, "M55 puolimaraton": 12,
+        "N60 puolimaraton": 27, "M60 puolimaraton": 13, "N65 puolimaraton": 28, "M65 puolimaraton": 14,
+        "N70 puolimaraton": 29, "M70 puolimaraton": 15, "N75 puolimaraton": 30, "M75 puolimaraton": 16,
+        "N80 puolimaraton": 31, "M80 puolimaraton": 17, "N85 puolimaraton": 32, "M85 puolimaraton": 18,
+        "N90 puolimaraton": 33, "M90 puolimaraton": 19
+      }
+    },
+    {
+      "comp": 19164, "ol": "2026_saulsm10",
+      "classes": {
+        "N30 Maantiejuoksu": 13, "M30 Maantiejuoksu": 0, "N35 Maantiejuoksu": 14, "M35 Maantiejuoksu": 1,
+        "N40 Maantiejuoksu": 15, "M40 Maantiejuoksu": 2, "N45 Maantiejuoksu": 16, "M45 Maantiejuoksu": 3,
+        "N50 Maantiejuoksu": 17, "M50 Maantiejuoksu": 4, "N55 Maantiejuoksu": 18, "M55 Maantiejuoksu": 5,
+        "N60 Maantiejuoksu": 19, "M60 Maantiejuoksu": 6, "N65 Maantiejuoksu": 20, "M65 Maantiejuoksu": 7,
+        "N70 Maantiejuoksu": 21, "M70 Maantiejuoksu": 8, "N75 Maantiejuoksu": 22, "M75 Maantiejuoksu": 9,
+        "N80 Maantiejuoksu": 23, "M80 Maantiejuoksu": 10, "N85 Maantiejuoksu": 24, "M85 Maantiejuoksu": 11,
+        "N90 Maantiejuoksu": 25, "M90 Maantiejuoksu": 12
+      }
+    },
+    { "id": "viestit-2025", "name": "SM-viestit", "date": "2025-09-06", "last": "2025-09-07", "start": "10:00:00+03:00", "t4r": "2025/smviestit" },
+    { "id": "viestit-2026", "name": "SM-viestit", "date": "2026-09-05", "last": "2026-09-06", "start": "10:00:00+03:00", "t4r": "2026/smviestit" },
+    {
+      "id": "maraton-2026", "name": "SM-maraton", "date": "2026-09-12", "start": "12:00:00+03:00", "ol": "2026_finlandiala",
+      "classes": {
+        "M Maraton": 28, "N Maraton": 29, "M30 Maraton": 30, "M35 Maraton": 31, "M40 Maraton": 32, "M45 Maraton": 33,
+        "M50 Maraton": 34, "M55 Maraton": 35, "M60 Maraton": 36, "M65 Maraton": 37, "M70 Maraton": 38, "M75 Maraton": 39,
+        "M80 Maraton": 40, "M85 Maraton": 41, "N30 Maraton": 42, "N35 Maraton": 43, "N40 Maraton": 44, "N45 Maraton": 45,
+        "N50 Maraton": 46, "N55 Maraton": 47, "N60 Maraton": 48, "N65 Maraton": 49, "N70 Maraton": 50, "N75 Maraton": 51,
+        "N80 Maraton": 52
+      }
+    }
+  ]
+}

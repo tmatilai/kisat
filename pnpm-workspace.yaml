@@ -1,0 +1,11 @@
+# A version is installed three days after its release at the earliest, the
+# same delay as Renovate's (.github/renovate.json5).
+minimumReleaseAge: 4320
+# The install scripts of esbuild and workerd check the binary installed for
+# the platform.
+allowBuilds:
+  esbuild: true
+  workerd: true
+# An install fails on a version published with weaker provenance than an
+# earlier version of the same package.
+trustPolicy: no-downgrade
