@@ -99,6 +99,7 @@ async function renderHome() {
               el('a', { href: `mailto:${CONTACT_EMAIL}` }, CONTACT_EMAIL),
               '.',
             ],
+            ['Lähdekoodi on ', el('a', { href: SOURCE_URL, target: '_blank', rel: 'noopener' }, 'GitHubissa'), '.'],
           ],
         }
       : {
@@ -114,18 +115,13 @@ async function renderHome() {
               'Perusideana on koota saman lähdön kaikki sarjat yhteen näkymään. Voit myös seurata haluamiasi seuroja ja urheilijoita.',
             ],
             [
-              'Urheilijaa voi hakea seurattavaksi nimellä myös kilpailun ulkopuolelta. Haku käyttää palvelun omaa hakemistoa, johon on koottu kahden viimeisen kauden kilpailuihin osallistuneiden urheilijoiden nimet, seurat ja lisenssinumerot. Ne ovat samoja tietoja, jotka tuloslista.com näyttää julkisesti. Haku näyttää vain rajatun määrän osumia, eikä hakemistoa voi selata kokonaan.',
+              'Tunnuksia ei ole, joten seuranta jaetaan linkillä. Muokkauslinkkiä ei voi perua, joten jaa se harkiten. Siirtolinkki on vain omille laitteillesi.',
             ],
             [
-              'Tunnuksia ei ole, joten seuranta jaetaan linkillä. Katselulinkillä seurantaryhmää ei voi muokata, muokkauslinkillä voi (myös sinä itse toisella laitteella). Muokkauslinkkiä ei voi peruuttaa, joten jos se levisi liian laajalle, poista tai unohda koko seuranta ja tee uusi.',
-            ],
-            [
-              'Siirtolinkki vie kaikki seurantasi kerralla toiselle laitteellesi, muokkausoikeuksineen. Se on tarkoitettu vain sinulle itsellesi.',
-            ],
-            [
-              'Kotivalikkoon asennettu sovellus ei voi avata linkkiä, koska siinä ei ole osoiteriviä. Kopioi linkki ja valitse sovelluksessa seurantavalikosta "Ota linkki käyttöön".',
+              'Kotivalikkoon asennettu sovellus ei avaa linkkejä. Kopioi linkki ja valitse seurantavalikosta "Ota linkki käyttöön".',
             ],
             ['Palaute ja ideat ovat tervetulleita: ', el('a', { href: `mailto:${CONTACT_EMAIL}` }, CONTACT_EMAIL), '.'],
+            ['Lähdekoodi on ', el('a', { href: SOURCE_URL, target: '_blank', rel: 'noopener' }, 'GitHubissa'), '.'],
           ],
         },
   );
@@ -400,5 +396,6 @@ function scanSection(scan, todayIso) {
 }
 
 const CONTACT_EMAIL = ['teemu', 'matilainen.fi'].join('@');
+const SOURCE_URL = 'https://github.com/tmatilai/kisat';
 
 export { renderHome };
