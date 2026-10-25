@@ -119,6 +119,17 @@
         "N90 Maantiejuoksu": 25, "M90 Maantiejuoksu": 12
       }
     },
+    {
+      "comp": 20908, "ol": "2026_saulsmmaasto",
+      "classes": {
+        "N30 Maantiejuoksu 6km": 18, "M30 Maantiejuoksu 6km": 22, "N35 Maantiejuoksu 6km": 19, "M35 Maantiejuoksu 6km": 23,
+        "N40 Maantiejuoksu 6km": 20, "M40 Maantiejuoksu 6km": 24, "N45 Maantiejuoksu 6km": 21, "M45 Maantiejuoksu 6km": 25,
+        "N50 Maantiejuoksu 4km": 12, "M50 Maantiejuoksu 6km": 16, "N55 Maantiejuoksu 4km": 13, "M55 Maantiejuoksu 6km": 17,
+        "N60 Maantiejuoksu 4km": 14, "M60 Maantiejuoksu 4km": 10, "N65 Maantiejuoksu 4km": 15, "M65 Maantiejuoksu 4km": 11,
+        "N70 Maantiejuoksu": 6, "M70 Maantiejuoksu": 8, "N75 Maantiejuoksu": 7, "M75 Maantiejuoksu": 9,
+        "N80 Maantiejuoksu": 1, "M80 Maantiejuoksu": 4, "N85 Maantiejuoksu": 2, "M85 Maantiejuoksu": 5, "M90 Maantiejuoksu": 0
+      }
+    },
     { "id": "viestit-2025", "name": "SM-viestit", "date": "2025-09-06", "last": "2025-09-07", "start": "10:00:00+03:00", "t4r": "2025/smviestit" },
     { "id": "viestit-2026", "name": "SM-viestit", "date": "2026-09-05", "last": "2026-09-06", "start": "10:00:00+03:00", "t4r": "2026/smviestit" },
     {
@@ -129,6 +140,14 @@
         "M80 Maraton": 40, "M85 Maraton": 41, "N30 Maraton": 42, "N35 Maraton": 43, "N40 Maraton": 44, "N45 Maraton": 45,
         "N50 Maraton": 46, "N55 Maraton": 47, "N60 Maraton": 48, "N65 Maraton": 49, "N70 Maraton": 50, "N75 Maraton": 51,
         "N80 Maraton": 52
+      }
+    },
+    {
+      "id": "maastot-2026", "name": "SM-maastot", "date": "2026-10-24", "start": "11:00:28+03:00", "ol": "2026_smmaasto",
+      "classes": {
+        "N Maastojuoksu 10km": 0, "M Maastojuoksu 10km": 1, "N Maastojuoksu 4km": 8, "M Maastojuoksu 4km": 9,
+        "N15 Maastojuoksu 4km": 2, "M15 Maastojuoksu 4km": 3, "N17 Maastojuoksu 4km": 4, "M17 Maastojuoksu 4km": 5,
+        "N19 Maastojuoksu 4km": 6, "M19 Maastojuoksu 4km": 7
       }
     }
   ]
