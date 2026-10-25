@@ -1,19 +1,19 @@
 // Checks the front page with nothing followed (docs/home.md), which
 // probe-home.js does not cover. It covers a meet's real days from
 // /calendar.json, the sort, the today highlight, the older tail and search.
-//   dev/probe.html?probe=probe-calendar&wait=2500
-// It needs `make dev`, as only the Worker answers /calendar.json. It reads
-// live data, since the check is whether the feed's days reach the page.
-export default async function probe({ W, D, log, ok, wait, appJs }) {
+//   dev/probe.html?probe=probe-calendar
+// It needs the Worker, as only the Worker answers /calendar.json, and reads
+// the meets that dev/probe.mjs seeds (workerKv) and lists (LISTING).
+export default async function probe({ W, D, log, ok, wait, appJs, settle }) {
   // With no watch of any kind, this is a first visitor's page.
   W.localStorage.removeItem('kisatWatches');
   W.localStorage.removeItem('kisatFollow');
   W.localStorage.removeItem('kisatCompView');
   W.localStorage.removeItem('kisatRecentComps');
   appJs.navigate('/');
-  await wait(300);
+  await settle();
   appJs.navigate('/');
-  await wait(4000); // the listing and the feed load in parallel
+  await settle();
 
   const app = D.getElementById('app');
   ok('no Seuratut without a follow-list', !app.textContent.includes('Seuratut'));
@@ -27,7 +27,7 @@ export default async function probe({ W, D, log, ok, wait, appJs }) {
   const withDays = feed.comps.filter((c) => c.days?.length);
   const spans = withDays.filter((c) => c.days.length > 1);
   log(`feed: ${feed.comps.length} comps, ${withDays.length} with real days, ${spans.length} multi-day`);
-  ok('the feed answers at all (make dev, not make serve)', withDays.length > 0);
+  ok('the feed answers at all', withDays.length > 0);
 
   const recent = rowIds();
   log(`rows shown by default: ${recent.length}`);

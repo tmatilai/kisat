@@ -53,6 +53,13 @@ function fiToIsoDay(fi) {
   return `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
+// Returns a moment's day on the device's own clock, as "2026-08-08". The
+// listing's dates are Finnish days, so the UTC day would light yesterday's
+// meets in the small hours.
+function localIsoDay(date) {
+  return fiToIsoDay(date.toLocaleDateString('fi-FI'));
+}
+
 function shiftIsoDay(iso, days) {
   const t = Date.parse(`${iso}T00:00:00Z`);
   if (Number.isNaN(t)) return '';
@@ -85,6 +92,7 @@ export {
   fiToIsoDay,
   isoDay,
   isoToFiDay,
+  localIsoDay,
   parseTs,
   scheduleDays,
   shiftIsoDay,

@@ -11,11 +11,11 @@
 //
 // The page answers the demo's /api/meet itself (demoApiBody,
 // lib/demo-api.js), so no Worker is needed.
-export default async function probe({ D, W, log, ok, wait, appJs, demoJs, libJs }) {
+export default async function probe({ D, W, log, ok, wait, appJs, demoJs, libJs, settle }) {
   // The demo's days are today's (demo.js), so the group keys are read off
   // the fixture's schedule as the day list builds them.
   const rows = Object.values(demoJs.demoSchedule()).flat();
-  const open = async (eventId, roundName, ms = 1200) => {
+  const open = async (eventId, roundName) => {
     const row = rows.find((r) => r.EventId === eventId && (!roundName || r.Name === roundName));
     const hash = `/c/demo/g/${encodeURIComponent(libJs.roundGroupKey(row))}`;
     // Opening the start already on screen bounces off the meet page first.
@@ -23,10 +23,10 @@ export default async function probe({ D, W, log, ok, wait, appJs, demoJs, libJs 
     // render.
     if (W.location.pathname === hash) {
       appJs.navigate('/c/demo');
-      await wait(300);
+      await settle();
     }
     appJs.navigate(hash);
-    await wait(ms);
+    await settle();
     return row;
   };
   const notices = () => [...D.querySelectorAll('#app .notice')].map((n) => n.textContent.trim());
@@ -165,11 +165,11 @@ export default async function probe({ D, W, log, ok, wait, appJs, demoJs, libJs 
   // 4. The day's own list counts a follow-list's entries over every undrawn
   // start of the day. DemU has four entries over e6, e45 and the T11
   // 3-ottelu, and one of the four is unconfirmed.
-  const openList = async (hash, ms = 2200) => {
+  const openList = async (hash) => {
     appJs.navigate('/');
-    await wait(300);
+    await settle();
     appJs.navigate(hash);
-    await wait(ms);
+    await settle();
     return D.querySelector('#app details.varmistus');
   };
   const listRows = () =>
@@ -330,7 +330,7 @@ export default async function probe({ D, W, log, ok, wait, appJs, demoJs, libJs 
     );
     if (chip.getAttribute('aria-pressed') === 'false') {
       chip.click();
-      await wait(900);
+      await settle();
     }
   };
   await withCounts();
@@ -359,7 +359,7 @@ export default async function probe({ D, W, log, ok, wait, appJs, demoJs, libJs 
   ).getTime();
   const otteluNotices = async (key) => {
     appJs.navigate(`/c/demo/o/${encodeURIComponent(key)}`);
-    await wait(1400);
+    await settle();
     return [...D.querySelectorAll('#app .notice')].map((n) => n.textContent.trim());
   };
   W.Date.now = () => e38Starts - 2 * 60 * 60 * 1000;

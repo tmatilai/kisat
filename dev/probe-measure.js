@@ -3,16 +3,16 @@
 // row of its own, and the page stays out of its own reading.
 //   dev/probe.html?probe=probe-measure&url=c/demo
 // The demo answers from demo.js with no network, so no row counts a request.
-export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
-  const open = async (path, ms = 800) => {
+export default async function probe({ D, W, log, ok, wait, groupKey, appJs, settle }) {
+  const open = async (path) => {
     appJs.navigate(path);
-    await wait(ms);
+    await settle();
   };
   const rows = () => [...D.querySelectorAll('#app table')].slice(-1)[0]?.querySelectorAll('tbody tr') || [];
   const cells = (tr) => [...tr.querySelectorAll('td')].map((td) => td.textContent.trim());
 
   // The runner's own way in has already rendered home, so the log is cleared.
-  await open('/#/measure', 600);
+  await open('/#/measure');
   const wipe = () => {
     const b = [...D.querySelectorAll('#app button')].find((x) => x.textContent.trim() === 'Clear');
     if (b) b.click();
@@ -24,8 +24,8 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
   await open(`/c/demo/g/${encodeURIComponent(groupKey(11, 0, 'Pituus'))}`);
   // Refreshes the start in view with the timer's own call.
   await appJs.render(true);
-  await wait(400);
-  await open('/#/measure', 600);
+  await settle();
+  await open('/#/measure');
 
   const recent = [...rows()].map(cells);
   log(recent.map((c) => c.join(' ')).join(' | '));
@@ -42,7 +42,7 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
   // (Break on purpose: drop the `view === 'measure'` guard in keepRenderCost,
   // and the page lists itself once it is opened a second time.)
   await open('/c/demo');
-  await open('/#/measure', 600);
+  await open('/#/measure');
   const views = [...rows()].map((tr) => cells(tr)[1]);
   log(views.join(' | '));
   ok('the measure page is not in its own reading', !views.some((v) => v.startsWith('measure')));

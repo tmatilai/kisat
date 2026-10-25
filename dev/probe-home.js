@@ -1,14 +1,22 @@
-// Checks the front page with a follow-list active (docs/home.md). It reads the
-// live listing, and the demo meets are not in it, so it needs a `make dev`
-// with a Watch and a seeded or built digest of a meet in that listing
-// (dev/AGENTS.md, "A dev server with a follow-list in it").
+// Checks the front page with a follow-list active (docs/home.md). It needs the
+// Worker, and reads the meets that dev/probe.mjs seeds (workerKv) and the
+// listing it answers for Tuloslista (LISTING).
 //
-//   dev/probe.html?probe=probe-home&watch=<watchId>&wait=2500
+//   dev/probe.html?probe=probe-home
 //
-// `watch` is the Watch this device activates before home renders.
-export default async function probe({ W, D, log, ok, wait, params, appJs, libJs }) {
-  const watchId = params.get('watch');
-  if (!watchId) return log('ERROR pass ?watch=<watchId>');
+// It creates a Watch of the demo club and activates it before home renders.
+export default async function probe({ W, D, log, ok, wait, appJs, libJs, settle }) {
+  const created = await W.fetch('/api/watch', {
+    method: 'POST',
+    headers: { 'x-kisat-client': '1' },
+    body: JSON.stringify({
+      label: 'DemU',
+      entries: [{ type: 'club', id: '1', name: 'Demon Urheilijat' }],
+    }),
+  }).then((r) => r.json());
+  const watchId = created.id;
+  log(`watch: ${watchId}`);
+  if (!watchId) return log('ERROR no Watch was created');
 
   // Seeds the keys the app writes. The registry row labels the chip, and the
   // remembered meet is outside the listing, so the sort check never reads it.
@@ -18,9 +26,9 @@ export default async function probe({ W, D, log, ok, wait, params, appJs, libJs 
   W.localStorage.removeItem('kisatCompView');
   W.localStorage.setItem('kisatRecentComps', recent);
   appJs.navigate('/');
-  await wait(300);
+  await settle();
   appJs.navigate('/');
-  await wait(4000); // the scan is a KV read, but the listing fetch is not
+  await settle(); // the scan is a KV read, but the listing fetch is not
 
   const idsIn = (sel) =>
     [...D.querySelectorAll(`${sel} a`)].map((a) => a.getAttribute('href').match(/\/c\/(\w+)/)?.[1]);
@@ -113,9 +121,9 @@ export default async function probe({ W, D, log, ok, wait, params, appJs, libJs 
   recentFold().open = true;
   await wait(100);
   appJs.navigate('/');
-  await wait(300);
+  await settle();
   appJs.navigate('/');
-  await wait(4000);
+  await settle();
   ok('"Viimeksi katsotut" opened stays open through a render', recentFold()?.open === true);
   recentFold().open = false;
   await wait(100);
@@ -183,7 +191,7 @@ export default async function probe({ W, D, log, ok, wait, params, appJs, libJs 
     W.localStorage.setItem('kisatWatches', JSON.stringify([{ watchId: id, label: 'Stub' }]));
     W.localStorage.setItem('kisatFollow', JSON.stringify(id));
     appJs.navigate('/');
-    await wait(300);
+    await settle();
   };
   const notices = () => [...D.querySelectorAll('#app .notice')].map((n) => n.textContent);
   await useStub('probestub');
@@ -256,9 +264,9 @@ export default async function probe({ W, D, log, ok, wait, params, appJs, libJs 
     JSON.stringify([{ id: someId, name: 'Probe range test', range: 'PROBE-RANGE-9.8.' }]),
   );
   appJs.navigate('/');
-  await wait(300);
+  await settle();
   appJs.navigate('/');
-  await wait(4000);
+  await settle();
   showOlder();
   const row = listRows().find((a) => a.getAttribute('href') === `/c/${someId}`);
   ok(
@@ -275,9 +283,9 @@ export default async function probe({ W, D, log, ok, wait, params, appJs, libJs 
   W.localStorage.removeItem('kisatCompView');
   W.localStorage.setItem('kisatRecentComps', recent);
   appJs.navigate('/');
-  await wait(300);
+  await settle();
   appJs.navigate('/');
-  await wait(4000);
+  await settle();
   const chips = [...D.querySelectorAll('.filter-bar button')].map((b) => b.textContent);
   log(`bar buttons with nothing watched: ${JSON.stringify(chips)}`);
   ok('the chip reads "Ei seurantaa" once nothing is watched', chips.includes('Ei seurantaa ▾'));

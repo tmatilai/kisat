@@ -3,10 +3,10 @@
 // tie-break, the place-based rail on a start, and no qual-note.
 //   dev/probe.html?probe=probe-cupfinal&url=c/democupfinal
 // fetchJson answers the meet body from the fixture, so no Worker is needed.
-export default async function probe({ D, log, ok, wait, groupKey, appJs }) {
-  const go = async (path, ms = 1400) => {
+export default async function probe({ D, log, ok, groupKey, appJs, settle }) {
+  const go = async (path) => {
     appJs.navigate(path);
-    await wait(ms);
+    await settle();
   };
   const text = (n) => (n ? n.textContent.replace(/\s+/g, ' ').trim() : null);
   const rows = (sel) => [...D.querySelectorAll(sel)];

@@ -8,8 +8,8 @@
 // athlete quick-filter's roster is answered offline for the demo, so no
 // Worker is needed.
 //
-//   dev/probe.html?probe=probe-pending&url=c/demo%23/a/i1-a&wait=1500
-export default async function probe({ W, D, log, ok, wait, groupKey, appJs, demoJs }) {
+//   dev/probe.html?probe=probe-pending&url=c/demo%23/a/i1-a
+export default async function probe({ W, D, log, ok, wait, groupKey, appJs, demoJs, settle }) {
   await wait(1500); // the athlete link's roster fetch and redirect
 
   log(`path: ${W.location.pathname}`);
@@ -62,7 +62,7 @@ export default async function probe({ W, D, log, ok, wait, groupKey, appJs, demo
   // three qualifiers are settled, lanes drawn or not. Competition 20348's
   // M 100m final had this shape, with its sixteen decided an hour earlier.
   appJs.navigate('/c/demo#/a/j2-a');
-  await wait(1800);
+  await settle();
   const eightHundred = [...D.querySelectorAll('.list a.row')].filter((r) => r.textContent.includes('800m'));
   const final800 = eightHundred.find((r) => r.textContent.includes('Loppukilpailu'));
   ok('M 800m final row found', !!final800);
@@ -84,7 +84,7 @@ export default async function probe({ W, D, log, ok, wait, groupKey, appJs, demo
   const saved800 = { Heats: alku800.Heats, Status: alku800.Status };
   Object.assign(alku800, { Heats: [], Status: 'Unallocated' });
   await appJs.render(true);
-  await wait(1200);
+  await settle();
   const undrawn800 = [...D.querySelectorAll('.list a.row')].filter((r) => r.textContent.includes('800m'));
   const undrawnFinal = undrawn800.find((r) => r.textContent.includes('Loppukilpailu'));
   const undrawnAlku = undrawn800.find((r) => r.textContent.includes('Alkuerät'));
@@ -102,7 +102,7 @@ export default async function probe({ W, D, log, ok, wait, groupKey, appJs, demo
   // Competition 20354 read so a day after it finished. A one-heat round is
   // one that resultPending mutes and qualPending never does.
   appJs.navigate('/c/demo#/a/b1-a');
-  await wait(1800);
+  await settle();
   const kuula = [...D.querySelectorAll('.list a.row')].find((r) => r.textContent.includes('Kuula'));
   ok('Kuula row found', !!kuula);
   const chip = kuula?.querySelector('.chip')?.textContent;
@@ -124,9 +124,9 @@ export default async function probe({ W, D, log, ok, wait, groupKey, appJs, demo
   // line.
   // Four starts cover a list from a finished round, one from a running
   // round, one with no earlier round, and a single-round final.
-  const openStart = async (h, m, event, ms = 1200) => {
+  const openStart = async (h, m, event) => {
     appJs.navigate(`/c/demo/g/${encodeURIComponent(groupKey(h, m, event))}`);
-    await wait(ms);
+    await settle();
   };
   const table = () => D.querySelector('#app .tbl');
   const headCells = () => [...(table()?.querySelectorAll('thead th') || [])].map((th) => th.textContent.trim());
@@ -194,7 +194,7 @@ export default async function probe({ W, D, log, ok, wait, groupKey, appJs, demo
   // (openAthleteSheet, app/follow.js). It lists every earlier round by its
   // full name, with the club and the bib, and it costs no fetch.
   rowFor('Elina Vauhtinen').querySelector('.cell-name a.athlete-link').click();
-  await wait(600);
+  await settle();
   // The two cells are read apart, as the gap between them is layout and the
   // cell a value lands in is half the check.
   const sheetMarks = [...D.querySelectorAll('.sheet .athlete-mark')].map(
@@ -222,7 +222,7 @@ export default async function probe({ W, D, log, ok, wait, groupKey, appJs, demo
   ok('and no bests of its own', !D.querySelector('.sheet .name-aside'));
   ok('the row underneath still shows the last round alone', markOf('Elina Vauhtinen') === 'VE 25,00');
   D.querySelector('.sheet-close').click();
-  await wait(400);
+  await settle();
   ok(
     'and the sheet closes off the same start it was opened over',
     !D.querySelector('.sheet') && !!rowFor('Elina Vauhtinen'),
@@ -350,7 +350,7 @@ export default async function probe({ W, D, log, ok, wait, groupKey, appJs, demo
   };
   setBests('188');
   await appJs.render(true);
-  await wait(400);
+  await settle();
   log(`Veikko, bests in centimetres: ${asidesAnywhere('Veikko Mittainen')}`);
   ok(
     'a centimetre best is drawn in the metres the result beside it is in',
@@ -364,7 +364,7 @@ export default async function probe({ W, D, log, ok, wait, groupKey, appJs, demo
   // cell reads as a PB on every followed row. The quick-filter goes back to
   // the 200 m runner with bests before her start is reopened.
   appJs.navigate('/c/demo#/a/i1-a');
-  await wait(1800);
+  await settle();
   await openStart(10, 15, '200m');
   const mine = rowFor('Elina Vauhtinen');
   const theirs = rowFor('Sara Testinen');

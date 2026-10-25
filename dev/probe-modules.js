@@ -22,3 +22,15 @@ const libs = await Promise.all([...new Set(hrefs('/lib/'))].map((href) => import
 const across = (modules) => new Proxy({}, { get: (_, key) => modules.find((ns) => key in ns)?.[key] });
 
 window.probeModules = { app: across(apps), demo, lib: across(libs) };
+
+// Counts the document's fetches in flight, for the runner's idle(). The app
+// calls fetch at call time, so the wrapper sees each one.
+let inFlight = 0;
+const realFetch = window.fetch;
+window.fetch = (...args) => {
+  inFlight += 1;
+  return realFetch(...args).finally(() => {
+    inFlight -= 1;
+  });
+};
+window.probeInFlight = () => inFlight;

@@ -1,8 +1,9 @@
 PORT ?= 8932
 # Two wranglers with the same --persist-to share one SQLite state, so a second
 # make dev needs its own DEV_PORT and STATE_DIR. A dev server keeps off 8933 to
-# 8935: make test-worker binds TEST_WORKER_PORT, 8933, and the two ports after
-# it, and make test-render binds TEST_RENDER_PORT, 8935.
+# 8936: make test-worker binds TEST_WORKER_PORT, 8933, and the two ports after
+# it, make test-render binds TEST_RENDER_PORT, 8935, and make probes binds
+# PROBE_WORKER_PORT, 8936.
 DEV_PORT ?= 8787
 COMP ?=
 # package.json pins the tools and the packages. A target that needs them
@@ -71,7 +72,7 @@ format: $(INSTALLED)
 check-format: $(INSTALLED)
 	$(PRETTIER) --check --log-level warn .
 
-## probe: run a dev/ probe in Playwright's Chromium (PROBE=probe-heats, Q= its query, PROBE_HOST= for make dev)
+## probe: run a dev/ probe in Playwright's Chromium (PROBE=probe-heats, Q= its query, PROBE_HOST= for a make dev)
 PROBE ?= probe
 PROBE_HOST ?=
 Q ?=
@@ -79,7 +80,7 @@ probe: $(INSTALLED)
 	$(BROWSER)
 	@node dev/probe.mjs '$(PROBE_HOST)' '$(PROBE)' '$(Q)'
 
-## probes: run every probe that needs only the demo, four at a time (what CI runs)
+## probes: run every probe, offline, four at a time (what CI runs)
 probes: $(INSTALLED)
 	$(BROWSER)
 	node dev/probe.mjs '' all

@@ -3,18 +3,18 @@
 // its activation link and the day list's copy. dev/probe.js and
 // dev/probe-layers.js check a person's half. The demo has no Organization.Id 0,
 // which test/indexes.test.mjs covers.
-//   dev/probe.html?probe=probe-club&url=c/demo&wait=1500
-// It needs `make dev`, as it creates and reads a Watch through /api/watch.
-export default async function probe({ W, D, log, ok, wait, appJs }) {
+//   dev/probe.html?probe=probe-club&url=c/demo
+// It needs the Worker, as it creates and reads a Watch through /api/watch.
+export default async function probe({ W, D, log, ok, wait, appJs, settle }) {
   const appText = () => D.getElementById('app').textContent;
   const sheetButtons = () => [...D.querySelectorAll('.sheet .btn')].map((b) => b.textContent);
   const press = (text) =>
     [...D.querySelectorAll('.sheet .btn, .sheet .menu .row-title')].find((b) => b.textContent === text).click();
   const chip = () => D.querySelector('.filter-bar .watch-chip')?.textContent || '';
   const rowTitles = () => [...D.querySelectorAll('#app .list a.row .row-title')].map((r) => r.textContent);
-  const goto = async (hash, ms = 1800) => {
+  const goto = async (hash) => {
     appJs.navigate(hash);
-    await wait(ms);
+    await settle();
   };
 
   for (const k of Object.keys(W.localStorage)) {
@@ -28,7 +28,7 @@ export default async function probe({ W, D, log, ok, wait, appJs }) {
   // --- The link, in a results table ---
   const kuula = [...D.querySelectorAll('#app .list a.row')].find((r) => r.textContent.includes('Kuula'));
   kuula.click();
-  await wait(1800);
+  await settle();
   const links = () => [...D.querySelectorAll('.club-link')];
   log(
     `club links in the start: ${links().length}, first "${links()[0]?.textContent}" → ${links()[0]?.getAttribute('href')}`,
@@ -47,7 +47,7 @@ export default async function probe({ W, D, log, ok, wait, appJs }) {
   // --- What it opens ---
   const clubName = links()[0].textContent;
   links()[0].click();
-  await wait(400);
+  await settle();
   log(`club sheet: "${D.querySelector('.sheet-title')?.textContent}" / ${sheetButtons().join(' · ')}`);
   ok("it opens that club's sheet", D.querySelector('.sheet-title')?.textContent === clubName);
   // The club sheet makes the athlete sheet's two offers in the same order,
@@ -66,7 +66,7 @@ export default async function probe({ W, D, log, ok, wait, appJs }) {
 
   // --- The quick-filter ---
   press('Näytä seuran kaikki lajit');
-  await wait(2200);
+  await settle();
   log(`after the filter: hash=${W.location.pathname} chip="${chip()}"`);
   // From an event view the filter navigates to the day list, the one view it
   // shows in (openFocusFilter).
@@ -87,7 +87,7 @@ export default async function probe({ W, D, log, ok, wait, appJs }) {
   const shareBtn = [...D.querySelectorAll('.filter-bar .btn')].find((b) => b.textContent === 'Jaa linkki');
   ok("the filter is shareable, the same way an athlete's is", !!shareBtn);
   D.querySelector('.watch-chip-remove').click();
-  await wait(1500);
+  await settle();
   const wholeDay = rowTitles();
   log(`whole day: ${wholeDay.length} starts, chip "${chip()}"`);
   ok('the × puts the whole day back', wholeDay.length > clubDay.length && !stored());
@@ -139,11 +139,11 @@ export default async function probe({ W, D, log, ok, wait, appJs }) {
   await goto('/c/demo', 2200);
   const kuula2 = [...D.querySelectorAll('#app .list a.row')].find((r) => r.textContent.includes('Kuula'));
   kuula2.click();
-  await wait(1800);
+  await settle();
   const link = [...D.querySelectorAll('.club-link')][0];
   const name2 = link.textContent;
   link.click();
-  await wait(400);
+  await settle();
   press('Lisää seurantaan ▾');
   await wait(400);
   log(`add menu: ${[...D.querySelectorAll('.sheet .menu .row-title')].map((r) => r.textContent).join(' · ')}`);
@@ -155,7 +155,7 @@ export default async function probe({ W, D, log, ok, wait, appJs }) {
     [...D.querySelectorAll('.sheet .menu .row-title')].some((t) => t.textContent === 'Seuratesti'),
   );
   press('Seuratesti');
-  await wait(2000);
+  await settle();
   const saved = await (await W.fetch(`/api/watch/${watch.id}`, { headers: { 'x-kisat-client': '1' } })).json();
   log(`entries now: ${JSON.stringify(saved.entries)}`);
   ok(
@@ -188,7 +188,7 @@ export default async function probe({ W, D, log, ok, wait, appJs }) {
   // full name.
   const before = W.location.pathname;
   team.click();
-  await wait(500);
+  await settle();
   log(`after the nested tap: hash=${W.location.pathname} sheet="${D.querySelector('.sheet-title')?.textContent}"`);
   // (Break on purpose: skip clubNameLink's preventDefault when nested, and
   // the row's own anchor navigates away.)

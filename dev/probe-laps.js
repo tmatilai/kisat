@@ -4,7 +4,7 @@
 //   dev/probe.html?probe=probe-laps&url=%3Fmode%3Djuoksut
 import { defaultTrack } from '/lib/lap-counter.js';
 
-export default async function probe({ frame, W, ok, wait, groupKey, appJs }) {
+export default async function probe({ frame, W, ok, wait, groupKey, appJs, settle, reload }) {
   // A full navigation replaces contentDocument, so this reads it afresh. The
   // runner's own `D` would point at the detached one.
   const doc = () => frame.contentDocument;
@@ -14,9 +14,9 @@ export default async function probe({ frame, W, ok, wait, groupKey, appJs }) {
   const K800 = groupKey(9, 0, '800m');
   const KRELAY = groupKey(14, 0, '4x100m viesti');
 
-  const go = async (hash, ms = 1200) => {
+  const go = async (hash) => {
     appJs.navigate(hash);
-    await wait(ms);
+    await settle();
   };
   const counterLink = () =>
     [...app().querySelectorAll('a.btn')].find((a) => /Kierroslaskuri|Maaliintulot/.test(a.textContent));
@@ -63,11 +63,11 @@ export default async function probe({ frame, W, ok, wait, groupKey, appJs }) {
   const clock = () => doc().getElementById('lapclock');
   ok('the clock reads zero', clock()?.textContent === '0:00');
   clock().click();
-  await wait(400);
+  await settle();
   const first = tiles()[0];
   const bib = first.querySelector('.bib').textContent;
   first.click();
-  await wait(400);
+  await settle();
   ok('a tap counts a crossing', !!appText().match(/1\./));
   ok('...and the board follows the leader down', app().querySelector('.board .board-num')?.textContent === '1');
 
@@ -77,7 +77,7 @@ export default async function probe({ frame, W, ok, wait, groupKey, appJs }) {
   tiles()
     .find((t) => t.querySelector('.bib').textContent === bib)
     .click();
-  await wait(400);
+  await settle();
   ok(
     'a press too soon to be a lap is refused',
     app().querySelector('.tile.rejected') != null && !appText().includes('2.'),
@@ -87,7 +87,7 @@ export default async function probe({ frame, W, ok, wait, groupKey, appJs }) {
   tiles()
     .find((t) => t.querySelector('.bib').textContent === bib)
     .click();
-  await wait(400);
+  await settle();
   const finished = tiles().find((t) => t.querySelector('.bib').textContent === bib);
   ok('the second crossing is the finish', finished.className.includes('finished'));
   ok('...and it is timed', /\d,\d/.test(finished.textContent));
@@ -102,7 +102,7 @@ export default async function probe({ frame, W, ok, wait, groupKey, appJs }) {
   // --- Undo pops the last tap ---
   const heatKey = Object.keys(stored.heats)[0];
   [...app().querySelectorAll('button')].find((b) => b.textContent.includes('Kumoa')).click();
-  await wait(400);
+  await settle();
   ok('undo takes the last crossing back', JSON.parse(W.localStorage.getItem(key)).heats[heatKey].events.length === 1);
   ok('...and the runner is out on the track again', !app().querySelector('.tile.finished'));
 
@@ -122,7 +122,7 @@ export default async function probe({ frame, W, ok, wait, groupKey, appJs }) {
 
   const second = tiles().find((t) => t.querySelector('.bib').textContent !== bib);
   second.click();
-  await wait(400);
+  await settle();
   ok('both runners on one crossing can be reordered', grips().length === 2);
   const wasFirst = nros()[0];
   const wasSecond = nros()[1];
@@ -148,7 +148,7 @@ export default async function probe({ frame, W, ok, wait, groupKey, appJs }) {
 
   // Undo takes the correction back like any other entry.
   [...app().querySelectorAll('button')].find((b) => b.textContent.includes('Kumoa')).click();
-  await wait(400);
+  await settle();
   ok('undo takes the correction back', nros()[0] === wasFirst && logged().length === 2);
 
   // A keyboard makes the same correction on a machine that is not a phone.
@@ -162,7 +162,7 @@ export default async function probe({ frame, W, ok, wait, groupKey, appJs }) {
     doc().activeElement?.dataset?.id === grips()[0].dataset.id,
   );
   [...app().querySelectorAll('button')].find((b) => b.textContent.includes('Kumoa')).click();
-  await wait(400);
+  await settle();
   ok('...and it comes back the same way', nros()[0] === wasFirst && logged().length === 2);
 
   // A drag too short to reach another place still ends in a click on a row
@@ -241,7 +241,7 @@ export default async function probe({ frame, W, ok, wait, groupKey, appJs }) {
     ok('...and not the two that were', !/7 kirjaamatta/.test(chip().textContent));
 
     chip().click();
-    await wait(400);
+    await settle();
     const sheet = () => doc().querySelector('.sheet');
     ok('it opens a sheet naming them', sheet() != null && sheet().querySelectorAll('.pick-row').length === 5);
     ok(
@@ -259,7 +259,7 @@ export default async function probe({ frame, W, ok, wait, groupKey, appJs }) {
     const record = [...sheet().querySelectorAll('button')].find((b) => /Kirjaa \d+ ylitystä/.test(b.textContent));
     ok('...and the button counts what is actually ticked', /Kirjaa 4/.test(record.textContent));
     record.click();
-    await wait(500);
+    await settle();
 
     const log = () => JSON.parse(W.localStorage.getItem(store3000)).heats[hKey].events;
     const packEv = log().at(-1);
@@ -285,7 +285,7 @@ export default async function probe({ frame, W, ok, wait, groupKey, appJs }) {
     // One undo takes the whole pack back, exactly as it takes back a tap.
     // (Break on purpose: append the crossings individually in recordPack.)
     [...app().querySelectorAll('button')].find((b) => b.textContent.includes('Kumoa')).click();
-    await wait(500);
+    await settle();
     ok('undo takes the whole pack back', log().length === 30);
     await wait(600);
     ok('...and the chip is back to five', /5 kirjaamatta/.test(chip().textContent));
@@ -405,7 +405,7 @@ export default async function probe({ frame, W, ok, wait, groupKey, appJs }) {
     const held = slots().slice(1).map(who);
     const before = JSON.parse(W.localStorage.getItem(store)).heats[String(snap0.roster.heats[0].index)].events.length;
     slots()[0].click();
-    await wait(300);
+    await settle();
     const after = JSON.parse(W.localStorage.getItem(store)).heats[String(snap0.roster.heats[0].index)].events;
     ok('a band slot records a crossing like a tile', after.length === before + 1);
     ok('...for the team that was in it', after.at(-1).id === rows.find((r) => `#${r.bib}` === firstWho).id);
@@ -436,17 +436,19 @@ export default async function probe({ frame, W, ok, wait, groupKey, appJs }) {
   const seen = [];
   let phase = 'leaving';
   const realInterval = W.setInterval;
+  // The spy shortens a timer of a second or more to a hundredth, so a refresh
+  // timer would fire within the wait below.
   W.setInterval = function spy(fn, ms, ...rest) {
     seen.push({ phase, ms });
-    return realInterval.call(W, fn, ms, ...rest);
+    return realInterval.call(W, fn, ms >= 1000 ? ms / 100 : ms, ...rest);
   };
   phase = 'laps';
   await go(`/c/demo/g/${encodeURIComponent(K800)}/laps`);
   ok('the count survived leaving and returning', app().textContent.includes('Tilanne'));
   const marked = tiles()[0];
   marked.dataset.probeMark = '1';
-  // The wait outlasts the event view's refresh (GROUP_REFRESH_MS).
-  await wait(30_000);
+  // The wait outlasts the event view's shortened refresh (GROUP_REFRESH_MS).
+  await wait(appJs.GROUP_REFRESH_MS / 100 + 500);
   ok('no tile was rebuilt under the finger', tiles()[0]?.dataset.probeMark === '1');
   ok('the clock is still ticking on its own node', /^\d+:\d\d$/.test(clock().textContent));
   ok('no refresh timer was installed for the counter', !seen.some((s) => s.phase === 'laps' && s.ms >= 1000));
@@ -492,7 +494,7 @@ export default async function probe({ frame, W, ok, wait, groupKey, appJs }) {
   ok("...defaulting to the season's own", trackSel().value === String(defaultTrack(new Date())));
   trackSel().value = '200';
   trackSel().dispatchEvent(new W.Event('change'));
-  await wait(300);
+  await settle();
   ok(
     "...stored per competition, under juoksut's own key",
     JSON.parse(W.localStorage.getItem('track:demo') || '{}').track === 200,
@@ -505,25 +507,24 @@ export default async function probe({ frame, W, ok, wait, groupKey, appJs }) {
   await go('/c/demo');
   trackSel().value = '400';
   trackSel().dispatchEvent(new W.Event('change'));
-  await wait(300);
+  await settle();
 
   // --- The mode gate ---
   // The mode is read once at boot from the query string, so this reloads.
   // Kisat mode on a dev host has no other origin to send a counter URL to, so
   // it lands on home. Production sends it to the Juoksut host (renderRoute,
   // app.js).
-  W.location.replace('/');
-  await wait(1800);
+  await reload('/');
   appJs.navigate('/c/demo');
-  await wait(1200);
+  await settle();
   // The track setting sits on the filter bar, and in this mode the bar is the
   // follow-list's row with nothing in the setting's place.
   ok('Kisat mode offers no track setting', !app().querySelector('.track-pick'));
   appJs.navigate(`/c/demo/g/${encodeURIComponent(K800)}`);
-  await wait(1800);
+  await settle();
   ok('Kisat mode offers no counter on a start', !counterLink());
   appJs.navigate(`/c/demo/g/${encodeURIComponent(K800)}/laps`);
-  await wait(1800);
+  await settle();
   ok('...and a counter URL does not render one', !app().querySelector('.tile-grid'));
   ok('...it lands on home instead', frame.contentWindow.location.pathname === '/');
 }

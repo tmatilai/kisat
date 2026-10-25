@@ -8,23 +8,22 @@
 // open the filter, so the history entry passes from one to the other
 // (openLayer).
 //
-//   dev/probe.html?probe=probe-layers&url=c/demo&wait=1500
+//   dev/probe.html?probe=probe-layers&url=c/demo
 //
 // No Worker is needed, as fetchJson answers the quick-filter's roster from
-// the fixture, and the quick-filter filters the day list with no Watch. A
-// Watch would need `make dev`.
+// the fixture, and the quick-filter filters the day list with no Watch.
 //
 // The probe measures the browser fact the model rests on. A traversal fires
 // popstate and nothing else, whether or not the URL changes, so the popstate
 // handler tells a layer from a route change by the sentinel.
-export default async function probe({ W, D, log, ok, wait, appJs }) {
+export default async function probe({ W, D, log, ok, wait, appJs, settle, back }) {
   const reset = async (mark) => {
     for (const k of Object.keys(W.localStorage)) {
       if (k.startsWith('kisatWatchEdit:') || k === 'kisatWatches' || k === 'kisatCompView' || k === 'kisatFollow')
         W.localStorage.removeItem(k);
     }
     appJs.navigate(mark);
-    await wait(300);
+    await settle();
   };
   const sheets = () => D.querySelectorAll('.sheet').length;
   const filtered = () => !!D.querySelector('.filter-bar .watch-chip');
@@ -43,17 +42,15 @@ export default async function probe({ W, D, log, ok, wait, appJs }) {
     W.addEventListener('hashchange', onHash);
     W.history.pushState({ probe: 1 }, '', W.location.href);
     await wait(100);
-    W.history.back();
-    await wait(400);
+    await back();
     log(`same-URL pushState + back fires: ${seen.join(',') || 'nothing'}`);
     ok('a same-URL back fires popstate and nothing else', seen.join(',') === 'popstate');
     seen.length = 0;
     appJs.navigate('/c/demo');
-    await wait(900);
+    await settle();
     log(`navigate fires: ${seen.join(',') || 'nothing'}`);
     ok('a navigation fires nothing, so navigate renders for itself', seen.length === 0);
-    W.history.back();
-    await wait(600);
+    await back();
     log(`a route-changing back fires: ${seen.join(',') || 'nothing'}`);
     ok('and a route-changing back fires popstate and nothing else', seen.join(',') === 'popstate');
     // (Break on purpose: drop leaveView from the popstate handler's route
@@ -66,19 +63,18 @@ export default async function probe({ W, D, log, ok, wait, appJs }) {
   // --- A sheet: back closes it and leaves the view standing ---
   await reset('/');
   appJs.navigate('/c/demo');
-  await wait(1200);
+  await settle();
   const atComp = W.history.length;
   // A closed layer gives its entry back, or the next back press is spent on
   // nothing. history.length never shrinks, as a traversal only moves the
   // pointer. So the sentinel is gone when history.state carries no layer id.
   const onSentinel = () => W.history.state?.layer != null;
   chipBtn().click();
-  await wait(300);
+  await settle();
   ok('the selector sheet opened', sheets() === 1);
   log(`history.length ${atComp} -> ${W.history.length} with the sheet open, state ${JSON.stringify(W.history.state)}`);
   ok('...on a history entry of its own', W.history.length === atComp + 1 && onSentinel());
-  W.history.back();
-  await wait(600);
+  await back();
   // (Break on purpose: drop the popstate listener and the sheet stays open
   // over the meet.)
   ok('back closes the sheet and stays put', sheets() === 0 && W.location.pathname === '/c/demo');
@@ -88,17 +84,15 @@ export default async function probe({ W, D, log, ok, wait, appJs }) {
   // layer off. The second opens through the app's own textSheet, as in
   // dev/probe.js, since the stack and not the DOM says which is on top.
   chipBtn().click();
-  await wait(300);
+  await settle();
   appJs.textSheet('Päällimmäinen', ['Toinen kerros ensimmäisen päälle.']);
   await wait(200);
   ok('two sheets stacked', sheets() === 2);
   log(`history.length with two open: ${W.history.length} (one view entry + one sentinel)`);
   ok('...still on one entry between them', W.history.length === atComp + 1);
-  W.history.back();
-  await wait(600);
+  await back();
   ok('back takes the top one and leaves the one under it', sheets() === 1 && !!D.querySelector('.sheet .menu'));
-  W.history.back();
-  await wait(600);
+  await back();
   ok('and the next press takes the last', sheets() === 0 && W.location.pathname === '/c/demo');
   ok('leaving no sentinel behind', !onSentinel());
 
@@ -106,23 +100,22 @@ export default async function probe({ W, D, log, ok, wait, appJs }) {
   // A close that skips closeTopLayer leaves the stack believing a sheet is
   // open, and that stops the refresh for good (refreshTick, anySheetOpen).
   chipBtn().click();
-  await wait(300);
+  await settle();
   D.querySelector('.sheet-close').click();
-  await wait(400);
+  await settle();
   log(`after the ×: sheets ${sheets()}, anySheetOpen() ${appJs.anySheetOpen()}, history.length ${W.history.length}`);
   // (Break on purpose: point the ×'s onclick in openSheet at a bare
   // sheet.remove() and the stack keeps the sheet for ever.)
   ok('the × closes the sheet and the stack agrees', sheets() === 0 && appJs.anySheetOpen() === false);
   ok('and it gives the entry back too', !onSentinel());
   chipBtn().click();
-  await wait(300);
+  await settle();
   D.querySelector('.sheet-close').dispatchEvent(new W.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   await wait(400);
   ok('Escape does the same', sheets() === 0 && !onSentinel());
   // The entry is spent, so the very next press leaves the view and no
   // unseen entry swallows it.
-  W.history.back();
-  await wait(800);
+  await back();
   log(`one press after closing a sheet: hash ${W.location.pathname}`);
   ok('one press after that leaves the competition', W.location.pathname === '/');
 
@@ -131,13 +124,13 @@ export default async function probe({ W, D, log, ok, wait, appJs }) {
   // history entry.
   await reset('/');
   appJs.navigate('/c/demo#/a/g1-a');
-  await wait(1500);
+  await settle();
   ok('the activation link still lands on the schedule view, filtered', W.location.pathname === '/c/demo' && filtered());
   const line = D.querySelector('.watch-row-athlete .athlete-link');
   ok('the filtered day list offers a name to tap', !!line);
   const atFiltered = W.history.length;
   line.click();
-  await wait(600);
+  await settle();
   log(
     `tapping a name: sheets ${sheets()}, history.length ${atFiltered} -> ${W.history.length}, hash ${W.location.pathname}`,
   );
@@ -162,7 +155,7 @@ export default async function probe({ W, D, log, ok, wait, appJs }) {
   // the filter, which the state shows.)
   ok('the sheet offers the filter', !!showAll());
   showAll().click();
-  await wait(1200);
+  await settle();
   log(
     `after "Näytä kaikki lajit": sheets ${sheets()}, history.length ${W.history.length}, hash ${W.location.pathname}`,
   );
@@ -174,8 +167,7 @@ export default async function probe({ W, D, log, ok, wait, appJs }) {
     '...still on the one entry the sheet was standing on',
     W.history.length === atFiltered + 1 && W.history.state?.layer != null,
   );
-  W.history.back();
-  await wait(1200);
+  await back();
   ok(
     'back clears the filter and stays on the schedule view',
     W.location.pathname === '/c/demo' && !filtered() && D.getElementById('app').textContent.includes('Kuula'),
@@ -187,15 +179,15 @@ export default async function probe({ W, D, log, ok, wait, appJs }) {
   // entry for a later back press to spend on nothing. The activation link
   // leaves no layer, so a name tapped after it still pushes one.
   appJs.navigate('/c/demo#/a/g1-a');
-  await wait(1500);
+  await settle();
   ok('filtered through the link again, with nothing stacked', filtered() && W.history.state?.layer == null);
   D.querySelector('.watch-row-athlete .athlete-link').click();
-  await wait(600);
+  await settle();
   showAll().click();
-  await wait(1200);
+  await settle();
   ok('and tapping a name from there stacks one', filtered() && W.history.state?.layer != null);
   D.getElementById('back').click();
-  await wait(1200);
+  await settle();
   ok(
     '`‹` clears the filter and gives the entry back',
     !filtered() && W.location.pathname === '/c/demo' && W.history.state?.layer == null,
@@ -206,12 +198,12 @@ export default async function probe({ W, D, log, ok, wait, appJs }) {
   // reader nothing.
   await reset('/');
   appJs.navigate('/c/demo#/a/g1-a');
-  await wait(1500);
+  await settle();
   const atUntapped = W.history.length;
   D.querySelector('.watch-row-athlete .athlete-link').click();
-  await wait(600);
+  await settle();
   D.querySelector('.sheet-close').click();
-  await wait(600);
+  await settle();
   log(`sheet opened and dismissed: sheets ${sheets()}, history.length ${atUntapped} -> ${W.history.length}`);
   ok(
     'dismissing the sheet leaves the view as it was',
@@ -225,20 +217,20 @@ export default async function probe({ W, D, log, ok, wait, appJs }) {
   // to the start.
   await reset('/');
   appJs.navigate('/c/demo');
-  await wait(1200);
+  await settle();
   const atDay = W.location.pathname;
   [...D.querySelectorAll('.list a.row')].find((r) => r.textContent.includes('Keihäs')).click();
-  await wait(1200);
+  await settle();
   const atEvent = W.location.pathname;
   ok('opened a start', atEvent.includes('/g/'));
   const cell = D.querySelector('.cell-name a.athlete-link');
   ok('the results table names are links', !!cell);
   ok('...whose href is still the activation link', cell.getAttribute('href').startsWith('/c/demo#/a/'));
   cell.click();
-  await wait(600);
+  await settle();
   ok('and tapping one opens the sheet over the start', !!athleteSheet() && W.location.pathname === atEvent);
   showAll().click();
-  await wait(1500);
+  await settle();
   // (Break on purpose: open the filter layer in place in openFocusFilter,
   // with no navigation, and the reader stays on the start under a filter
   // the start cannot show.)
@@ -246,15 +238,13 @@ export default async function probe({ W, D, log, ok, wait, appJs }) {
     'the filter lands on the schedule view instead, with nothing stacked',
     W.location.pathname === '/c/demo' && filtered() && W.history.state?.layer == null,
   );
-  W.history.back();
-  await wait(1200);
+  await back();
   ok('back returns to the start it was tapped in', W.location.pathname === atEvent);
   // The navigation spends the entry the sheet stood on. Two entries at the
   // start's own URL would make the second press render the same start.
   // (Break on purpose: drop `replace: true` from openFocusFilter's navigate
   // and this press leaves the reader where they are.)
-  W.history.back();
-  await wait(1200);
+  await back();
   log(`two presses back from the filtered view: ${W.location.pathname}`);
   ok('and the next press leaves the start, with no dead entry under it', W.location.pathname === atDay);
 
@@ -262,12 +252,12 @@ export default async function probe({ W, D, log, ok, wait, appJs }) {
   // no sheet, and back still unstacks in order ---
   await reset('/');
   appJs.navigate('/c/demo#/a/g1-a');
-  await wait(1500);
+  await settle();
   ok('filtered, and the refresh is not held off by it', filtered() && appJs.anySheetOpen() === false);
   D.querySelector('.watch-row-athlete .athlete-link').click();
-  await wait(600);
+  await settle();
   showAll().click();
-  await wait(1200);
+  await settle();
   const atLayer = W.history.length;
   // The sheet opens through textSheet, as above. With the athlete chip on,
   // the filter bar's one button copies a link and opens no sheet.
@@ -276,10 +266,8 @@ export default async function probe({ W, D, log, ok, wait, appJs }) {
   log(`sheet over the filter: sheets ${sheets()}, history.length ${atLayer} -> ${W.history.length}`);
   ok('a sheet opens over the filter on the standing entry', sheets() === 1 && W.history.length === atLayer);
   ok('...which is still the one sentinel', W.history.state?.layer != null);
-  W.history.back();
-  await wait(800);
+  await back();
   ok('back takes the sheet and leaves the filter', sheets() === 0 && filtered());
-  W.history.back();
-  await wait(1200);
+  await back();
   ok('and the next press takes the filter', !filtered() && W.location.pathname === '/c/demo');
 }

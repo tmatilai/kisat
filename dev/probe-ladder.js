@@ -6,26 +6,26 @@
 // Every demo name fits 150 px, so the wrap counts pass without the bounds and
 // the column widths are the guard. Live, the rows of one throw's ladder and
 // one jump's took two or three lines at 150 px and one at 320 (2026-08).
-export default async function probe({ frame, D, log, ok, wait, groupKey, appJs }) {
+export default async function probe({ frame, D, log, ok, wait, groupKey, appJs, settle }) {
   const KEYS = {
     kuula: groupKey(12, 30, 'Kuula'),
     karsinta: groupKey(11, 0, 'Pituus'),
     korkeus: groupKey(13, 30, 'Korkeus'),
   };
-  const open = async (name, ms = 1200) => {
+  const open = async (name) => {
     appJs.navigate(`/c/demo/g/${encodeURIComponent(KEYS[name])}`);
-    await wait(ms);
+    await settle();
   };
-  const size = async (w, ms = 500) => {
+  const size = async (w) => {
     frame.width = w;
     frame.height = 900;
-    await wait(ms);
+    await wait(200);
   };
   // A finished round opens on the merged table (defaultResultView,
   // lib/schedule.js), so the heats that must line up are behind the Erät tap.
-  const tap = async (label, ms = 600) => {
+  const tap = async (label) => {
     [...D.querySelectorAll('#app .seg-btn')].find((b) => b.textContent === label)?.click();
-    await wait(ms);
+    await settle();
   };
   const wide = (el) => Math.round(el.getBoundingClientRect().width);
   const tables = () => [...D.querySelectorAll('.tbl.ladder')];

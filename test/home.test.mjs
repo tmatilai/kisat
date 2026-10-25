@@ -9,6 +9,7 @@ import {
   defaultDay,
   fiToIsoDay,
   isoDay,
+  localIsoDay,
   scheduleDays,
   shiftIsoDay,
 } from '../public/lib/dates.js';
@@ -479,6 +480,21 @@ test('scheduleEventIds/buildRoster', () => {
   const emmaTwice = twice.athletes.find((a) => a.name === 'Emma Mittainen');
   assert.equal(twice.athletes.length, 2, 'still just the two distinct athletes');
   assert.equal(emmaTwice.events.length, 2, 'but now entered in both events');
+});
+
+// --- Today: localIsoDay ---
+test('localIsoDay', () => {
+  // Today is the device's own day. Kiritimati runs at UTC+14, so its morning
+  // is still yesterday in UTC. (Break on purpose: return the day of
+  // toISOString, and this fails.)
+  const tz = process.env.TZ;
+  process.env.TZ = 'Pacific/Kiritimati';
+  try {
+    assert.equal(localIsoDay(new Date(2026, 7, 8, 9, 0)), '2026-08-08');
+  } finally {
+    if (tz === undefined) delete process.env.TZ;
+    else process.env.TZ = tz;
+  }
 });
 
 // --- Day maths: isoDay/fiToIsoDay/shiftIsoDay ---

@@ -2,14 +2,14 @@
 // it, and hands each line to the driver's probeLine (dev/probe.mjs).
 // Its traps are in dev/AGENTS.md, "Writing a probe".
 //
-//   dev/probe.html?probe=probe-heats&w=402&h=787&url=c/demo&wait=1500
+//   dev/probe.html?probe=probe-heats&w=402&h=787&url=c/demo
 //
 // `probe` picks the file, and probe.js is the default. The other keys are in
 // dev/AGENTS.md, "Running a probe".
 const params = new URLSearchParams(location.search);
 const w = +params.get('w') || 402;
 const h = +params.get('h') || 787;
-const settle = +params.get('wait') || 1500;
+const extraWait = +params.get('wait') || 0;
 const route = params.get('url') || '';
 
 const lines = [];
@@ -31,6 +31,36 @@ const until = async (cond, ms = 15000) => {
     }
   }
   return false;
+};
+// Waits ms, then until the frame is quiet: no fetch in flight (probe-modules.js)
+// and the latest render done (rendering, app/shell.js), with neither changing
+// for 50 ms. A debounced request needs ms past its debounce. A view that paints
+// in rounds on a timer needs an until() for its last round.
+const settle = async (ms = 0) => {
+  await wait(ms);
+  const win = () => frame.contentWindow;
+  for (;;) {
+    await until(() => win().probeModules && win().probeInFlight() === 0);
+    const render = appJs.rendering;
+    await render;
+    await wait(50);
+    if (win().probeInFlight?.() === 0 && appJs.rendering === render) return;
+  }
+};
+// Goes back one entry and waits for the popstate's render. The race ends a
+// back that leaves the document, whose popstate this window never sees.
+const back = async () => {
+  const popped = new Promise((r) => frame.contentWindow.addEventListener('popstate', r, { once: true }));
+  frame.contentWindow.history.back();
+  await Promise.race([popped, wait(2000)]);
+  await settle();
+};
+// Loads href as a new document and waits for its first render.
+const reload = async (href) => {
+  const old = frame.contentDocument;
+  frame.contentWindow.location.replace(href);
+  await until(() => frame.contentDocument !== old && frame.contentWindow.probeModules);
+  await settle();
 };
 const ok = (name, cond) => log(`${name}: ${cond ? 'OK' : 'FAIL'}`);
 
@@ -69,12 +99,12 @@ const [appJs, demoJs, libJs] = ['app', 'demo', 'lib'].map(moduleOf);
 // An error thrown outside the awaited probe would otherwise print nothing.
 window.onerror = (m) => log(`ERROR ${m}`);
 
-await wait(settle);
-await until(() => frame.contentWindow.probeModules);
+await settle();
 if (!direct) {
   appJs.navigate(`${routeUrl.pathname}${routeUrl.hash}`);
-  await wait(settle);
+  await settle();
 }
+await wait(extraWait);
 try {
   const file = /^[\w-]+$/.test(params.get('probe') || '') ? params.get('probe') : 'probe';
   const { default: probe } = await import(`./${file}.js?${Date.now()}`);
@@ -89,6 +119,9 @@ try {
     ok,
     wait,
     until,
+    settle,
+    back,
+    reload,
     groupKey,
     params,
   });

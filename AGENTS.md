@@ -55,7 +55,7 @@ Check at the level of the change, cheapest first.
 | `make check-format` | that Prettier would change no file                                              | a few seconds         |
 | `make test-worker`  | `worker.js` over a local `wrangler dev`, which serves the bundle                | fifteen seconds       |
 | `make test-render`  | that each view of the bundle renders in a headless browser, offline             | a few seconds         |
-| `make probes`       | the probes that need only the demo, at a phone width (`dev/AGENTS.md`)          | two minutes           |
+| `make probes`       | every probe at a phone width, offline (`dev/AGENTS.md`)                         | under a minute        |
 | `make test`         | the offline half, then the live API                                             | a few seconds, online |
 | `make probe`        | one probe, line by line (`dev/AGENTS.md`)                                       | seconds to a minute   |
 

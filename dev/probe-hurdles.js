@@ -3,21 +3,20 @@
 // (dev/AGENTS.md, "Running a probe"). It covers a start of three settings, a
 // start already run and its fold across the refresh, an unmarked setting's
 // figure, the steeple box, the aitaviesti's taping figure, and the kenttä
-// select and link, and that no view asks for the meet body. It reloads into Kisat mode at the end, where the box must
-// be absent, as a gate written as a global passes every check above it
-// (dev/probe-mode.js).
+// select and link, and that no view asks for the meet body. probe-mode.js
+// checks that Kisat mode has none of it.
 //
 //   dev/probe.html?probe=probe-hurdles&url=%3Fmode%3Djuoksut
 //
 // lib/hurdles.js groups the settings and finds the marks and lanes, and the
 // offline suite tests it (hurdleStartSetups). The box fetches static files
 // under /data/, so no Worker is needed.
-export default async function probe({ frame, W, log, ok, wait, groupKey, appJs, demoJs }) {
+export default async function probe({ frame, W, log, ok, wait, groupKey, appJs, demoJs, settle }) {
   const doc = () => frame.contentDocument;
   const app = () => doc().getElementById('app');
-  const go = async (hash, ms = 1500) => {
+  const go = async (hash) => {
     appJs.navigate(hash);
-    await wait(ms);
+    await settle();
   };
 
   const K60 = groupKey(10, 10, '60m aidat');
@@ -42,9 +41,9 @@ export default async function probe({ frame, W, log, ok, wait, groupKey, appJs, 
     asked.push(url);
     return realFetchJson(url, opts);
   });
-  await go('/c/demo', 1500);
+  await go('/c/demo');
   await go(start(K800), 1500);
-  await go('/c/demo/o/P9%203-ottelu', 1500);
+  await go('/c/demo/o/P9%203-ottelu');
   appJs.setFetchJson(realFetchJson);
   const meetAsks = asked.filter((u) => u.startsWith('/api/meet/'));
   log(`${asked.length} requests, of /api/meet/: ${JSON.stringify(meetAsks)}`);
@@ -154,7 +153,7 @@ export default async function probe({ frame, W, log, ok, wait, groupKey, appJs, 
   // fold was restored. (Break on purpose: drop `open:` from hurdleShell.)
   const before = box();
   await appJs.render(true);
-  await wait(200);
+  await settle();
   ok('...and stays open across the refresh that rebuilds it', box() !== before && box().open);
 
   await go(start(K800), 2000);
@@ -334,7 +333,7 @@ export default async function probe({ frame, W, log, ok, wait, groupKey, appJs, 
     endX(0) > endX(1) && legend() === '← osuudet 2 ja 4 · osuudet 1 ja 3 →',
   );
   await appJs.render(true);
-  await wait(200);
+  await settle();
   ok('...and the refresh leaves it turned', endX(0) > endX(1));
   strip().dispatchEvent(new W.Event('click'));
   await wait(100);
@@ -351,13 +350,13 @@ export default async function probe({ frame, W, log, ok, wait, groupKey, appJs, 
     a.Position = null;
   });
   await appJs.render(true);
-  await wait(200);
+  await settle();
   ok('...and by parillinen and pariton while the one class is undrawn', laneNames() === 'pariton|parillinen');
   e13.forEach((a, i) => {
     a.Position = drawn[i];
   });
   await appJs.render(true);
-  await wait(200);
+  await settle();
 
   // --- The sekaviesti box (e50, off a measured meet, 2026-08) ---
   // Its two rows split the drawn pair, each direction on a lane of its own.
@@ -402,7 +401,7 @@ export default async function probe({ frame, W, log, ok, wait, groupKey, appJs, 
   // The box's marks come from this choice (docs/venues.md). The render shows
   // the optgroups, the plain lengths first and each kenttä under its
   // locality, and one <select> writes two keys.
-  await go('/c/demo', 2000);
+  await go('/c/demo');
   const pick = () => app().querySelector('.track-pick');
   const sel = () => pick()?.querySelector('select');
   const stored = (key) => {
@@ -485,7 +484,7 @@ export default async function probe({ frame, W, log, ok, wait, groupKey, appJs, 
   // --- The kenttä link ---
   // /c/demo/k/<id> writes what the select would (activateVenueLink,
   // app/hurdles.js). (Break on purpose: drop saveTrack from it.)
-  await go('/c/demo/k/helsinki-heteniitty', 2000);
+  await go('/c/demo/k/helsinki-heteniitty');
   ok(
     'a kenttä link writes the choice and lands on the schedule',
     W.location.pathname === '/c/demo' &&
@@ -494,26 +493,11 @@ export default async function probe({ frame, W, log, ok, wait, groupKey, appJs, 
       sel().value === 'v:helsinki-heteniitty',
   );
   // (Break on purpose: save the id unchecked.)
-  await go('/c/demo/k/nowhere', 2000);
+  await go('/c/demo/k/nowhere');
   ok(
     '...an unknown kenttä writes nothing',
     W.location.pathname === '/c/demo' && stored('venue')?.id === 'helsinki-heteniitty',
   );
-  await go('/c/demo/k/200', 2000);
+  await go('/c/demo/k/200');
   ok('...and a bare length clears it, like the select', stored('venue') === null && stored('track')?.track === 200);
-
-  // --- Kisat mode, where none of it belongs ---
-  // A real reload is needed, as the mode is read once at boot. It opens the
-  // root, since only the Worker answers a path (dev/probe-runner.js).
-  W.location.replace('/');
-  await wait(2500);
-  appJs.navigate(start(K60));
-  await wait(2000);
-  ok('Kisat mode is in fact Kisat mode', doc().getElementById('title').textContent.includes('60m aidat'));
-  ok('...and the same start carries no box there', !box());
-  await go('/c/demo/k/helsinki-elaintarha', 2000);
-  ok(
-    '...nor is the kenttä link its route: it falls to home',
-    doc().getElementById('title').textContent.startsWith('Kisat'),
-  );
 }

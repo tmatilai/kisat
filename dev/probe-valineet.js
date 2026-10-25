@@ -6,8 +6,8 @@
 //   dev/probe.html?probe=probe-valineet&url=mitat%23%2Fvalineet
 //
 // It loads /mitat as a page, and only the Worker answers a path, so this needs
-// `make dev`.
-export default async function probe({ frame, W, log, ok, wait }) {
+// the Worker.
+export default async function probe({ frame, W, log, ok, settle, reload }) {
   const doc = () => frame.contentDocument;
   const app = () => doc().getElementById('app');
   const pages = () => [...app().querySelectorAll('.aidat-page')];
@@ -41,7 +41,7 @@ export default async function probe({ frame, W, log, ok, wait }) {
     pages()[0].querySelector('.tbl-wrap').scrollWidth <= pages()[0].querySelector('.tbl-wrap').clientWidth,
   );
   app().querySelector('.valineet-dims').click();
-  await wait(1500);
+  await settle();
   // With every dimension, each implement has a section, and the rows merge
   // on the dimensions too.
   log(`every dimension: first table ${cols()} columns, rows ${cats(pages()[0]).length} / ${cats(pages()[1]).length}`);
@@ -67,14 +67,14 @@ export default async function probe({ frame, W, log, ok, wait }) {
   );
   ok('a maximum alone says so', keihas.textContent.includes('enint. 270'));
   app().querySelector('.valineet-dims').click();
-  await wait(1500);
+  await settle();
   ok('...and takes them away again', cols() === 6 && cats(pages()[0]).length === 9);
 
   // A chip keeps its classes alone and drops a section with none of them.
   // One row of chips covers both files' classes.
   ok("the chips are the hurdle page's", !!chip('T/P 8'));
   chip('T/P 8').click();
-  await wait(1500);
+  await settle();
   ok(
     "...the 8s on the 9s' weights",
     W.location.hash === '#/valineet/8' &&
@@ -82,15 +82,15 @@ export default async function probe({ frame, W, log, ok, wait }) {
       menRow(0).join() === 'P8,400 g,600 g,2 kg,2,5 kg',
   );
   chip('T/P 8').click();
-  await wait(1500);
+  await settle();
   chip('T/P 13').click();
-  await wait(1500);
+  await settle();
   ok(
     "a chip keeps the class's rows, named alone",
     W.location.hash === '#/valineet/13' && cats(pages()[0]).join() === 'T13' && cols() === 5,
   );
   chip('N/M 40').click();
-  await wait(1500);
+  await settle();
   ok(
     '...a second chip adds its rows',
     W.location.hash === '#/valineet/13,40' && cats(pages()[0]).join() === 'T13,N40' && cols() === 6,
@@ -112,7 +112,7 @@ export default async function probe({ frame, W, log, ok, wait }) {
   // Both hosts serve it, and the title menu leads each way (docs/juoksut.md).
   const menuLinks = async () => {
     doc().querySelector('#title .title-menu').click();
-    await wait(1000);
+    await settle();
     return [...doc().querySelectorAll('.sheet-menu a.row')]
       .map((a) => `${a.textContent} ${a.getAttribute('href')}`)
       .join();
@@ -121,25 +121,23 @@ export default async function probe({ frame, W, log, ok, wait }) {
     ['juoksut', 'Juoksut'],
     ['kisat', 'Kisat'],
   ]) {
-    W.location.replace(`/mitat?mode=${mode}#/valineet/40`);
-    await wait(2500);
+    await reload(`/mitat?mode=${mode}#/valineet/40`);
     ok(
       `${mode}: renders the table`,
       doc().getElementById('title').textContent.startsWith('Aita- ja välinemitat') && cats(pages()[1]).join() === 'M40',
     );
     ok('...its title menu leads home', (await menuLinks()) === `${site} /?mode=${mode}#/`);
     doc().querySelector('.sheet-close').click();
-    await wait(500);
+    await settle();
     doc().getElementById('help').click();
-    await wait(1000);
+    await settle();
     ok(
       "...and the help is the tabs' shared one",
       doc().querySelector('.sheet-title')?.textContent === 'Aita- ja välinemitat' &&
         [...doc().querySelectorAll('.help-term, .help-sub')].map((t) => t.textContent).join() ===
           'Sarjat,Aidat-välilehdellä,Kenttä,Aitakuvat,Heittovälineet-välilehdellä,Kaikki mitat',
     );
-    W.location.replace(`/?mode=${mode}#/`);
-    await wait(2500);
+    await reload(`/?mode=${mode}#/`);
     // Only Juoksut's home links to the other mode. Kisat's home also offers the
     // two year pages, which are Kisat's alone.
     const rest =
@@ -151,10 +149,9 @@ export default async function probe({ frame, W, log, ok, wait }) {
     ok("...and home's leads here", homeMenu === `Aita- ja välinemitat /mitat?mode=${mode}#/aidat${rest}`);
   }
   // The switch is a fragment change, and the kenttä survives the round trip.
-  W.location.replace('/mitat#/aidat/13/k/ulkoradat');
-  await wait(2500);
+  await reload('/mitat#/aidat/13/k/ulkoradat');
   doc().querySelector('.table-switch a[href^="#/valineet"]').click();
-  await wait(1500);
+  await settle();
   ok(
     'the switch rewrites the fragment and keeps the kenttä',
     W.location.hash === '#/valineet/13/k/ulkoradat' &&

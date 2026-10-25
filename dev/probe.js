@@ -1,4 +1,4 @@
-// Checks the Watch flow end to end on the demo competition, on make dev
+// Checks the Watch flow end to end on the demo competition, on the Worker
 // (dev/AGENTS.md, "Running a probe"). It creates a Watch through the chip's
 // menu, which keeps the menu and dialog split (docs/style.md, "A menu is not a
 // dialog"), and follows it through a start and back. It covers the share, edit
@@ -6,8 +6,8 @@
 // never opened, a list with nobody entered here and a relay followed by its
 // club. Its later blocks add a name from the athlete sheet, write one list from
 // two devices, and delete and copy a list.
-//   dev/probe.html?url=c/demo&wait=1500
-export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
+//   dev/probe.html?url=c/demo
+export default async function probe({ frame, W, D, log, ok, wait, appJs, settle }) {
   const appText = () => D.getElementById('app').textContent;
   // Reads the day's own list, since the class and discipline filter above it
   // names every discipline.
@@ -35,9 +35,9 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     }
   }
   appJs.navigate('/');
-  await wait(300);
+  await settle();
   appJs.navigate('/c/demo');
-  await wait(1200);
+  await settle();
 
   ok('landed on #/c/demo', W.location.pathname === '/c/demo');
   const selectBtn = [...D.querySelectorAll('.filter-bar button')].find((b) => b.textContent.includes('Ei seurantaa'));
@@ -47,7 +47,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
 
   // --- Create a Watch through the chip's menu ---
   selectBtn.click();
-  await wait(300);
+  await settle();
   ok('the chip opened a menu', !!D.querySelector('.sheet .menu'));
   // A menu is a list of choices, and a dialog is a form (docs/style.md). The
   // menu's card holds no full-width .btn. Its items are .rows, each with the
@@ -108,7 +108,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
   // --- A menu hangs off the button that opened it, at a phone's width too ---
   {
     selectBtn.click();
-    await wait(300);
+    await settle();
     const card = D.querySelector('.sheet-card');
     const btn = selectBtn.getBoundingClientRect();
     const cr = card.getBoundingClientRect();
@@ -150,9 +150,9 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
   }
 
   selectBtn.click();
-  await wait(300);
+  await settle();
   [...D.querySelectorAll('.sheet .menu .row')].find((r) => r.textContent.includes('Uusi seuranta')).click();
-  await wait(400);
+  await settle();
   ok('create dialog opened', !!D.querySelector('.sheet .watch-create input[type="search"]'));
   // A dialog's buttons span the card, the other half of the split above.
   // (Break on purpose: drop both .sheet-card .btn's width and .watch-create's
@@ -181,7 +181,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
   const search = D.querySelector('.sheet input[type="search"]');
   search.value = 'Emma';
   search.dispatchEvent(new W.Event('input', { bubbles: true }));
-  await wait(1200); // the debounce, then GET /api/search
+  await settle(300); // the debounce, then GET /api/search
   // The row is found by her whole name. The fixture has another Emma who
   // sorts above her, and a Watch on that Emma fails every check below as
   // though the filter were broken.
@@ -196,14 +196,14 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
   {
     search.value = 'Mallinen';
     search.dispatchEvent(new W.Event('input', { bubbles: true }));
-    await wait(800);
+    await settle(300);
     const villeRows = [...D.querySelectorAll('.sheet .list .row')].filter((r) =>
       r.querySelector('.row-title')?.textContent.includes('Ville Mallinen'),
     );
     ok('a relay runner with an individual event is offered once, not twice', villeRows.length === 1);
     search.value = 'Emma';
     search.dispatchEvent(new W.Event('input', { bubbles: true }));
-    await wait(800);
+    await settle(300);
   }
   emmaRow.click();
   await wait(200);
@@ -211,7 +211,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
   labelInput.value = 'Testiseuranta';
   labelInput.dispatchEvent(new W.Event('input', { bubbles: true }));
   D.querySelector('.sheet button.btn:not(.btn-secondary)').click(); // "Luo seuranta"
-  await wait(1200);
+  await settle();
 
   // --- Creating a Watch lands in the filtered view on the same path ---
   ok('still on #/c/demo after create (no #/w/ round-trip)', W.location.pathname === '/c/demo');
@@ -252,7 +252,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
 
   // --- "Koko päivä" shows every start and marks the followed one ---
   [...modeSeg.querySelectorAll('.seg-btn')].find((b) => b.textContent === 'Koko päivä').click();
-  await wait(1200);
+  await settle();
   ok('full-day mode shows every start again', dayText().includes('Kuula'));
   const watchedRow = D.querySelector('.list a.row.watched');
   ok('the followed group row is highlighted', !!watchedRow?.textContent.includes('Keihäs'));
@@ -267,13 +267,13 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
   const scrollBefore = W.scrollY;
   const keihasRow = [...D.querySelectorAll('.list a.row')].find((r) => r.textContent.includes('Keihäs'));
   keihasRow.click();
-  await wait(1200);
+  await settle();
   ok('event view opened', /^\/c\/demo\/g\//.test(W.location.pathname));
   ok('followed athlete highlighted in the table', !!D.querySelector('tr.watched'));
   const backBtn = D.getElementById('back');
   ok('`<` targets the schedule day, no watch id in it', /^\/c\/demo\/d\//.test(backBtn?.getAttribute('href') || ''));
   backBtn.click();
-  await wait(1200);
+  await settle();
   ok(
     'back on the schedule view in full-day mode (state, not URL, remembered it)',
     dayText().includes('Kuula') && !!D.querySelector('.list a.row.watched'),
@@ -292,7 +292,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     ![...D.querySelectorAll('.filter-bar button')].some((b) => b.textContent === '⋯'),
   );
   chipBtn().click();
-  await wait(300);
+  await settle();
   {
     const rows = [...D.querySelectorAll('.sheet .menu .row')];
     const picked = rows.find((r) => r.querySelector('.menu-check')?.textContent === '✓');
@@ -323,7 +323,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
       JSON.stringify([...reg, { watchId: '0123456789ab', label: 'Perheen kisat' }]),
     );
     chipBtn().click();
-    await wait(300);
+    await settle();
     const rows = [...D.querySelectorAll('.sheet .menu .row')];
     log(`menu rows with two lists known: ${rows.map((r) => r.querySelector('.row-title').textContent).join(' | ')}`);
     // The lists lead the menu and the rows about the set of them close it. A
@@ -345,7 +345,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     );
     // A tap on a row makes that list the active one on every view.
     rows.find((r) => r.textContent.includes('Perheen kisat')).click();
-    await wait(1200);
+    await settle();
     ok(
       'a row tap switches the active list and closes the menu',
       !D.querySelector('.sheet') && JSON.parse(W.localStorage.getItem('kisatFollow') || 'null') === '0123456789ab',
@@ -355,20 +355,20 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     W.localStorage.setItem('kisatWatches', JSON.stringify(reg));
     W.localStorage.setItem('kisatFollow', JSON.stringify(watchId));
     appJs.navigate('/');
-    await wait(300);
+    await settle();
     appJs.navigate('/c/demo');
-    await wait(1500);
+    await settle();
   }
   // The × is the card's only way out, so it has to close.
   chipBtn().click();
-  await wait(300);
+  await settle();
   D.querySelector('.sheet-close').click();
   await wait(200);
   ok('× closes the sheet', !D.querySelector('.sheet'));
   chipBtn().click();
-  await wait(300);
+  await settle();
   [...D.querySelectorAll('.sheet .menu-action')].find((b) => b.textContent.startsWith('Unohda')).click();
-  await wait(1200);
+  await settle();
   ok(
     'after Unohda the bar is back to "Ei seurantaa"',
     [...D.querySelectorAll('.filter-bar button')].some((b) => b.textContent.includes('Ei seurantaa')),
@@ -381,7 +381,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
 
   // --- A bare #/w/<id> link lands on home, as a Watch belongs to no meet ---
   appJs.navigate(`/#/w/${watchId}`);
-  await wait(1500);
+  await settle();
   ok('bare share link lands on home', W.location.pathname === '/');
   ok('and activated the watch device-wide', JSON.parse(W.localStorage.getItem('kisatFollow') || 'null') === watchId);
   ok(
@@ -391,7 +391,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
 
   // --- The link "Jaa linkki" copies names the meet and lands on it ---
   appJs.navigate(`/c/demo#/w/${watchId}`);
-  await wait(1500);
+  await settle();
   ok('share link redirected to the schedule view', W.location.pathname === '/c/demo');
   ok('watch active again, filtered list back', dayText().includes('Emma Mittainen') && !dayText().includes('Kuula'));
   ok('re-registered locally', JSON.parse(W.localStorage.getItem('kisatWatches') || '[]')[0]?.watchId === watchId);
@@ -410,18 +410,18 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
   // copied link's path and hash.
   const copiedLink = async (label) => {
     chipBtn().click();
-    await wait(300);
+    await settle();
     const action = [...D.querySelectorAll('.sheet .menu-action')].find((b) => b.textContent === label);
     const url = new URL(await copiedBy(() => action.click()));
     return `${url.pathname}${url.hash}`;
   };
   W.localStorage.removeItem(`kisatWatchEdit:${watchId}`);
   appJs.navigate('/');
-  await wait(300);
+  await settle();
   appJs.navigate('/c/demo');
-  await wait(1500);
+  await settle();
   chipBtn().click();
-  await wait(300);
+  await settle();
   {
     const { labels } = menuActions();
     log(`actions without the token: ${labels.join(' · ')}`);
@@ -448,7 +448,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
   }
 
   appJs.navigate(`/c/demo#/w/${watchId}/e/${editToken}`);
-  await wait(1500);
+  await settle();
   ok('the edit link lands on the meet like any share link', W.location.pathname === '/c/demo');
   ok(
     'and stored the write capability on this device',
@@ -469,7 +469,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     ok('and the header still fits the phone width with it', h.scrollWidth <= h.clientWidth + 1 && h1.clientWidth > 80);
   }
   chipBtn().click();
-  await wait(300);
+  await settle();
   {
     const { picked, labels } = menuActions();
     log(`actions with it: ${labels.join(' · ')}`);
@@ -529,12 +529,12 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
   // fails loudly, and the menu stops offering it.
   W.localStorage.setItem(`kisatWatchEdit:${watchId}`, '0'.repeat(32));
   chipBtn().click();
-  await wait(300);
+  await settle();
   [...D.querySelectorAll('.sheet .menu-action')].find((b) => b.textContent === 'Muokkaa').click();
-  await wait(1200);
+  await settle();
   ok('a wrong token still opens the editor, since only a write can tell', !!D.querySelector('.watch-create'));
   [...D.querySelectorAll('.sheet .btn')].find((b) => b.textContent === 'Tallenna').click();
-  await wait(1200);
+  await settle();
   log(`save says: ${D.querySelector('.watch-create > .notice')?.textContent}`);
   ok(
     "the save fails in the sheet, in the Worker's own words",
@@ -549,21 +549,21 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
   // the API.
   W.localStorage.setItem(`kisatWatchEdit:${watchId}`, editToken);
   appJs.navigate('/');
-  await wait(300);
+  await settle();
   appJs.navigate('/c/demo');
-  await wait(1500);
+  await settle();
 
   // --- The athlete quick-filter's activation link, on Emma's roster id ---
   // The Watch is left on "Koko päivä" first. The athlete link forces
   // Seuratut and leaves the Watch's own stored mode alone.
   [...D.querySelectorAll('.filter-bar .seg-btn')].find((b) => b.textContent === 'Koko päivä').click();
-  await wait(1200);
+  await settle();
   ok(
     'watch put back into full-day mode before the athlete test',
     JSON.parse(W.localStorage.getItem('kisatCompView') || '[]')[0]?.mode === 'all',
   );
   appJs.navigate('/c/demo#/a/g1-a');
-  await wait(1500);
+  await settle();
   ok('athlete link redirected to the schedule view', W.location.pathname === '/c/demo');
   const pressed = () =>
     [...D.querySelectorAll('.filter-bar .seg-btn')].find((b) => b.getAttribute('aria-pressed') === 'true')?.textContent;
@@ -595,7 +595,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     ok('and the chip is still control-sized around it', chipBox.height <= 40);
   }
   athleteChip.querySelector('.watch-chip-remove').click();
-  await wait(1200);
+  await settle();
   ok(
     'clearing the athlete filter falls back to the watch, still on Koko päivä as left',
     pressed() === 'Koko päivä' &&
@@ -623,13 +623,13 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
   const showAll = () =>
     [...D.querySelectorAll('.sheet .btn')].find((b) => b.textContent.includes('Näytä kaikki lajit'));
   lineLink.click();
-  await wait(600);
+  await settle();
   ok(
     "clicking it opens the athlete sheet, not the row's event",
     W.location.pathname === '/c/demo' && !!D.querySelector('.sheet .athlete-sheet'),
   );
   showAll().click();
-  await wait(1500);
+  await settle();
   ok(
     'and the sheet\'s "Näytä kaikki lajit" filters the day list',
     W.location.pathname === '/c/demo' && !D.querySelector('.sheet') && !!D.querySelector('.filter-bar .watch-chip'),
@@ -649,7 +649,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
   const filterBack = D.getElementById('back');
   ok('`<` points at this competition while the filter is on, not home', filterBack.getAttribute('href') === '/c/demo');
   filterBack.click();
-  await wait(1500);
+  await settle();
   ok(
     '`<` cleared the filter and stayed on the schedule view',
     W.location.pathname === '/c/demo' && !D.querySelector('.filter-bar .watch-chip') && dayText().includes('Kuula'),
@@ -659,14 +659,14 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
   frame.height = 787;
   await wait(100);
   [...D.querySelectorAll('.list a.row')].find((r) => r.textContent.includes('Keihäs')).click();
-  await wait(1200);
+  await settle();
   const tblLink = D.querySelector('.cell-name a.athlete-link');
   ok('results-table athlete name is a real link', !!tblLink);
   tblLink.click();
-  await wait(600);
+  await settle();
   ok('which opens the same sheet over the start', !!D.querySelector('.sheet .athlete-sheet'));
   showAll().click();
-  await wait(1500);
+  await settle();
   ok(
     'and its filter lands on the filtered schedule view',
     W.location.pathname === '/c/demo' && !!D.querySelector('.filter-bar .watch-chip'),
@@ -678,9 +678,9 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
   {
     W.localStorage.removeItem('kisatCompView');
     appJs.navigate('/');
-    await wait(300);
+    await settle();
     appJs.navigate('/c/demo');
-    await wait(1500);
+    await settle();
     ok(
       'an unopened competition starts with the active list applied',
       !![...D.querySelectorAll('.filter-bar button')].find((b) => b.textContent.includes('Testiseuranta')) &&
@@ -705,9 +705,9 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     });
     ok('rewrote the watch to someone not in this competition', r.ok);
     appJs.navigate('/');
-    await wait(300);
+    await settle();
     appJs.navigate('/c/demo');
-    await wait(1500);
+    await settle();
     ok(
       'the whole day is shown, not an empty filtered list',
       dayText().includes('Kuula') && dayText().includes('Keihäs'),
@@ -733,9 +733,9 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
       }),
     });
     appJs.navigate('/');
-    await wait(300);
+    await settle();
     appJs.navigate('/c/demo');
-    await wait(1500);
+    await settle();
   };
   {
     await clubWatch(1, 'Demon Urheilijat');
@@ -754,7 +754,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     );
 
     relayRow.click();
-    await wait(1200);
+    await settle();
     const watchedRows = [...D.querySelectorAll('tr.watched')];
     ok(
       "event view highlights that club's own team row only",
@@ -767,17 +767,17 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
   // someone it has no entry for, and the server is asked what it holds.
   {
     appJs.navigate('/c/demo');
-    await wait(1500);
+    await settle();
     const koko = [...D.querySelectorAll('.filter-bar .seg-btn')].find((b) => b.textContent === 'Koko päivä');
     if (koko && koko.getAttribute('aria-pressed') !== 'true') {
       koko.click();
-      await wait(1200);
+      await settle();
     }
     [...D.querySelectorAll('.list a.row')].find((r) => r.textContent.includes('Keihäs')).click();
-    await wait(1200);
+    await settle();
     const openSheetOn = async () => {
       D.querySelector('.cell-name a.athlete-link').click();
-      await wait(400);
+      await settle();
       return D.querySelector('.sheet-title').textContent;
     };
     const addBtn = () =>
@@ -798,7 +798,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     const editToken = W.localStorage.getItem(`kisatWatchEdit:${watchId}`);
     W.localStorage.removeItem(`kisatWatchEdit:${watchId}`);
     addBtn().click();
-    await wait(1200); // the roster fetch before the menu opens
+    await settle(); // the roster fetch before the menu opens
     {
       const rows = [...D.querySelectorAll('.sheet .menu .row')];
       log(`menu with no token: ${rows.map((r) => r.querySelector('.row-title').textContent).join(' | ')}`);
@@ -817,24 +817,24 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     // "Uusi seuranta" opens the create sheet with that person on it. It
     // closes the athlete sheet too, as the two are about different subjects.
     [...D.querySelectorAll('.sheet .menu .row')].find((r) => r.textContent.includes('Uusi seuranta')).click();
-    await wait(1200);
+    await settle();
     const chips = [...D.querySelectorAll('.sheet .watch-picks .watch-chip')].map((c) => c.textContent);
     log(`create sheet opens with: ${chips.join(' | ')}`);
     ok('creating from a name seeds the new list with them', chips.length === 1 && chips[0].includes(who));
     ok('and the athlete sheet went with the menu, leaving one layer', D.querySelectorAll('.sheet').length === 1);
     D.querySelector('.sheet-close').click();
-    await wait(300);
+    await settle();
     ok('closing the create sheet leaves nothing behind', !D.querySelector('.sheet'));
 
     // The add goes into the list this device can write to.
     W.localStorage.setItem(`kisatWatchEdit:${watchId}`, editToken);
     await openSheetOn();
     addBtn().click();
-    await wait(1200);
+    await settle();
     const target = [...D.querySelectorAll('.sheet .menu .row')].find((r) => r.textContent.includes('Mallikylän Vire'));
     ok('the editable list is offered once the token is back', !!target);
     target.click();
-    await wait(2000);
+    await settle();
     ok('the add closes both layers', !D.querySelector('.sheet'));
     // The status line names the list the add went into. (Break on purpose:
     // drop the flashMessage, and the render paints "Päivitetty …" over it.)
@@ -866,7 +866,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     const held = async () => (await W.fetch(`/api/watch/${watchId}`, { headers: { 'x-kisat-client': '1' } })).json();
     await openSheetOn();
     addBtn().click();
-    await wait(1200);
+    await settle();
     log(`menu after the add: ${marks().join(' | ')}`);
     const ticked = () =>
       [...D.querySelectorAll('.sheet .menu .row')].find((r) => r.textContent.includes('Mallikylän Vire'));
@@ -882,7 +882,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     );
     const was = await held();
     ticked().click();
-    await wait(2000);
+    await settle();
     const now = await held();
     log(
       `tapping the ticked row: "${D.getElementById('updated')?.textContent}" updatedAt ${was.updatedAt === now.updatedAt ? 'unchanged' : 'moved'}`,
@@ -910,18 +910,18 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
       }),
     });
     appJs.navigate('/c/demo');
-    await wait(1800);
+    await settle();
     [...D.querySelectorAll('.list a.row')].find((r) => r.textContent.includes('Keihäs')).click();
-    await wait(1500);
+    await settle();
     await openSheetOn();
     addBtn().click();
-    await wait(1200);
+    await settle();
     log(`menu with the entry switched off: ${marks().join(' | ')}`);
     // (Break on purpose: tick on presence alone, and the one tap that turns
     // the entry back on reads as a no-op.)
     ok('an entry somebody switched off is not ticked', ticked().querySelector('.menu-check').textContent === '');
     ticked().click();
-    await wait(2000);
+    await settle();
     const back = await held();
     log(`after tapping it: ${back.entries.map((e) => `${e.type}${e.enabled ? '' : ' (off)'}`).join(' | ')}`);
     // The add turns the entry back on in place. The Worker keeps the first of
@@ -973,13 +973,13 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
       return realFetch(input, init);
     };
     D.querySelector('.cell-name a.athlete-link').click();
-    await wait(400);
+    await settle();
     [...D.querySelectorAll('.sheet .athlete-sheet .btn')]
       .find((b) => b.textContent.startsWith('Lisää seurantaan'))
       .click();
-    await wait(1200);
+    await settle();
     [...D.querySelectorAll('.sheet .menu .row')].find((r) => r.textContent.includes('Mallikylän Vire')).click();
-    await wait(2500);
+    await settle();
     W.fetch = realFetch;
     log(
       `add over a forced conflict: fired=${forced} layers=${D.querySelectorAll('.sheet').length} status="${D.getElementById('updated')?.textContent}"`,
@@ -1002,13 +1002,13 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     // from one not yet added. So the save stops and names what arrived, and a
     // second press saves against the fresh record.
     appJs.navigate('/');
-    await wait(300);
+    await settle();
     appJs.navigate('/c/demo');
-    await wait(2000);
+    await settle();
     [...D.querySelectorAll('.filter-bar button')].find((b) => b.textContent.includes('▾')).click();
-    await wait(300);
+    await settle();
     [...D.querySelectorAll('.sheet .menu-action')].find((b) => b.textContent === 'Muokkaa').click();
-    await wait(1500);
+    await settle();
     const chipNames = () =>
       [...D.querySelectorAll('.watch-create .watch-chip')].map((c) => c.textContent.replace('×', '').trim());
     const save = () => [...D.querySelectorAll('.sheet .btn')].find((b) => b.textContent === 'Tallenna').click();
@@ -1025,7 +1025,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     const before = (await record()).entries;
     await elsewhere([...before, { type: 'club', id: '3', name: 'Näyteniemen Vauhti', enabled: true }]);
     save();
-    await wait(1500);
+    await settle();
     log(`conflicted save says: ${notice()}`);
     // (Break on purpose: let the 409 through as an ordinary error, and the
     // sheet merges nothing, so the next press fails again.)
@@ -1039,7 +1039,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     ok('and what this reader took off stays off', !chipNames().some((c) => c.includes('Mallikylän Vire')));
 
     save();
-    await wait(2000);
+    await settle();
     ok('the second press saves', !D.querySelector('.sheet'));
     const after = (await record()).entries;
     log(`stored after the merged save: ${after.map((e) => `${e.type}:${e.name}`).join(' | ')}`);
@@ -1082,16 +1082,16 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     };
     const goto = async (hash) => {
       appJs.navigate('/');
-      await wait(300);
+      await settle();
       appJs.navigate(hash);
-      await wait(2000);
+      await settle();
     };
     const stored = () => JSON.parse(W.localStorage.getItem('kisatWatches') || '[]');
 
     seed(registry, watchId);
     await goto('/c/demo');
     [...D.querySelectorAll('.filter-bar button')].find((b) => b.textContent.includes('▾')).click();
-    await wait(300);
+    await settle();
     const rowLabels = () => [...D.querySelectorAll('.sheet .menu .row-title')].map((r) => r.textContent);
     log(`menu foot: ${rowLabels().slice(-2).join(' | ')}`);
     // Both rows are about the set of lists, so both stand at the foot. (Break
@@ -1176,7 +1176,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     seed([], null);
     await goto('/c/demo');
     [...D.querySelectorAll('.filter-bar button')].find((b) => b.textContent.includes('▾')).click();
-    await wait(300);
+    await settle();
     log(`menu foot with nothing followed: ${rowLabels().slice(-2).join(' | ')}`);
     ok('with no lists there is nothing to transfer', !rowLabels().includes('Siirrä toiseen laitteeseen'));
     // The receiving row stays, as an empty device is the one being set up.
@@ -1188,7 +1188,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     // An installed app has no address bar, so the link is pasted. It is the
     // link above, so both ends of one transfer are checked against each other.
     [...D.querySelectorAll('.sheet .menu .row')].find((r) => r.textContent.includes('Ota linkki käyttöön')).click();
-    await wait(300);
+    await settle();
     const pasteInput = () => D.querySelector('.sheet .watch-create input');
     const pasteBtn = () =>
       [...D.querySelectorAll('.sheet .watch-create button')].find((x) => x.textContent === 'Ota käyttöön');
@@ -1202,7 +1202,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     // events this probe cannot fire do not matter.
     pasteInput().value = 'moikka! muistatko lähettää sen linkin';
     pasteBtn().click();
-    await wait(400);
+    await settle();
     log(
       `after a paste with no link in it: hash ${W.location.pathname}, hint "${D.querySelector('.sheet .sheet-hint')?.textContent}"`,
     );
@@ -1222,7 +1222,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     // words with home and no lists.)
     pasteInput().value = `Tässä ne kaikki: ${W.location.origin}/${link} — terveisin T.`;
     pasteBtn().click();
-    await wait(2500);
+    await settle();
     log(
       `after pasting the transfer link: hash ${W.location.pathname}, registry ${stored()
         .map((r) => r.label)
@@ -1264,11 +1264,11 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
       W.localStorage.setItem('kisatFollow', JSON.stringify(active));
       for (const [id, token] of Object.entries(tokens)) W.localStorage.setItem(`kisatWatchEdit:${id}`, token);
       appJs.navigate('/');
-      await wait(300);
+      await settle();
       appJs.navigate('/c/demo');
-      await wait(2000);
+      await settle();
       [...D.querySelectorAll('.filter-bar button')].find((b) => b.textContent.includes('▾')).click();
-      await wait(300);
+      await settle();
     };
     const actions = () => [...D.querySelectorAll('.sheet .menu-action')].map((b) => b.textContent);
     const press = (text) =>
@@ -1306,11 +1306,11 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     // (Break on purpose: forgetWatch without the DELETE, and the list stays
     // for everyone the link reached.)
     [...D.querySelectorAll('.filter-bar button')].find((b) => b.textContent.includes('▾')).click();
-    await wait(300);
+    await settle();
     press('Poista kaikilta');
     await wait(400);
     press('Poista lopullisesti');
-    await wait(2000);
+    await settle();
     log(
       `after the delete: layers=${D.querySelectorAll('.sheet').length} status="${D.getElementById('updated')?.textContent}"`,
     );
@@ -1336,7 +1336,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     press('Poista kaikilta');
     await wait(400);
     press('Poista lopullisesti');
-    await wait(1500);
+    await settle();
     ok(
       'a list already gone from elsewhere still leaves this device clean',
       !D.querySelector('.sheet') && !registry().length,
@@ -1349,7 +1349,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     press('Poista kaikilta');
     await wait(400);
     press('Poista lopullisesti');
-    await wait(1500);
+    await settle();
     const btnText = [...D.querySelectorAll('.sheet .btn')].map((b) => b.textContent);
     log(`after a refused delete: ${btnText.join(' · ')}`);
     ok(
@@ -1380,7 +1380,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     const labelInput = () => D.querySelector('.sheet .watch-create input[type="text"]');
     const chips = () => [...D.querySelectorAll('.sheet .watch-chip')];
     press('Kopioi omaksi seurannaksi');
-    await wait(1500);
+    await settle();
     log(
       `copy sheet: "${labelInput()?.value}" / ${chips()
         .map((c) => c.textContent)
@@ -1403,7 +1403,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     chips()[1].querySelector('input[type="checkbox"]').click();
     await wait(200);
     press('Luo kopio');
-    await wait(2000);
+    await settle();
     const copyId = JSON.parse(W.localStorage.getItem('kisatFollow') || 'null');
     const copyToken = W.localStorage.getItem(`kisatWatchEdit:${copyId}`);
     log(
@@ -1432,7 +1432,7 @@ export default async function probe({ frame, W, D, log, ok, wait, appJs }) {
     // registry labels to copyWatchLabel, and it reads "(kopio)".)
     await openMenuOn(registry(), shared.id, { [copyId]: copyToken });
     press('Kopioi omaksi seurannaksi');
-    await wait(1500);
+    await settle();
     log(`second copy would be named: "${labelInput()?.value}"`);
     ok('a second copy is named past the first', labelInput()?.value === 'Naapurin lista (kopio 2)');
     D.querySelector('.sheet-close').click();
