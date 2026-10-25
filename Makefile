@@ -1,9 +1,9 @@
 PORT ?= 8932
 # Two wranglers with the same --persist-to share one SQLite state, so a second
-# make dev needs its own DEV_PORT and STATE_DIR. A dev server keeps off 8933 to
-# 8936: make test-worker binds TEST_WORKER_PORT, 8933, and the two ports after
-# it, make test-render binds TEST_RENDER_PORT, 8935, and make probes binds
-# PROBE_WORKER_PORT, 8936.
+# make dev needs its own DEV_PORT and STATE_DIR. A dev server keeps off 8933,
+# 8935 and 8936: make test-worker binds TEST_WORKER_PORT, 8933, and two ports
+# the system picks, make test-render binds TEST_RENDER_PORT, 8935, and make
+# probes binds PROBE_WORKER_PORT, 8936.
 DEV_PORT ?= 8787
 COMP ?=
 # package.json pins the tools and the packages. A target that needs them

@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
@@ -385,7 +386,20 @@ function shutdown() {
   for (const dir of moreStates) rmSync(dir, { recursive: true, force: true });
 }
 
-async function startMoreDev(args, port) {
+// Returns a port the system has free.
+function freePort() {
+  return new Promise((done, fail) => {
+    const server = createServer();
+    server.on('error', fail);
+    server.listen(0, '127.0.0.1', () => {
+      const { port } = server.address();
+      server.close(() => done(port));
+    });
+  });
+}
+
+async function startMoreDev(args) {
+  const port = await freePort();
   const dev = spawn(WRANGLER, ['dev', '--port', String(port), ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
   moreDevs.push(dev);
   dev.stdout.on('data', (d) => {
@@ -1475,10 +1489,7 @@ try {
     // This server has its own KV, and a calendar miss would fetch the live
     // listing.
     seedKv('cal:v1', SCAN_CALENDAR, juoksutState);
-    const base = await startMoreDev(
-      ['--host', 'juoksut.matilainen.fi', '--persist-to', juoksutState],
-      Number(PORT) + 1,
-    );
+    const base = await startMoreDev(['--host', 'juoksut.matilainen.fi', '--persist-to', juoksutState]);
 
     const manifest = await fetch(`${base}/manifest.webmanifest`);
     assert.equal(manifest.status, 200);
@@ -1657,19 +1668,16 @@ try {
     };
     writeFileSync(join(dir, 'wrangler.json'), JSON.stringify(config));
     const token = 'a'.repeat(64);
-    const base = await startMoreDev(
-      [
-        '--config',
-        join(dir, 'wrangler.json'),
-        '--persist-to',
-        join(dir, 'state'),
-        '--var',
-        'PREVIEW_DATA:own',
-        '--var',
-        `CRON_TOKEN:${token}`,
-      ],
-      Number(PORT) + 2,
-    );
+    const base = await startMoreDev([
+      '--config',
+      join(dir, 'wrangler.json'),
+      '--persist-to',
+      join(dir, 'state'),
+      '--var',
+      'PREVIEW_DATA:own',
+      '--var',
+      `CRON_TOKEN:${token}`,
+    ]);
     const cron = (method, authorization) =>
       fetch(`${base}/api/cron`, { method, headers: { ...HEADERS, ...(authorization && { authorization }) } });
     assert.equal((await cron('POST')).status, 403, 'the client header alone is not enough');
