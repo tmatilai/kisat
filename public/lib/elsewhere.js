@@ -708,6 +708,7 @@ function elsewhereProblems(file, districts) {
       seen.add(key);
       if (m?.id != null) {
         if (!String(m.name ?? '').trim()) problems.push(`row ${i + 1}: no name`);
+        if (!String(m.location ?? '').trim()) problems.push(`row ${i + 1}: no location`);
         if (!/^\d{4}-\d\d-\d\d$/.test(m.date ?? '') || !String(m.id).endsWith(m.date.slice(0, 4)))
           problems.push(`row ${i + 1}: date is not a day of the id's year`);
         if (!/^\d\d:\d\d:\d\d[+-]\d\d:\d\d$/.test(m.start ?? ''))

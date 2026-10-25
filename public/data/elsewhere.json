@@ -138,10 +138,10 @@
         "T13 Maantiejuoksu": 35, "P13 Maantiejuoksu": 33
       }
     },
-    { "id": "viestit-2025", "name": "SM-viestit", "date": "2025-09-06", "last": "2025-09-07", "start": "10:00:00+03:00", "t4r": "2025/smviestit" },
-    { "id": "viestit-2026", "name": "SM-viestit", "date": "2026-09-05", "last": "2026-09-06", "start": "10:00:00+03:00", "t4r": "2026/smviestit" },
+    { "id": "viestit-2025", "name": "SM-viestit", "location": "Lahti", "date": "2025-09-06", "last": "2025-09-07", "start": "10:00:00+03:00", "t4r": "2025/smviestit" },
+    { "id": "viestit-2026", "name": "SM-viestit", "location": "Lappeenranta", "date": "2026-09-05", "last": "2026-09-06", "start": "10:00:00+03:00", "t4r": "2026/smviestit" },
     {
-      "id": "maraton-2026", "name": "SM-maraton", "date": "2026-09-12", "start": "12:00:00+03:00", "ol": "2026_finlandiala",
+      "id": "maraton-2026", "name": "SM-maraton", "location": "Jyväskylä", "date": "2026-09-12", "start": "12:00:00+03:00", "ol": "2026_finlandiala",
       "classes": {
         "M Maraton": 28, "N Maraton": 29, "M30 Maraton": 30, "M35 Maraton": 31, "M40 Maraton": 32, "M45 Maraton": 33,
         "M50 Maraton": 34, "M55 Maraton": 35, "M60 Maraton": 36, "M65 Maraton": 37, "M70 Maraton": 38, "M75 Maraton": 39,
@@ -151,7 +151,7 @@
       }
     },
     {
-      "id": "maastot-2026", "name": "SM-maastot", "date": "2026-10-24", "start": "11:00:28+03:00", "ol": "2026_smmaasto",
+      "id": "maastot-2026", "name": "SM-maastot", "location": "Tampere", "date": "2026-10-24", "start": "11:00:28+03:00", "ol": "2026_smmaasto",
       "classes": {
         "N Maastojuoksu 10km": 0, "M Maastojuoksu 10km": 1, "N Maastojuoksu 4km": 8, "M Maastojuoksu 4km": 9,
         "N15 Maastojuoksu 4km": 2, "M15 Maastojuoksu 4km": 3, "N17 Maastojuoksu 4km": 4, "M17 Maastojuoksu 4km": 5,

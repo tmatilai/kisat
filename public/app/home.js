@@ -1,5 +1,14 @@
 import { dateRange, parseTs } from '../lib/dates.js';
-import { meetIsRecent, meetPlace, meetSortValue, meetWhen, scanHits, scanSince } from '../lib/home.js';
+import {
+  aloneListingRows,
+  listingFirstDay,
+  meetIsRecent,
+  meetPlace,
+  meetSortValue,
+  meetWhen,
+  scanHits,
+  scanSince,
+} from '../lib/home.js';
 import { archivedListingRows } from '../lib/indexes.js';
 import {
   CUP_SEASON_PAGE_PATH,
@@ -12,7 +21,15 @@ import {
   tablePageHash,
 } from '../lib/routes.js';
 import { API } from '../lib/schedule.js';
-import { HOME_VIEW_KEY, fetchJson, recentComps, updateViewState, viewStateFor, watchLabel } from './data.js';
+import {
+  HOME_VIEW_KEY,
+  fetchJson,
+  loadElsewhere,
+  recentComps,
+  updateViewState,
+  viewStateFor,
+  watchLabel,
+} from './data.js';
 import { filterBar } from './follow.js';
 import {
   KISAT_ORIGIN,
@@ -128,17 +145,27 @@ async function renderHome() {
 
   const state = viewStateFor(HOME_VIEW_KEY);
   const todayIso = scanTodayIso();
-  const [comps, initialScan, calendarDays] = await Promise.all([
+  const [comps, initialScan, calendarDays, elsewhereFile] = await Promise.all([
     fetchJson(`${API}/competition`),
     fetchScan(state.watchId, false),
     fetchCalendarDays(todayIso),
+    // Juoksut mode cannot open a meet that stands alone, since its host
+    // answers its /api/results with 404 (docs/backend.md).
+    SITE_MODE === 'juoksut' ? null : loadElsewhere(),
   ]);
   if (seq !== renderSeq) return;
-  // A meet's real days come from the feed, the meets this device has opened and
-  // the scan's window. Each source overrides the one before it (docs/home.md,
-  // "Dates and sorting").
-  const knownDays = new Map(calendarDays);
-  const knownRanges = new Map([...calendarDays].map(([id, days]) => [id, dateRange(days)]));
+  // A meet that stands alone in elsewhere.json joins the listing over the
+  // listing's own days, and the search over every year (docs/home.md, "Meets
+  // that stand alone").
+  const firstDay = listingFirstDay(comps);
+  const alone = aloneListingRows(elsewhereFile);
+  comps.push(...alone.filter((c) => c.Date >= firstDay));
+  const aloneOlder = alone.filter((c) => c.Date < firstDay);
+  // A meet's real days come from its row of elsewhere.json, the feed, the meets
+  // this device has opened and the scan's window. Each source overrides the one
+  // before it (docs/home.md, "Dates and sorting").
+  const knownDays = new Map([...alone.map((c) => [String(c.Id), c.days]), ...calendarDays]);
+  const knownRanges = new Map([...knownDays].map(([id, days]) => [id, dateRange(days)]));
   const recent = recentComps();
   for (const c of recent) {
     if (c.days?.length) knownDays.set(String(c.id), c.days);
@@ -151,8 +178,8 @@ async function renderHome() {
   }
 
   // Rows outside the listing take their venue byline from here. Only the
-  // listing carries a venue (docs/tuloslista-api.md). A recent meet missing
-  // from the listing shows its date range alone.
+  // listing and a row that stands alone carry a venue (docs/tuloslista-api.md).
+  // A recent meet missing from both shows its date range alone.
   const knownPlaces = new Map(comps.map((c) => [String(c.Id), meetPlace(c.Location, c.OrganizationName)]));
 
   // The sort, the today highlight and the recent/older split all read this one
@@ -174,7 +201,7 @@ async function renderHome() {
     fetchJson('/api/meets')
       .then((r) => {
         if (seq !== renderSeq) return;
-        archived = archivedListingRows(comps, r.meets);
+        archived = [...aloneOlder, ...archivedListingRows(comps, r.meets)];
         for (const c of archived) whens.set(String(c.Id), meetWhen(null, c.Date, todayIso));
         if (search.value) paint(search.value);
       })

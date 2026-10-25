@@ -14,8 +14,10 @@ import {
   shiftIsoDay,
 } from '../public/lib/dates.js';
 import {
+  aloneListingRows,
   calendarCandidates,
   calendarWindow,
+  listingFirstDay,
   meetIsRecent,
   meetPlace,
   meetSortValue,
@@ -25,7 +27,7 @@ import {
 } from '../public/lib/home.js';
 import { scheduleEventOrder } from '../public/lib/digest.js';
 import { buildRoster, scheduleEventIds } from '../public/lib/roster.js';
-import { DEMO_EVENTS, demoSchedule } from '../public/demo.js';
+import { DEMO_EVENTS, DEMO_ROAD_ROW, demoSchedule } from '../public/demo.js';
 
 // --- day helpers ---
 test('day helpers', () => {
@@ -46,6 +48,36 @@ test('meetPlace', () => {
   assert.equal(meetPlace('Demola', ''), 'Demola', 'no organizer carried (e.g. an older cache entry)');
   assert.equal(meetPlace('Kilpailupaikka', ''), '', 'nothing real on either side');
   assert.equal(meetPlace(null, undefined), '');
+});
+
+// --- aloneListingRows / listingFirstDay: a meet that stands alone in
+// elsewhere.json, as a row of the listing (docs/home.md) ---
+test('aloneListingRows/listingFirstDay', () => {
+  const relay = { id: 'viestit-2026', name: 'SM-viestit', location: 'Testilä', date: '2026-08-29', last: '2026-08-31' };
+  const file = { meets: [{ comp: 7, ol: 'x', classes: {} }, DEMO_ROAD_ROW, relay] };
+  // (Break on purpose: stop the day loop at `date`.)
+  assert.deepEqual(aloneListingRows(file), [
+    {
+      Id: 'maraton-2026',
+      Name: 'SM-maraton',
+      Date: '2026-08-08',
+      Location: 'Demola',
+      OrganizationName: '',
+      days: ['8.8.2026'],
+    },
+    {
+      Id: 'viestit-2026',
+      Name: 'SM-viestit',
+      Date: '2026-08-29',
+      Location: 'Testilä',
+      OrganizationName: '',
+      days: ['29.8.2026', '30.8.2026', '31.8.2026'],
+    },
+  ]);
+  assert.deepEqual(aloneListingRows(null), []);
+  const listing = [{ Date: '2026-08-12T09:00:00+00:00' }, { Date: '2026-07-20T12:00:00+03:00' }, { Date: null }];
+  assert.equal(listingFirstDay(listing), '2026-07-20');
+  assert.equal(listingFirstDay([]), '');
 });
 
 // --- meetWhen / meetIsRecent: where a meet sits relative to today

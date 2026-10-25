@@ -4152,6 +4152,7 @@ const DEMO_SM_SITE = {
 const DEMO_ROAD_ROW = {
   id: 'maraton-2026',
   name: 'SM-maraton',
+  location: 'Demola',
   date: '2026-08-08',
   start: '12:00:00+03:00',
   ol: '2026_demomaraton',

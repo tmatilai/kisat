@@ -140,7 +140,7 @@ async function loadMeetRow(env, request, compId) {
   const alone = elsewhereRow(elsewhere, compId);
   if (alone?.id)
     return {
-      row: { name: alone.name, location: '', organizationName: '', date: alone.date, days: [] },
+      row: { name: alone.name, location: alone.location || '', organizationName: '', date: alone.date, days: [] },
       cache: 'elsewhere',
     };
   if (!COMP_ID_RE.test(compId)) return null;

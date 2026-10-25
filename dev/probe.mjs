@@ -96,6 +96,22 @@ const LISTING = MEETS.map((m) => ({
   Location: m.location ?? 'Mallila',
   OrganizationName: 'Demon Urheilijat',
 }));
+// elsewhere.json, with one meet that stands alone from yesterday, which home
+// lists beside the listing (docs/home.md, "Meets that stand alone"). The real
+// file's rows would come and go with the date.
+const ELSEWHERE = {
+  meets: [
+    {
+      id: `maastot-${isoDay(-1).slice(0, 4)}`,
+      name: 'Testimaastot',
+      location: 'Mallila',
+      date: isoDay(-1),
+      start: '11:00:00+03:00',
+      ol: 'demo',
+      classes: { 'N Maastojuoksu': 0 },
+    },
+  ],
+};
 
 // Writes the calendar, the digests and the two search indexes, so that the
 // Worker answers the scan, the feed and a search with no fetch of its own. A
@@ -251,16 +267,19 @@ async function listen(upstream) {
 
 // Runs one probe in a context of its own and returns its lines. onLine sees
 // each line as it comes. An offline run answers every request that leaves
-// origin itself, LISTING for the listing and an empty list for the rest.
+// origin itself, LISTING for the listing and an empty list for the rest, and
+// serves ELSEWHERE for elsewhere.json.
 async function runProbe(browser, origin, probe, q, { offline = false, onLine = () => {} } = {}) {
   // The iframe has the phone's size (probe-runner.js), so the window only
   // needs to hold it.
   const context = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
-  if (offline)
+  if (offline) {
     await context.route(
       (url) => url.origin !== origin,
       (r) => r.fulfill({ json: /\/competition$/.test(new URL(r.request().url()).pathname) ? LISTING : [] }),
     );
+    await context.route(`${origin}/data/elsewhere.json`, (r) => r.fulfill({ json: ELSEWHERE }));
+  }
   const lines = [];
   const done = new Promise((resolve) =>
     context.exposeFunction('probeLine', (line) => {

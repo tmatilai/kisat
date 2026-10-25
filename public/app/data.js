@@ -417,6 +417,7 @@ export {
   loadCombinedRoot,
   loadDemo,
   loadDistricts,
+  loadElsewhere,
   loadGroup,
   loadScopeChoice,
   officialMenuRows,
