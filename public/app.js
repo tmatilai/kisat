@@ -27,6 +27,7 @@ import {
 } from './app/shell.js';
 import { logRender } from './lib/render-log.js';
 import { MAIN_MODULES, VIEW_MODULES, isDevHost, legacyRoutePath, reloadDue, routeMode } from './lib/routes.js';
+import { meetGone } from './lib/schedule.js';
 
 // --- Routing ---
 // parseRoute (lib/routes.js) is the route table (docs/architecture.md,
@@ -37,6 +38,10 @@ const SCHEDULE_REFRESH_MS = 60_000;
 const GROUP_REFRESH_MS = 25_000;
 
 let refreshTimer = null;
+// Says whether a view is on screen rather than the loader. A refresh that
+// fails keeps a view, but must replace the loader of a render it overtook, or
+// the page shows `Ladataan…` for good.
+let viewShown = false;
 
 // Loads each module of app/ that a view renders from (VIEW_MODULES,
 // lib/routes.js). A module loads the first time one of its views renders.
@@ -125,7 +130,10 @@ async function renderRoute(isRefresh = false) {
       route.view === 'medalSeason' ||
       route.view === 'cupSeason',
   );
-  if (!isRefresh) appEl.replaceChildren(el('div', { class: 'notice' }, 'Ladataan…'));
+  if (!isRefresh) {
+    appEl.replaceChildren(el('div', { class: 'notice' }, 'Ladataan…'));
+    viewShown = false;
+  }
   try {
     const view = RENDERS[route.view] ? route.view : 'home';
     const [module] = await Promise.all([
@@ -136,6 +144,7 @@ async function renderRoute(isRefresh = false) {
     const note = await RENDERS[view](module, route, isRefresh);
     if (seq !== renderSeq) return;
     keepRenderCost(cost, startedAt);
+    viewShown = true;
     // The position is restored once the content is in, as the placeholder would
     // clamp it. A view not seen this session opens at the top. A refresh scrolls
     // only if the page moved, and a short page leaves the offset in the map.
@@ -149,8 +158,10 @@ async function renderRoute(isRefresh = false) {
   } catch (err) {
     if (seq !== renderSeq) return;
     keepRenderCost(cost, startedAt);
-    if (!isRefresh) showError(err);
-    setUpdated(false);
+    // A meet that is gone is an answer, so its notice counts as updated.
+    const replace = !isRefresh || !viewShown;
+    if (replace) showError(err);
+    setUpdated(replace && meetGone(err));
   }
 }
 

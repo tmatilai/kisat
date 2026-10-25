@@ -402,6 +402,15 @@ function eventStore(load) {
   };
 }
 
+// Says whether a failed fetch is Tuloslista's answer that the meet is gone. A
+// meet can vanish from its schedule and /properties while its events' results
+// still answer (docs/tuloslista-api.md, "The listing"), so a 404 from either
+// is an answer and not a failed fetch. `err.url` is the URL fetchJson asked.
+function meetGone(err) {
+  if (err?.status !== 404 || !err.url?.startsWith(`${API}/competition/`)) return false;
+  return /^\d+(\/properties)?$/.test(err.url.slice(API.length + '/competition/'.length));
+}
+
 // Returns one scheduled round's detail out of its event's document, picking the
 // round by Id and never by name (docs/tuloslista-api.md). `missing` is
 // Tuloslista's 404 for a class nobody entered. Any other error means this fetch
@@ -438,6 +447,7 @@ export {
   hasEarlierRound,
   hasEntrants,
   leastStatus,
+  meetGone,
   meetPhase,
   parseEventName,
   previousRound,

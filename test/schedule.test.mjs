@@ -36,6 +36,7 @@ import {
   groupStatuses,
   hasEarlierRound,
   hasEntrants,
+  meetGone,
   meetPhase,
   parseEventName,
   previousRound,
@@ -543,6 +544,20 @@ test('eventStore', async () => {
     await store.get('ex');
     assert.equal(tries, 1, 'a 404 is an answer, and is cached like one');
   }
+});
+
+// A meet can vanish from /competition/{id} and /properties while its events'
+// results still answer (docs/tuloslista-api.md, "The listing").
+test('meetGone', () => {
+  const failed = (status, url) => Object.assign(new Error('x'), { status, url });
+  assert.equal(meetGone(failed(404, `${API}/competition/123`)), true, 'the schedule');
+  assert.equal(meetGone(failed(404, `${API}/competition/123/properties`)), true, 'the properties');
+  assert.equal(meetGone(failed(500, `${API}/competition/123`)), false, 'a failure is no answer');
+  assert.equal(meetGone(failed(404, `${API}/results/123/456`)), false, 'a class nobody entered');
+  assert.equal(meetGone(failed(404, `${API}/competition`)), false, 'the listing');
+  assert.equal(meetGone(failed(404, '/api/results/123')), false, 'a grafted meet');
+  assert.equal(meetGone(new Error('timeout')), false, 'a timeout');
+  assert.equal(meetGone(null), false);
 });
 
 // --- startCounts/countLine: the day list's erät and osallistujat

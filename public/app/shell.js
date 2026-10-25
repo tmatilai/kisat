@@ -1,6 +1,6 @@
 import { fiToIsoDay } from '../lib/dates.js';
 import { anchorMoved, layerCloseAction, layerPopAction, menuAnchorPos, parseRoute, siteMode } from '../lib/routes.js';
-import { STATUS_FI } from '../lib/schedule.js';
+import { STATUS_FI, meetGone } from '../lib/schedule.js';
 
 // --- The mode and the page's elements ---
 
@@ -173,7 +173,13 @@ function setUpdated(ok, msg) {
   updatedEl.classList.toggle('error', !ok);
 }
 
+// Draws a failed render. A meet that Tuloslista no longer answers for gets a
+// plain notice, as that is an answer (meetGone).
 function showError(err) {
+  if (meetGone(err)) {
+    appEl.replaceChildren(el('div', { class: 'notice' }, 'Kilpailua ei löydy Tuloslistasta.'));
+    return;
+  }
   appEl.replaceChildren(
     el('div', { class: 'notice error' }, 'Tietojen haku epäonnistui. ', String(err.message || err)),
   );
