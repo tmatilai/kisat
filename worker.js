@@ -13,6 +13,7 @@ import {
   elsewhereLastDay,
   elsewhereRow,
   elsewhereTag,
+  graftPhase,
   olAloneMeet,
   olGraft,
   t4rAloneMeet,
@@ -702,7 +703,8 @@ function meetNames(compId, props) {
 }
 
 // A meet that elsewhere.json lists has its results on another site, read
-// once the meet is over (docs/elsewhere.md). Each page is kept parsed with its
+// once the meet is over, or on its days for a race (graftPhase,
+// docs/elsewhere.md). Each page is kept parsed with its
 // ETag, so a rebuild parses only a page that changed.
 const ELSEWHERE_USER_AGENT = 'kisat.matilainen.fi (+https://kisat.matilainen.fi/)';
 // Outlasts the month in which a record is still rebuilt (recordSettled).
@@ -718,10 +720,9 @@ function t4rPagesKey(compId) {
 async function graftElsewhere(env, compId, { schedule, events, roots }) {
   const all = [...events, ...(roots || [])];
   const row = elsewhereRow(elsewhere, compId);
-  const lastDay = lastDayIso(scheduleDays(schedule));
-  if (!lastDay || lastDay >= todayIso()) return { schedule, events: all, kept: [] };
-  if (row?.ol) return graftRace(env, compId, row, schedule, all);
-  if (row?.t4r) return graftSite(env, compId, row, schedule, all);
+  const phase = graftPhase(row, schedule, todayIso());
+  if (phase && row.ol) return graftRace(env, compId, row, schedule, all, phase === 'over');
+  if (phase && row.t4r) return graftSite(env, compId, row, schedule, all);
   return { schedule, events: all, kept: [] };
 }
 
@@ -784,17 +785,18 @@ function graftedScheduleKey(compId) {
   return `schedule:v1:${compId}${elsewhereTag(elsewhere, compId)}`;
 }
 
-// Keeps the graft's events and schedule as long as a digest. Only a medal
-// build makes them, so a miss builds the medals again (handleResults).
-async function putResults(env, compId, events, schedule) {
+// Keeps the graft's events and schedule as long as a digest, or as long as a
+// roster while the meet runs. Only a medal build makes them, so a miss builds
+// the medals again (handleResults).
+async function putResults(env, compId, events, schedule, ttl = DIGEST_KV_TTL_S) {
   await mapWithConcurrency(events, ROSTER_FETCH_CONCURRENCY, ({ eventId, data }) =>
     env.ROSTER.put(resultsKey(compId, eventId), JSON.stringify({ builtAt: Date.now(), data }), {
-      expirationTtl: DIGEST_KV_TTL_S,
+      expirationTtl: ttl,
     }),
   );
   if (schedule) {
     await env.ROSTER.put(graftedScheduleKey(compId), JSON.stringify({ builtAt: Date.now(), data: schedule }), {
-      expirationTtl: DIGEST_KV_TTL_S,
+      expirationTtl: ttl,
     });
   }
   console.log(`results ${compId}: ${events.length} events kept`);
@@ -850,8 +852,9 @@ async function olFiles(row) {
 
 // Grafts a race's results onto a meet that is here for its entries alone
 // (olGraft). The meet's own entries keep their ids and licences. Returns null
-// where the files do not answer.
-async function graftRace(env, compId, row, schedule, all) {
+// where the files do not answer once the meet is over. On its days the meet
+// keeps its own events instead, and a graft is kept as long as a roster.
+async function graftRace(env, compId, row, schedule, all, official) {
   const [files, orgs, licences] = await Promise.all([
     olFiles(row),
     env.ROSTER.get(ORGS_KEY, 'json'),
@@ -859,10 +862,10 @@ async function graftRace(env, compId, row, schedule, all) {
   ]);
   if (!files) {
     console.warn(`medals ${compId}: ${row.ol} did not answer`);
-    return null;
+    return official ? null : { schedule, events: all, kept: [] };
   }
-  const grafted = olGraft(schedule, all, row, files, orgIndexClubs(orgs), elsewhere, districts, licences);
-  await putResults(env, compId, grafted.events, grafted.schedule);
+  const grafted = olGraft(schedule, all, row, files, orgIndexClubs(orgs), elsewhere, districts, licences, official);
+  await putResults(env, compId, grafted.events, grafted.schedule, official ? DIGEST_KV_TTL_S : ROSTER_CACHE_TTL_S);
   console.log(`medals ${compId}: ${Object.keys(row.classes).length} classes of ${row.ol}`);
   return { ...grafted, kept: grafted.events };
 }

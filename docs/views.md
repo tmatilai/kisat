@@ -137,10 +137,11 @@ Rules:
 
 ## Results on another site
 
-A meet listed in `elsewhere.json` reads its grafted results once its last day has passed
-(`graftApplies`, `lib/elsewhere.js`). The section "A meet's documents" of `app/data.js` reads them,
-and falls back to Tuloslista's documents where the graft is empty. The rules for the file and the
-Worker's side are in `docs/elsewhere.md`, and `test/elsewhere.test.mjs` tests them.
+A meet listed in `elsewhere.json` reads its grafted results once its last day has passed, and a
+race's on its days too (`graftApplies`, `lib/elsewhere.js`). The section "A meet's documents" of
+`app/data.js` reads them, and falls back to Tuloslista's documents where the graft is empty. The
+rules for the file and the Worker's side are in `docs/elsewhere.md`, and `test/elsewhere.test.mjs`
+tests them.
 
 ## The club cup
 

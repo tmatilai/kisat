@@ -169,8 +169,9 @@ Rule:
 
 ## Results from another site
 
-A meet that `elsewhere.json` lists gets its results from another site once it is over, as
-`docs/elsewhere.md` describes. A medal build writes the grafted events and schedule.
+A meet that `elsewhere.json` lists gets its results from another site once it is over, or a race's
+on its days too, as `docs/elsewhere.md` describes. A medal build writes the grafted events and
+schedule.
 
 - `graftElsewhere` (`worker.js`): which source a listed meet reads.
 - `handleResults` (`worker.js`): `GET /api/results/:compId/:eventId` and `GET /api/results/:compId`.
@@ -180,6 +181,8 @@ Rules:
 
 - **A results key holds one event**, since a start view reads a few, and a meet's grafted events
   weighed about a megabyte together, the largest some 100 kB (2026-09).
+- **A race's keys written on its days live `ROSTER_CACHE_TTL_S`**, since its classes are still in
+  progress, and the keys written once it is over live as long as a digest.
 - **The results routes take only a meet that `elsewhere.json` lists.** They check no `COMP_ID_RE`,
   and any other meet gets 404 before anything is spent.
 - **`test-worker.mjs` tests a results hit and an unlisted meet's 404, never a build**, since a build
