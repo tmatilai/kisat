@@ -2,7 +2,7 @@
 // app/tables.js; docs/hurdles.md, "The table page"), and the links to it in
 // both modes. test/hurdles.test.mjs tests hurdleTableSections. It loads
 // /mitat and /aidat as pages, and only the Worker answers a path, so this
-// needs `make dev`.
+// needs the Worker.
 //   dev/probe.html?probe=probe-aitataulukko&url=mitat%3Fmode%3Djuoksut
 // A probe cannot read the page count. A print has a page per table with a
 // class chosen, two for the whole outdoor sheet and three for both sheets
@@ -11,12 +11,12 @@
 //   pnpm exec playwright-core pdf --wait-for-timeout=3000 \
 //     'http://localhost:<DEV_PORT>/mitat?mode=juoksut#/aidat' aidat.pdf
 //   python3 -c "import re;print(len(re.findall(rb'/Type\s*/Page[^s]',open('aidat.pdf','rb').read())))"
-export default async function probe({ frame, W, log, ok, wait, appJs, libJs }) {
+export default async function probe({ frame, W, log, ok, wait, appJs, libJs, settle, reload }) {
   const doc = () => frame.contentDocument;
   const app = () => doc().getElementById('app');
-  const go = async (hash, ms = 2000) => {
+  const go = async (hash) => {
     appJs.navigate(hash);
-    await wait(ms);
+    await settle();
   };
   const pages = () => [...app().querySelectorAll('.aidat-page')];
   const rowsOf = (page) =>
@@ -93,13 +93,13 @@ export default async function probe({ frame, W, log, ok, wait, appJs, libJs }) {
   );
   ok('...and draws no figure unasked', figs() === 0);
   app().querySelector('.aidat-figures').click();
-  await wait(1500);
+  await settle();
   ok(
     '...the chip draws one per set of positions',
     figs() === 5 && pages()[0].querySelectorAll('tbody')[1].querySelectorAll('.shuttle-tapes').length === 2,
   );
   app().querySelector('.aidat-figures').click();
-  await wait(1500);
+  await settle();
   ok('...and takes them away again', figs() === 0);
   // The sections fold closed, and print hides a closed one (index.html).
   const extras = () => [...app().querySelectorAll('details.aidat-extra')];
@@ -135,7 +135,7 @@ export default async function probe({ frame, W, log, ok, wait, appJs, libJs }) {
   );
   sel().value = 'v:tampere-pirkkahalli';
   sel().dispatchEvent(new W.Event('change'));
-  await wait(2000);
+  await settle();
   log(`Pirkkahalli: ${W.location.hash}, select ${sel().value}, ${titles(pages()[1]).join(', ')}`);
   // A named hall keeps the sheet and drops a distance its track cannot hold,
   // so a 300 m hall keeps the 300 m. (Break on purpose: make the length
@@ -150,7 +150,7 @@ export default async function probe({ frame, W, log, ok, wait, appJs, libJs }) {
   // survives the filter.)
   await go('#/aidat/k/ulkoradat');
   chip('N/M 40').click();
-  await wait(1500);
+  await settle();
   ok(
     "a chip keeps the class's rows in both tables, named alone",
     W.location.hash === '#/aidat/40/k/ulkoradat' &&
@@ -159,13 +159,13 @@ export default async function probe({ frame, W, log, ok, wait, appJs, libJs }) {
       cats(pages()[1]).join() === 'M40,M40',
   );
   chip('T/P 12').click();
-  await wait(1500);
+  await settle();
   ok(
     '...a second chip adds its rows',
     W.location.hash === '#/aidat/12,40/k/ulkoradat' && cats(pages()[0]).join() === 'T12,N40,T12,N40',
   );
   chip('N/M 40').click();
-  await wait(1500);
+  await settle();
   ok(
     '...and a tap on a lit chip drops it',
     W.location.hash === '#/aidat/12/k/ulkoradat' && !chip('N/M 40').classList.contains('on'),
@@ -181,14 +181,14 @@ export default async function probe({ frame, W, log, ok, wait, appJs, libJs }) {
   // hurdleTableSections the sheet's table and not venueTable's.)
   sel().value = 'v:helsinki-heteniitty';
   sel().dispatchEvent(new W.Event('change'));
-  await wait(2000);
+  await settle();
   ok(
     'a kenttä rides in the fragment, and the heading names it',
     W.location.hash === '#/aidat/12/k/helsinki-heteniitty' &&
       sel().value === 'v:helsinki-heteniitty' &&
       pages()[0].querySelector('.aidat-print').textContent === ' · T12 · Helsinki, Heteniitty',
   );
-  await go('#/aidat/k/helsinki-liikuntamylly', 2000);
+  await go('#/aidat/k/helsinki-liikuntamylly');
   const women60 = () => pages()[0].querySelector('tbody');
   log(`Liikuntamylly women's 60 m: ${women60().querySelectorAll('td.hurdle-none').length} unmarked`);
   ok(
@@ -208,24 +208,23 @@ export default async function probe({ frame, W, log, ok, wait, appJs, libJs }) {
   // Every Juoksut view with a kenttä offers the table on that kenttä from the
   // title menu (tablePageRow, app/hurdles.js). A relay's or a steeple's start
   // opens its own folded section (tablePageSection).
-  W.location.replace('/?mode=juoksut#/c/demo');
-  await wait(2500);
+  await reload('/?mode=juoksut#/c/demo');
   const rowOf = (name) =>
     [...app().querySelectorAll('.row')].find((r) => r.querySelector('.row-title')?.textContent.startsWith(name));
   const tableHref = async () => {
     doc().querySelector('#title .title-menu').click();
-    await wait(800);
+    await settle();
     const href = [...doc().querySelectorAll('.sheet-menu .row')]
       .find((r) => r.querySelector('.row-title').textContent === 'Aita- ja välinemitat')
       ?.getAttribute('href');
     doc().querySelector('.sheet-close').click();
-    await wait(400);
+    await settle();
     return href;
   };
   const daySel = app().querySelector('.track-pick select');
   daySel.value = 'v:helsinki-heteniitty';
   daySel.dispatchEvent(new W.Event('change'));
-  await wait(1500);
+  await settle();
   const sheetHref = libJs.hurdleSheetPath('demo', new Date().toLocaleDateString('fi-FI'));
   await go(rowOf('60m aidat').getAttribute('href'), 2500);
   const boxLink = await tableHref();
@@ -237,17 +236,16 @@ export default async function probe({ frame, W, log, ok, wait, appJs, libJs }) {
   // (Break on purpose: give the box a link to the table, and the start has
   // two doors to one page.)
   ok('...the box itself carrying no link of its own', !app().querySelector('details.hurdles a'));
-  await go('/c/demo', 2000);
+  await go('/c/demo');
   await go(rowOf('4x60m aitaviesti').getAttribute('href'), 2500);
   const relayLink = await tableHref();
   log('relay menu ' + relayLink);
   ok("a relay's menu opens the relays", relayLink === '/mitat?mode=juoksut#/aidat/k/helsinki-heteniitty/viestit');
-  await go(sheetHref, 2500);
+  await go(sheetHref);
   const sheetLink = await tableHref();
   log('sheet menu ' + sheetLink);
   ok('the day sheet offers the whole table too', sheetLink === '/mitat?mode=juoksut#/aidat/k/helsinki-heteniitty');
-  W.location.replace(relayLink);
-  await wait(2500);
+  await reload(relayLink);
   ok(
     "...and the relays' link lands with Aitaviestit open, staying open past a chip",
     extras()[0].open &&
@@ -257,27 +255,25 @@ export default async function probe({ frame, W, log, ok, wait, appJs, libJs }) {
       await wait(1500),
       extras()[0].open && W.location.hash === '#/aidat/12/k/helsinki-heteniitty/viestit'),
   );
-  W.location.replace('/?mode=juoksut#/c/demo');
-  await wait(2500);
+  await reload('/?mode=juoksut#/c/demo');
   app().querySelector('.track-pick select').value = '400';
   app().querySelector('.track-pick select').dispatchEvent(new W.Event('change'));
-  await wait(1000);
-  await go('/', 2000);
+  await settle();
+  await go('/');
   // Home's title is a menu, and it offers the tables.
   doc().querySelector('#title .title-menu').click();
-  await wait(1000);
+  await settle();
   const homeLink = doc().querySelector('.sheet-menu a.row');
   ok(
     "home's title menu links to the tables",
     homeLink?.getAttribute('href') === '/mitat?mode=juoksut#/aidat' && homeLink.textContent === 'Aita- ja välinemitat',
   );
   doc().querySelector('.sheet-close').click();
-  await wait(500);
+  await settle();
 
   // --- Kisat mode serves the page too (docs/juoksut.md), and a shared
   // /aidat link lands on it with its fragment (docs/shims.md) ---
-  W.location.replace('/aidat#/12');
-  await wait(2500);
+  await reload('/aidat#/12');
   ok(
     'Kisat mode renders the table, off the old link',
     doc().getElementById('title').textContent.startsWith('Aita- ja välinemitat') &&
@@ -286,6 +282,6 @@ export default async function probe({ frame, W, log, ok, wait, appJs, libJs }) {
       cats(pages()[0]).join() === 'T12,T12',
   );
   doc().querySelector('#title .title-menu').click();
-  await wait(1000);
+  await settle();
   ok('...its title menu leads home', doc().querySelector('.sheet-menu a.row')?.getAttribute('href') === '/#/');
 }

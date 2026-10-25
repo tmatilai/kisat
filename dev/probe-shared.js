@@ -8,7 +8,7 @@
 //   dev/probe.html?probe=probe-shared
 //
 // The demo holds every start this reads (demo.js), so no Worker is needed.
-export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
+export default async function probe({ D, W, log, ok, groupKey, appJs, settle }) {
   const KEYS = {
     kolmetuhatta: groupKey(14, 30, '3000m'),
     kelaus: groupKey(15, 45, '200m kelaus'),
@@ -19,9 +19,9 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
     aidat: groupKey(15, 30, '400m aidat'),
     alkuerat: groupKey(8, 30, '200m'),
   };
-  const open = async (name, ms = 1200) => {
+  const open = async (name) => {
     appJs.navigate(`/c/demo/g/${encodeURIComponent(KEYS[name])}`);
-    await wait(ms);
+    await settle();
   };
   const cells = (tr) => [...tr.children].map((td) => td.textContent.trim());
   // Lists the page's top-level nodes in order, for the log.
@@ -37,9 +37,9 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
   const segButtons = () => [...D.querySelectorAll('#app .seg-btn')].map((b) => b.textContent);
   const showing = () =>
     [...D.querySelectorAll('#app .seg-btn')].find((b) => b.getAttribute('aria-pressed') === 'true')?.textContent;
-  const tap = async (label, ms = 600) => {
+  const tap = async (label) => {
     [...D.querySelectorAll('#app .seg-btn')].find((b) => b.textContent === label).click();
-    await wait(ms);
+    await settle();
   };
 
   // --- Before the race: the lane allocation of a heat two classes share ---

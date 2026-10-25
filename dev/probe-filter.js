@@ -3,11 +3,11 @@
 // line, its chips and count lines, a start's badges ticking the same choice,
 // and the choice holding there and back.
 //   dev/probe.html?probe=probe-filter&url=c/demo
-export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
+export default async function probe({ D, W, log, ok, wait, groupKey, appJs, settle }) {
   W.localStorage.removeItem('kisatCompView');
   W.localStorage.removeItem('kisatFollow');
   appJs.navigate('/c/demo');
-  await wait(800);
+  await settle();
 
   const box = () => D.querySelector('#app details.day-filter');
   const summary = () => box()?.querySelector('summary').textContent.trim();
@@ -19,7 +19,7 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
     [...D.querySelectorAll('#app > details > summary')].find((h) => h.textContent.trim() === 'Ottelut')?.parentElement;
   const tap = async (node) => {
     node.click();
-    await wait(400);
+    await settle();
   };
 
   const whole = rows().length;
@@ -58,7 +58,7 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
 
   // On a start the badges carry the same choice, and the sections follow it.
   appJs.navigate(`/c/demo/g/${encodeURIComponent(groupKey(10, 45, '60m'))}`);
-  await wait(800);
+  await settle();
   const badges = () => [...D.querySelectorAll('#app .cat-badges .cat-badge')];
   const pressed = () =>
     badges()
@@ -75,13 +75,13 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
 
   // A start of other classes is not an empty page.
   appJs.navigate(`/c/demo/g/${encodeURIComponent(groupKey(13, 30, 'Kolmiloikka'))}`);
-  await wait(800);
+  await settle();
   log(`Kolmiloikka: pressed ${pressed().join(',') || '-'} · sections ${[...new Set(heads())].join(',')}`);
   ok('a start the choice holds none of stays whole', pressed().length === 0 && new Set(heads()).size === 2);
 
   // Physical heats have no class to keep, so their half offers no tick.
   appJs.navigate(`/c/demo/g/${encodeURIComponent(groupKey(14, 30, '3000m'))}`);
-  await wait(800);
+  await settle();
   log(
     `3000m: ${badges()
       .map((b) => `${b.tagName} ${b.textContent.trim()}`)
@@ -91,7 +91,7 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
 
   // Back on the day, the chips carry the badge's tick.
   appJs.navigate('/c/demo');
-  await wait(800);
+  await settle();
   log(`back: ${summary()}`);
   ok("the day reads the badge's tick", summary() === 'Sarjat ja lajit: 11, 13');
   ok('and is folded again', !box().open);

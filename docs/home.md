@@ -9,8 +9,8 @@ the rules that no test pins.
   `test/home.test.mjs`.
 - `lib/digest.js`: the lines under a matched row. Tested in `test/digest.test.mjs`,
   "buildDigest/scanDigest".
-- `dev/probe-home.js` and `dev/probe-calendar.js`: the page with and without a follow-list. Their
-  headers say what they need, and `make probes` runs neither.
+- `dev/probe-home.js` and `dev/probe-calendar.js`: the page with and without a follow-list, over the
+  meets that `dev/probe.mjs` seeds.
 
 ## The sections
 
@@ -73,8 +73,9 @@ Rules:
 - `knownDays` and `knownRanges` in `renderHome`: a meet's days. They come from `/calendar.json`,
   then the meets this device opened, then the scan, and each source overrides the one before it.
 - `fetchCalendarDays` (`app/home.js`) and `rememberComp` (`app/data.js`): the first two sources.
-- `dev/probe-calendar.js` and `dev/probe-today.js`: the sort, the tint and the older meets, against
-  the live listing.
+- `localIsoDay` (`lib/dates.js`): today, on the device's own clock. Tested in `test/home.test.mjs`,
+  "localIsoDay".
+- `dev/probe-calendar.js`: the sort, the tint and the older meets.
 
 ## Filling the scan in
 

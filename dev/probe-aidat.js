@@ -1,6 +1,7 @@
 // Verifies the day's hurdle lines on the schedule (hurdleDayLines,
-// app/hurdles.js), the printable day sheet (renderHurdleSheet) and Kisat mode
-// showing neither (docs/hurdles.md, "The day's lines"). lib/hurdles.js does
+// app/hurdles.js) and the printable day sheet (renderHurdleSheet;
+// docs/hurdles.md, "The day's lines"). probe-mode.js checks that Kisat mode
+// shows neither. lib/hurdles.js does
 // the maths, and the offline suite tests it (hurdleStartSetups,
 // shuttleStartRows).
 //
@@ -8,12 +9,12 @@
 //
 // The `url` picks Juoksut mode (dev/AGENTS.md, "Running a probe"). The lines
 // fetch static files under /data/, so no Worker is needed.
-export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, libJs }) {
+export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, libJs, settle }) {
   const doc = () => frame.contentDocument;
   const app = () => doc().getElementById('app');
-  const go = async (hash, ms = 2500) => {
+  const go = async (hash) => {
     appJs.navigate(hash);
-    await wait(ms);
+    await settle();
   };
   const rowOf = (name) =>
     [...app().querySelectorAll('.row')].find((r) => r.querySelector('.row-title')?.textContent.startsWith(name));
@@ -57,7 +58,7 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
   };
   runState('Allocated');
   await appJs.render();
-  await wait(1500);
+  await settle();
   // In the 400 m start one class is drawn, one has no published row and one
   // is undrawn. The undrawn line leads with the height, having no lanes.
   ok(
@@ -166,7 +167,7 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
     if (starts[i].eventId === 'e48' || starts[i].eventId === 'e49') cut.unshift(...starts.splice(i, 1));
   }
   await appJs.render();
-  await wait(1500);
+  await settle();
   ok(
     'a one-class start is one line with no class prefix',
     lines('60m aidat').length === 1 &&
@@ -176,7 +177,7 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
   ok('...and the row names the class itself again', subs('60m aidat')[0] === 'M17');
   starts.push(...cut);
   await appJs.render();
-  await wait(1500);
+  await settle();
   ok('...and the fixture is whole again', lines('60m aidat').length === 3);
 
   // Where a lane changes setting between heats, a union of lanes would lie,
@@ -188,7 +189,7 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
   heat48.Index = 2;
   heat48.Allocations[0].Position = 1;
   await appJs.render();
-  await wait(1500);
+  await settle();
   ok(
     'a lane changing setting between heats drops the lanes from the lines',
     lines('60m aidat').length === 3 && lines('60m aidat').every((l) => l.split(' · ')[0].endsWith('cm')),
@@ -196,7 +197,7 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
   heat48.Index = 1;
   heat48.Allocations[0].Position = 3;
   await appJs.render();
-  await wait(1500);
+  await settle();
   ok('...and back: the lanes lead again', lines('60m aidat')[0].startsWith('M65: 1 · '));
 
   // Picking a kenttä re-renders the day at once, since its board is what the
@@ -206,7 +207,7 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
   const sel = () => app().querySelector('.track-pick select');
   sel().value = 'v:helsinki-heteniitty';
   sel().dispatchEvent(new W.Event('change'));
-  await wait(1500);
+  await settle();
   ok(
     'a chosen kenttä puts its own board on the lines at once',
     lines('60m aidat').length === 3 &&
@@ -225,7 +226,7 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
   );
   sel().value = '400';
   sel().dispatchEvent(new W.Event('change'));
-  await wait(1500);
+  await settle();
   ok("...and a bare length hands the sheet's marks back", lines('60m aidat')[2].includes('sininen suorakulmio'));
 
   // Ratalajit is the view the track is worked from. Kaikki reads as the whole
@@ -234,13 +235,13 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
   // on SITE_MODE alone and the lines survive into Kaikki.)
   const seg = (label) => [...app().querySelectorAll('.seg-btn')].find((b) => b.textContent === label);
   seg('Kaikki').click();
-  await wait(1500);
+  await settle();
   ok(
     'Kaikki carries no setting lines at all',
     !app().querySelector('.hurdle-line') && app().textContent.includes('Kuula'),
   );
   seg('Ratalajit').click();
-  await wait(1500);
+  await settle();
   ok('...and Ratalajit has them back', lines('60m aidat').length === 3);
 
   // --- The printable day sheet (renderHurdleSheet, docs/hurdles.md) ---
@@ -248,18 +249,18 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
   // two run starts.
   runState('Official');
   await appJs.render();
-  await wait(1500);
+  await settle();
   // The paper is a row of the schedule's title menu on a day with a hurdle
   // start.
   const menuRows = async () => {
     doc().querySelector('#title .title-menu').click();
-    await wait(800);
+    await settle();
     const rows = [...doc().querySelectorAll('.sheet-menu .row')].map((r) => [
       r.querySelector('.row-title').textContent,
       r.getAttribute('href'),
     ]);
     doc().querySelector('.sheet-close').click();
-    await wait(400);
+    await settle();
     return rows;
   };
   const rows = await menuRows();
@@ -280,7 +281,7 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
       caret.getBoundingClientRect().right <= titleEl2.getBoundingClientRect().right + 0.5,
   );
   await appJs.render();
-  await wait(1000);
+  await settle();
   const sheetHref = rows.find(([l]) => l === 'Päivän aidat')?.[1];
   ok(
     "the title menu opens the day's paper",
@@ -298,7 +299,7 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
   const was = demoJs.DEMO_STARTS.map((s) => s.status);
   for (const s of demoJs.DEMO_STARTS) if (libJs.isHurdleStart(s.event)) s.status = 'Official';
   await appJs.render();
-  await wait(1500);
+  await settle();
   ok(
     '...and keeps it once every hurdle start of the day has run',
     (await menuRows()).some(([l]) => l === 'Päivän aidat') && !app().querySelector('.hurdle-line'),
@@ -307,7 +308,7 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
     s.status = was[i];
   });
   await appJs.render();
-  await wait(1500);
+  await settle();
   // The bar holds the toggle and the kenttä pick on one row at phone width,
   // so the select carries no visible word. One row measures about 37 px.
   // (Break on purpose: add the word 'Kenttä' to trackSelect's label and the
@@ -318,12 +319,12 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
   // The title menu stays the same whichever segment is on. (Break on
   // purpose: gate the row on runOnly.)
   seg('Kaikki').click();
-  await wait(1500);
+  await settle();
   ok(
     '...and the menu is the same in Kaikki',
     (await menuRows()).some(([l]) => l === 'Päivän aidat'),
   );
-  await go(sheetHref, 2500);
+  await go(sheetHref);
   // The sheet is every hurdle and steeple start of the day in one shared
   // table, with no day rows and no entrants. Its seven starts make six
   // blocks, as the relay pair shares one, and three taping figures. (Break on
@@ -422,7 +423,7 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
     );
   const before = maaliX();
   app().querySelector('.shuttle-tapes').click();
-  await wait(500);
+  await settle();
   ok(
     'one tap turns every figure',
     maaliX().every((x, i) => x !== before[i]),
@@ -431,7 +432,7 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
   // sheet (storedFlip). Turned puts maali at the near end, as probe-hurdles
   // measures it. (Break on purpose: key the store per page and the start's
   // figure stands still.)
-  await go('/c/demo', 2000);
+  await go('/c/demo');
   await go(rowOf('4x60m aitaviesti').getAttribute('href'), 2500);
   const dims = () => [...app().querySelectorAll('.shuttle-dim-label')].map((t) => Number(t.getAttribute('x')));
   ok("the sheet's flip reaches the start page's figure", dims()[0] > dims()[1]);
@@ -442,7 +443,7 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
     "the start page's menu opens the same paper",
     (await menuRows()).some(([l, h]) => l === 'Päivän aidat' && h === sheetHref),
   );
-  await go('/c/demo', 2000);
+  await go('/c/demo');
   await go(rowOf('100m').getAttribute('href'), 2500);
   ok(
     '...from a start of the day that is no hurdle start',
@@ -450,34 +451,22 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
   );
   // The sheet reads the kenttä chosen on the day and names it. (Break on
   // purpose: drop the .aidat-venue line from renderHurdleSheet.)
-  await go('/c/demo', 2000);
+  await go('/c/demo');
   sel().value = 'v:helsinki-heteniitty';
   sel().dispatchEvent(new W.Event('change'));
-  await wait(1500);
-  await go(sheetHref, 2500);
+  await settle();
+  await go(sheetHref);
   ok(
     'a chosen kenttä is named on the sheet',
     app().querySelector('.aidat-venue')?.textContent === 'Helsinki, Heteniitty',
   );
-  await go('/c/demo', 2000);
+  await go('/c/demo');
   sel().value = '400';
   sel().dispatchEvent(new W.Event('change'));
-  await wait(1500);
+  await settle();
 
   // The sheet is always dated, so the path with no date matches no route
   // and falls to home (parseRoute).
-  await go('/c/demo/aidat', 2000);
+  await go('/c/demo/aidat');
   ok('the dateless /aidat route falls to home', doc().getElementById('title').textContent.startsWith('Juoksut'));
-
-  // --- Kisat mode, where none of it belongs ---
-  // The mode is read once at boot, so this reloads the page.
-  W.location.replace('/');
-  await wait(2500);
-  appJs.navigate('/c/demo');
-  await wait(1500);
-  ok('Kisat mode is in fact Kisat mode', doc().getElementById('title').textContent.includes('Testikilpailu'));
-  ok('...and its day carries no hurdle lines', !app().querySelector('.hurdle-line'));
-  ok("...nor a day's paper in its menu", !(await menuRows()).some(([l]) => l === 'Päivän aidat'));
-  await go(sheetHref, 2000);
-  ok('...and the sheet route leaves for the other mode', doc().getElementById('title').textContent.startsWith('Kisat'));
 }

@@ -4,10 +4,10 @@
 //   dev/probe.html?probe=probe-cup
 // fetchJson answers /api/meet/democup from the fixture, so no Worker is
 // needed. demo.js says what each of the seven starts carries.
-export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
-  const go = async (hash, ms = 1200) => {
+export default async function probe({ D, W, log, ok, groupKey, appJs, settle, back }) {
+  const go = async (hash) => {
     appJs.navigate(hash);
-    await wait(ms);
+    await settle();
   };
   const text = (n) => (n ? n.textContent.replace(/\s+/g, ' ').trim() : null);
   const rows = (sel) => [...D.querySelectorAll(sel)];
@@ -31,7 +31,7 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
       .map((r) => `${r.name} ${r.points}`);
 
   // --- The meet page: one row for the whole cup ---
-  await go('/c/democup', 1800);
+  await go('/c/democup');
   const sections = rows('#app > *').map((n) => (n.matches('h2') ? text(n) : n.className || n.tagName.toLowerCase()));
   log(`schedule flow: ${sections.join(' / ').slice(0, 160)}`);
   const flow = sections.map((s) => s.split(' ')[0]).join('/');
@@ -61,7 +61,7 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
 
   // --- The standings, the meet's own page ---
   cupRow.click();
-  await wait(1400);
+  await settle();
   log(`path: ${W.location.pathname}`);
   ok('the row opens the standings route', W.location.pathname === '/c/democup/cup');
   ok('titled for the cup', text(D.getElementById('title')) === 'Seuracup');
@@ -103,7 +103,7 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
 
   // --- A picked club: its lines under the table ---
   rows('#app tbody .club-pick')[0].click();
-  await wait(600);
+  await settle();
   log(`picked: ${W.location.pathname} / ${text(D.querySelector('#app .pick-head span'))}`);
   // (Break on purpose: leave the address alone on a pick, and a reload drops it.)
   ok(
@@ -149,13 +149,12 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
   );
   ok('and no button under them', !D.querySelector('#app .btn'));
   lineEls()[0].click();
-  await wait(1400);
+  await settle();
   ok(
     'the link lands on the start',
     W.location.pathname === `/c/democup/g/${encodeURIComponent(groupKey(10, 0, '60m'))}`,
   );
-  W.history.back();
-  await wait(1400);
+  await back();
   ok(
     'and back is the page with the club still picked',
     W.location.pathname === '/c/democup/cup/s/1' &&
@@ -163,11 +162,11 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
   );
   // Temporary: a link to a club's own page, /c/<compId>/cup/<orgId>, opens
   // the pick (the cup club page shim, docs/shims.md).
-  await go('/c/democup/cup/3', 1400);
+  await go('/c/democup/cup/3');
   ok('the old club page opens the pick', text(D.querySelector('#app .pick-head span')) === 'Testilän Kisa');
 
   // --- A followed club's line on the cup row, set by the club quick-filter ---
-  await go('/c/democup#/s/4', 2200);
+  await go('/c/democup#/s/4');
   const followedRow = rows('#app > .list')[0].children[0];
   log(`followed cup row: ${text(followedRow)}`);
   ok("the row is still the cup's", text(followedRow.querySelector('.row-title')) === 'Seuracup-pisteet');
@@ -204,7 +203,7 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
   // The standings page tints a followed club's row, and Seuratut lists only
   // people followed by name. (Break on purpose: give Seuratut the followed
   // clubs' scorers, and the section heads the page.)
-  await go('/c/democup/cup', 1400);
+  await go('/c/democup/cup');
   log(
     `followed club: ${rows('#app h2')
       .map((h) => text(h))
@@ -225,7 +224,7 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
       ? { ...body, clubs: body.clubs.map((c, i) => (i ? c : { ...c, points: 14449 })) }
       : body;
   });
-  await go('/c/democup#/s/1', 2200);
+  await go('/c/democup#/s/1');
   const inkOf = (n) => {
     const r = D.createRange();
     r.selectNodeContents(n);
@@ -247,7 +246,7 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
   appJs.setFetchJson(realFetchJson);
   // The athlete quick-filter draws no line on the cup row, which guesses no
   // club from a person.
-  await go('/c/democup#/a/sc11-a', 2200);
+  await go('/c/democup#/a/sc11-a');
   const byAthlete = rows('#app > .list')[0].children[0];
   ok(
     'an athlete filter draws no line on it',
@@ -295,7 +294,7 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
   // carries cup points too (sharedHeatTable, app/event.js). (Break on purpose:
   // drop the cup points from sharedHeatTable's result cell.)
   [...rows('#app .seg-btn')].find((b) => text(b) === 'Erät')?.click();
-  await wait(900);
+  await settle();
   ok('the start also reads as physical heats', !!D.querySelector('#app th.cat'));
   log(
     `60m heats: ${scoring()
@@ -410,9 +409,9 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
     'a meet without the flag shows no points',
     !D.querySelector('#app .cup-points') && !D.querySelector('#app .qual-note'),
   );
-  await go('/c/democup', 1600);
+  await go('/c/democup');
   ok('and no row on its meet page', !rows('#app .row-title').some((n) => text(n) === 'Seuracup'));
-  await go('/c/democup/cup', 1400);
+  await go('/c/democup/cup');
   log(`not a cup: ${text(D.querySelector('#app .notice'))}`);
   ok(
     'and the route itself says so rather than drawing an empty table',

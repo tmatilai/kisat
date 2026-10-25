@@ -9,10 +9,10 @@
 // The demo holds every case, so no Worker is needed. One of its multi-events
 // has a scored leg, a running one and an unstarted one, and another has drawn
 // legs and no score. Each is modelled on a measured meet.
-export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
-  const go = async (hash, ms = 1200) => {
+export default async function probe({ D, W, log, ok, wait, groupKey, appJs, settle }) {
+  const go = async (hash) => {
     appJs.navigate(hash);
-    await wait(ms);
+    await settle();
   };
   const text = (n) => (n ? n.textContent.replace(/\s+/g, ' ').trim() : null);
   const rows = (sel) => [...D.querySelectorAll(sel)];
@@ -23,7 +23,7 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
   const otteluList = () => otteluBox()?.querySelector('.list');
 
   // --- The schedule view: one section for the whole meet ---
-  await go('/c/demo', 1800);
+  await go('/c/demo');
   const label = (n) =>
     n.matches('details')
       ? text(n.querySelector('summary'))
@@ -74,8 +74,8 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
   await wait(200);
   log(`day list top: ${Math.round(wasOpen)} open, ${Math.round(dayTop())} shut`);
   ok("shut, the day's starts come up to meet it", !otteluBox().open && dayTop() < wasOpen - 40);
-  await go('/', 900);
-  await go('/c/demo', 1800);
+  await go('/');
+  await go('/c/demo');
   ok('and the way back leaves it shut', !otteluBox().open);
   otteluBox().querySelector('summary').click();
   await wait(200);
@@ -83,7 +83,7 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
 
   // --- The standings ---
   otteluList().children[1].click();
-  await wait(1500);
+  await settle();
   log(`hash: ${W.location.pathname}`);
   ok('the row opens the standings route', /\/c\/demo\/o\/T9%203-ottelu$/.test(W.location.pathname));
   log(`title: ${text(D.getElementById('title'))}`);
@@ -213,7 +213,7 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
 
   // --- A leg's own start: points beside the marks, standings under them ---
   legRows[0].click();
-  await wait(1500);
+  await settle();
   log(`leg hash: ${W.location.pathname}`);
   ok(
     'a leg opens the ordinary event view',
@@ -268,7 +268,7 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
   // The athlete quick-filter needs no /api call here, as the demo's roster
   // comes from the fixture (probe-pending uses the same route). o1 is the
   // athlete leading the T9 3-ottelu.
-  await go('/c/demo#/a/o1-a', 2200);
+  await go('/c/demo#/a/o1-a');
   log(`after the quick filter: ${W.location.pathname}`);
   const watched = [...otteluList().children];
   log(`ottelut when filtered: ${watched.map((r) => text(r)).join(' | ')}`);
@@ -298,7 +298,7 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
   // until a leg is scored (combinedTotals). (Break on purpose: drop the
   // Enrollments fallback in combinedTotals and the table gives way to
   // "Ottelun kokonaispisteitä ei ole julkaistu.")
-  await go('/c/demo/o/P9%203-ottelu', 1500);
+  await go('/c/demo/o/P9%203-ottelu');
   log(`unstarted: ${text(D.getElementById('title'))}`);
   const empty = D.querySelector('#app table.tbl.standings');
   const emptyBody = empty
@@ -330,7 +330,7 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs }) {
   ok('and its three legs are listed below', [...D.querySelectorAll('#app > .list')].pop().children.length === 3);
 
   // A key that names nothing gets an answer and not an error page.
-  await go('/c/demo/o/N17%207-ottelu', 1200);
+  await go('/c/demo/o/N17%207-ottelu');
   log(`missing: ${text(D.getElementById('title'))} — ${text(D.querySelector('#app .notice'))}`);
   ok('an unknown multi-event says so', text(D.getElementById('title')) === 'Ottelua ei löytynyt');
 }

@@ -2,7 +2,7 @@
 // "A start's page"). It covers heat order, the toggle and
 // its freeze, the heat chips, the winds and the tables a heat can be.
 //   dev/probe.html?probe=probe-heats
-export default async function probe({ D, W, log, ok, wait, groupKey, appJs, demoJs }) {
+export default async function probe({ D, W, log, ok, groupKey, appJs, demoJs, settle }) {
   const KEYS = {
     alkuerat100: groupKey(9, 45, '100m'),
     alkuerat: groupKey(8, 30, '200m'),
@@ -13,9 +13,9 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs, demo
     kiekko: groupKey(16, 15, 'Kiekko'),
     aitaviesti: groupKey(16, 30, '4x60m aitaviesti'),
   };
-  const open = async (name, ms = 1200) => {
+  const open = async (name) => {
     appJs.navigate(`/c/demo/g/${encodeURIComponent(KEYS[name])}`);
-    await wait(ms);
+    await settle();
   };
   const headings = () => [...D.querySelectorAll('#app h3')].map((h) => h.textContent.trim());
   // Reads the heat number off the heading's own text node. The heading also
@@ -30,9 +30,9 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs, demo
   const heatChips = () => heatHeads().map((h) => h.el.querySelector('.chip')?.textContent.trim() || '—');
   const showing = () =>
     [...D.querySelectorAll('#app .seg-btn')].find((b) => b.getAttribute('aria-pressed') === 'true')?.textContent;
-  const tap = async (label, ms = 600) => {
+  const tap = async (label) => {
     [...D.querySelectorAll('#app .seg-btn')].find((b) => b.textContent === label).click();
-    await wait(ms);
+    await settle();
   };
   const cells = (tr) => [...tr.children].map((td) => td.textContent.trim());
 
@@ -48,7 +48,7 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs, demo
   };
   setValieratStatus('Official');
   await appJs.render(true);
-  await wait(600);
+  await settle();
   ok('a round finishing under the reader does not switch the view', showing() === 'Erät');
   setValieratStatus('Progress');
 
@@ -143,13 +143,13 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs, demo
 
   // A tapped view holds through the same refresh.
   await appJs.render(true);
-  await wait(600);
+  await settle();
   ok('a tap survives a refresh', showing() === 'Erät');
 
   // Leaving the start drops the tap, so the start opens on its own status
   // again.
   appJs.navigate('/c/demo');
-  await wait(500);
+  await settle();
   await open('alkuerat');
   ok('leaving and returning decides afresh', showing() === 'Kokonaistulokset');
 
@@ -191,7 +191,14 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs, demo
   const catHeads = headings().filter((t) => !/^Erä /.test(t));
   log(`headings: ${catHeads.join(' | ')}`);
   ok('headings follow', catHeads.map((t) => t.split(' ')[0]).join(',') === 'M,P13,N');
-  ok('the empty ones still render', D.querySelectorAll('#app .notice').length >= 2);
+  // P13's round is a heat shell with nobody in it, and N has no round at all.
+  // Both say so, and only M draws a table. (Break on purpose: read a round as
+  // drawn by Heats.length in roundAllocated, and P13 draws an empty table.)
+  const notices = [...D.querySelectorAll('#app .notice')].map((n) => n.textContent.trim());
+  const tables = D.querySelectorAll('#app table, #app .ladder-views').length;
+  log(`notices: ${JSON.stringify(notices)}, tables: ${tables}`);
+  ok('the empty ones say nobody is in them', notices.join('|') === 'Ei ilmoittautuneita.|Ei ilmoittautuneita.');
+  ok('...and draw no table', tables === 1);
   // M's one heat carries a reading, but a 400 m race takes no wind (heatWind,
   // lib/results.js). Neither this heading nor the class's own prints it.
   ok('no wind on a 400 m', winds().length === 0);
@@ -262,7 +269,7 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs, demo
     a.Position = i + 1;
   });
   await appJs.render(true);
-  await wait(600);
+  await settle();
   ok(
     '...and falls back where the draw is not a pair per team',
     headers()[0] === 'Rata' && laneCells().join(',') === '1,2,3',
@@ -271,7 +278,7 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs, demo
     a.Position = 2 * i + 2;
   });
   await appJs.render(true);
-  await wait(600);
+  await settle();
   ok('...and the fixture is whole again', laneCells().join(',') === '1–2,3–4,5–6');
 
   // Nothing overflows the phone's width, though the name cell carries the

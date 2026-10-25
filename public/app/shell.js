@@ -1,4 +1,4 @@
-import { fiToIsoDay } from '../lib/dates.js';
+import { localIsoDay } from '../lib/dates.js';
 import { anchorMoved, layerCloseAction, layerPopAction, menuAnchorPos, parseRoute, siteMode } from '../lib/routes.js';
 import { STATUS_FI, meetGone } from '../lib/schedule.js';
 
@@ -448,8 +448,12 @@ let router = null;
 function setRouter(hooks) {
   router = hooks;
 }
+// The latest render's promise. The probes in dev/ await it as the sign that a
+// view is on screen (dev/AGENTS.md, "Writing a probe").
+let rendering = Promise.resolve();
 function render(isRefresh = false) {
-  return router.render(isRefresh);
+  rendering = router.render(isRefresh);
+  return rendering;
 }
 
 // Holds what each module drops when the route changes. A module registers it
@@ -513,7 +517,7 @@ function replaceAddress(href) {
 // --- A page that fills in over rounds ---
 
 function scanTodayIso() {
-  return fiToIsoDay(new Date().toLocaleDateString('fi-FI'));
+  return localIsoDay(new Date());
 }
 
 // Fills in pending or stale rows for home's scan and the championship and cup
@@ -615,6 +619,7 @@ export {
   render,
   renderFillStatus,
   renderSeq,
+  rendering,
   replaceAddress,
   runLeaves,
   saveScroll,

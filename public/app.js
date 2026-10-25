@@ -266,4 +266,4 @@ render();
 scheduleRefresh();
 
 // The probes in dev/ reach these through the runner (dev/AGENTS.md).
-export { SCHEDULE_REFRESH_MS, refreshTick, refreshTimer };
+export { GROUP_REFRESH_MS, SCHEDULE_REFRESH_MS, refreshTick, refreshTimer };

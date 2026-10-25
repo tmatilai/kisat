@@ -5,18 +5,18 @@
 //   dev/probe.html?probe=probe-refresh&w=700&h=300
 // Below 700 px no ladder grid shows (index.html), and at 700 the 6-attempt
 // Kuula overflows its box. At 300 px tall the demo's short pages can scroll.
-export default async function probe({ D, W, ok, wait, groupKey, appJs, demoJs }) {
+export default async function probe({ D, W, ok, wait, groupKey, appJs, demoJs, settle }) {
   const KEYS = {
     karsinta: groupKey(11, 0, 'Pituus'), // two heats, the tallest demo field page
     kuula: groupKey(12, 30, 'Kuula'), // 6 attempts overflow at 700 px
   };
-  const open = async (name, ms = 1200) => {
+  const open = async (name) => {
     appJs.navigate(`/c/demo/g/${encodeURIComponent(KEYS[name])}`);
-    await wait(ms);
+    await settle();
   };
-  const refresh = async (ms = 800) => {
+  const refresh = async () => {
     await appJs.render(true);
-    await wait(ms);
+    await settle();
   };
 
   // --- Down the page: a refresh keeps the reader's place ---
@@ -65,7 +65,7 @@ export default async function probe({ D, W, ok, wait, groupKey, appJs, demoJs })
   // change closes it (docs/architecture.md, "Layers"). The schedule view holds
   // the filter bar's sheets, and its SCHEDULE_REFRESH_MS runs the same tick.
   appJs.navigate('/c/demo');
-  await wait(1200);
+  await settle();
   const sheet = () => D.querySelector('.sheet');
   // Finds the Watch chip by its ▾ whichever label it carries, and never the
   // athlete filter's 'Jaa linkki' in the same slot.
@@ -78,7 +78,7 @@ export default async function probe({ D, W, ok, wait, groupKey, appJs, demoJs })
   // Its dialog reads /api/roster/demo, which fetchJson answers from the
   // fixture, so this probe needs no Worker.
   [...sheet().querySelectorAll('.menu .row')].find((r) => r.textContent.includes('Uusi seuranta')).click();
-  await wait(800);
+  await settle();
   const label = () => sheet()?.querySelector('input.search');
   ok('the create sheet opened in its place', !!label());
   label().value = 'Kesken jäänyt';
@@ -102,7 +102,7 @@ export default async function probe({ D, W, ok, wait, groupKey, appJs, demoJs })
   // A route change closes the sheet (clearLayers, in leaveView), and the
   // timer renders again.
   appJs.navigate(`/c/demo/g/${encodeURIComponent(KEYS.karsinta)}`);
-  await wait(1200);
+  await settle();
   ok('a route change closes the sheet', !sheet());
   const after = seq();
   appJs.refreshTick();
@@ -112,25 +112,33 @@ export default async function probe({ D, W, ok, wait, groupKey, appJs, demoJs })
   // --- A tab nobody is looking at refreshes nothing ---
   // `hidden` is stubbed, as headless cannot send a page to the back, and the
   // event is dispatched by hand. The checks run on the day view, which costs
-  // the most.
+  // the most. The interval is stubbed to a hundredth of its length, and a
+  // visible tab's tick shows that the wait is long enough to see one.
+  const realSetInterval = W.setInterval;
+  W.setInterval = (fn, ms, ...rest) => realSetInterval.call(W, fn, ms / 100, ...rest);
+  const interval = appJs.SCHEDULE_REFRESH_MS / 100 + 300;
   appJs.navigate('/c/demo');
-  await wait(1200);
+  await settle();
   const hide = (on) => {
     Object.defineProperty(D, 'hidden', { configurable: true, get: () => on });
     D.dispatchEvent(new W.Event('visibilitychange'));
   };
   const armed = () => appJs.refreshTimer !== null;
   ok('the day view runs on a timer', armed());
+  const shown = seq();
+  await wait(interval);
+  ok('and a visible tab renders within an interval', seq() > shown);
   hide(true);
   await wait(200);
   // (Break on purpose: drop the clearInterval from the visibilitychange
   // listener, and the whole interval below renders.)
   ok('hiding the tab stops it', !armed());
   const idle = seq();
-  await wait(appJs.SCHEDULE_REFRESH_MS + 2000);
+  await wait(interval);
   ok('and a whole interval passes with nothing rendered', seq() === idle);
+  W.setInterval = realSetInterval;
   hide(false);
-  await wait(800);
+  await settle();
   ok('coming back renders at once', seq() > idle);
   ok('and puts it back on the timer', armed());
 
@@ -150,7 +158,7 @@ export default async function probe({ D, W, ok, wait, groupKey, appJs, demoJs })
   });
   appJs.setActiveFollow('wcup');
   appJs.navigate('/c/democup/cup/s/1');
-  await wait(1400);
+  await settle();
   // (Break on purpose: drop 'cup' from scheduleRefresh.)
   ok('the cup page runs on a timer', armed());
   const head = () => D.querySelector('#app .medalist-head');
