@@ -277,13 +277,14 @@ function fetchMeetBody(compId) {
   return fetchJson(`/api/meet/${compId}`).catch(() => null);
 }
 
-// Fetches a meet's schedule. A meet that stands alone reads it from its row of
-// elsewhere.json or from the Worker. Any other reads tuloslista's, and reads
-// the grafted copy instead once the graft applies (resultsBase) and answers
-// (docs/views.md, "Results on another site").
+// Fetches a meet's schedule. A meet that stands alone reads it from the
+// Worker, which reads a race's class starts from its files, and a race's falls
+// back to its row of elsewhere.json (olSchedule). Any other reads tuloslista's,
+// and reads the grafted copy instead once the graft applies (resultsBase) and
+// answers (docs/views.md, "Results on another site").
 async function fetchSchedule(compId) {
   const row = await aloneRow(compId);
-  if (row) return row.ol ? olSchedule(row) : fetchJson(`/api/results/${compId}`);
+  if (row) return fetchJson(`/api/results/${compId}`).catch((err) => (row.ol ? olSchedule(row) : Promise.reject(err)));
   const file = loadElsewhere();
   const own = await fetchJson(`${API}/competition/${compId}`);
   const base = await resultsBase(compId, own, file);

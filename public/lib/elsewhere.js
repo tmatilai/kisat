@@ -501,18 +501,23 @@ const olRound = (classId) => ({
 });
 
 // Returns the schedule of a row that stands alone, a row per class on its day.
-// The classes share the mass start, so they group into one start (groupRounds).
-// A class's name gives its age, and every round is official.
-function olSchedule(row) {
-  return {
-    [isoToFiDay(row?.date)]: Object.entries(row?.classes || {}).map(([name, classId]) => ({
+// A class starts at its own time in the race's event file, and at the row's
+// `start` where the file has none, so classes that share a start group into
+// one (groupRounds). A class's name gives its age, and every round is official.
+function olSchedule(row, event = null) {
+  const starts = new Map((event?.Classes || []).map((c) => [c.ID, c.Races?.[0]?.MassStartStr]));
+  const days = {};
+  for (const [name, classId] of Object.entries(row?.classes || {})) {
+    const at = starts.get(classId) || `${row?.date}T${row?.start}`;
+    (days[isoToFiDay(at.slice(0, 10))] ||= []).push({
       ...olRound(classId),
       EventId: `ol-${classId}`,
       EventName: name,
       Age: /\d+/.exec(parseEventName(name).sex)?.[0] ?? '0',
-      BeginDateTimeWithTZ: `${row?.date}T${row?.start}`,
-    })),
-  };
+      BeginDateTimeWithTZ: at,
+    });
+  }
+  return days;
 }
 
 // Returns such a row's /properties, which carry its name and no organiser.
@@ -575,7 +580,7 @@ function olAloneMeet(row, files, orgs, file, districts, licences) {
       },
     };
   });
-  return { schedule: olSchedule(row), events };
+  return { schedule: olSchedule(row, files?.event), events };
 }
 
 // Grafts the same files onto a meet that has its entries here. `row.classes`

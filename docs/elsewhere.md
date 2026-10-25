@@ -182,6 +182,9 @@ Rules:
 - **A row with `id` stands alone.** `date` is its first day, and `last` its last where it has
   several. `start` is the first start with the offset of the site's clocks, and for a race it takes
   the time and offset of the event file's `Classes[].Races[0].MassStartStr`.
+- **A race's class starts at its own time.** `olSchedule` reads each class's `MassStartStr` from the
+  race's event file, and falls back to the row's `start` where the file has none, as the page does
+  while the Worker cannot answer. A cross-country meet's classes started apart (2026-10).
 - **`name` is the championship's name, not the race's.** It is the meet's title, and `defaultScopes`
   reads its words to narrow the classes that the national scope covers.
 - **`location` is the venue's town.** The front page prints it, since no listing gives it.
