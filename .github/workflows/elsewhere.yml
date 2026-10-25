@@ -1,10 +1,11 @@
 name: elsewhere
 
-# Opens an issue for each championship due a row in elsewhere.json
-# (dev/elsewhere-due.mjs).
+# Opens an issue for each championship due a row in elsewhere.json, and for
+# each row due a fix (dev/elsewhere-due.mjs). It runs each day, since a race's
+# files answer only days before the race.
 on:
   schedule:
-    - cron: '17 5 * * 2'
+    - cron: '17 5 * * *'
   workflow_dispatch:
 
 permissions:

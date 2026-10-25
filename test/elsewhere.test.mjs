@@ -7,14 +7,18 @@ import {
   athleteLicences,
   elsewhereCandidates,
   elsewhereIsDue,
+  elsewhereIsRace,
   elsewhereProblems,
+  elsewhereRecheck,
   elsewhereRow,
   elsewhereTag,
+  elsewhereUpcoming,
   elsewhereYearlyDue,
   graftApplies,
   officialUrl,
   olAloneMeet,
   olGraft,
+  olMissingClasses,
   olProperties,
   olSchedule,
   olTime,
@@ -971,4 +975,54 @@ test('elsewhere.json: the championships whose results are on another site', () =
     [['maraton-2026'], ['viestit'], []],
   );
   console.log('elsewhere.json ok');
+});
+
+// --- elsewhereUpcoming: a championship run in a race, asked for its row before
+// it runs ---
+test('elsewhereUpcoming/elsewhereIsRace', () => {
+  // (Break on purpose: drop the row test or an end of the window.)
+  const file = { meets: [{ comp: 90011, ol: 'x', classes: {} }] };
+  const index = [
+    { id: '90011', name: 'SM-maastot', date: '2026-10-24' },
+    { id: '90012', name: 'SAUL:n SM-maastot', date: '2026-10-25' },
+    { id: '90013', name: 'Junnumaastot', date: '2026-10-25' },
+    { id: '90014', name: 'SM-maantiejuoksut', date: '2026-11-08' },
+    { id: '90015', name: 'SM-maastot', date: '2026-10-20' },
+  ];
+  assert.deepEqual(
+    elsewhereUpcoming(index, file, '2026-10-21').map((m) => m.id),
+    ['90012'],
+  );
+  // A `comp` row is checked again while its meet is in the same window.
+  // (Break on purpose: drop an end of the window.)
+  const rows = { meets: [...file.meets, { comp: 90015, t4r: '2026/x' }, { comp: 90016, t4r: '2026/y' }] };
+  assert.deepEqual(
+    [
+      elsewhereRecheck(index, rows, '2026-10-21').map(({ row, meet }) => `${row.comp} ${meet.name}`),
+      elsewhereRecheck(index, rows, '2027-01-01'),
+    ],
+    [['90011 SM-maastot', '90015 SM-maastot'], []],
+  );
+  // A half marathon entered under Track still counts by its name (2026-10).
+  // (Break on purpose: read Category alone.)
+  const day = (rows) => ({ '25.10.2026': rows });
+  assert.deepEqual(
+    [
+      elsewhereIsRace(day([{ Category: 'Street', EventName: 'N30 Maantiejuoksu 6km' }])),
+      elsewhereIsRace(DEMO_ROAD_SCHEDULE),
+      elsewhereIsRace(day([{ Category: 'Track', EventName: 'N 100m' }])),
+      elsewhereIsRace({}),
+    ],
+    [true, true, false, false],
+  );
+});
+
+// --- olMissingClasses: an `ol` row against its meet ---
+test('olMissingClasses', () => {
+  // The demo meet names an event with a second space, which eventNameKey
+  // reads as the row's name.
+  // (Break on purpose: compare the names as written.)
+  assert.deepEqual(olMissingClasses(DEMO_ROAD_COMP, DEMO_ROAD_SCHEDULE), []);
+  const renamed = { ...DEMO_ROAD_COMP, classes: { ...DEMO_ROAD_COMP.classes, 'M40 Maastojuoksu': 7 } };
+  assert.deepEqual(olMissingClasses(renamed, DEMO_ROAD_SCHEDULE), ['M40 Maastojuoksu']);
 });

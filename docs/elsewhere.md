@@ -140,15 +140,21 @@ Trap:
 
 ## Keeping elsewhere.json
 
-A row is added by hand once the meet is over, and `elsewhereProblems` proof-reads the file in the
-offline suite. `elsewhere.yml` opens an issue each week for a championship due a row, and
-`make elsewhere-due` prints the same list. Close an issue with no row where the meet needs none.
+A row is added by hand, and `elsewhereProblems` proof-reads the file in the offline suite. A `comp`
+row of a race goes in before the meet, once the race's files answer, and any other row once the meet
+is over. A scheduled GitHub workflow, `.github/workflows/elsewhere.yml`, opens an issue each day for
+a championship due a row and for a row due a fix, and `make elsewhere-due` prints the same list.
+Close an issue with no row where the meet needs none.
 
+- `elsewhereUpcoming`, `elsewhereIsRace` (`lib/elsewhere.js`): a championship run in a race, due its
+  row from two weeks before it runs.
 - `elsewhereCandidates`, `elsewhereIsDue` (`lib/elsewhere.js`): an SM meet whose rounds stop at the
   start lists (`docs/tuloslista-api.md`, "An SM meet whose rounds never get past the start lists").
 - `ELSEWHERE_YEARLY`, `elsewhereYearlyDue` (`lib/elsewhere.js`): a championship that may have no
   Tuloslista meet, due from its entry's fixed day while the year has neither its row nor a meet of
   its name.
+- `elsewhereRecheck`, `olMissingClasses` (`lib/elsewhere.js`): a `comp` row whose meet Tuloslista
+  dropped, or whose `classes` name no event of the meet.
 
 Where an SM's results are elsewhere, a track SM's have been on time4results and a road, terrain or
 trail SM's in a race's files (2026-09), but a championship can change its source and its month from
@@ -177,9 +183,10 @@ Rules:
 - **`t4r` is `<year>/<directory>` under `T4R_BASE`.** A championship's directory has kept its name
   from year to year (2026-09).
 - **`ol` is the race's event id, and `classes` maps each event name of the meet to the race's class
-  id.** Both are known only once the results are published. The class ids and names change from race
-  to race, so nothing is matched on a class name. A class that sums others has no results file, and
-  one missing file fails the whole race, so map no such class (2026-09).
+  id.** Both are known once the race's files answer, days before the race (2026-10). The class ids
+  and names change from race to race, so the graft matches nothing on a class name. A class that
+  sums others has no results file, and one missing file fails the whole race, so map no such class
+  (2026-09).
 - **Several rows can name one `ol`** where several meets run as one race, and each maps its own
   classes. Where one championship has two Tuloslista meets with the same entries, list one of them.
 - **`clubs` maps a page's or a race's own spelling of a club to its abbreviation in

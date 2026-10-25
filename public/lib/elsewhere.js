@@ -744,11 +744,9 @@ const KALEVAN_KISAT_RE = /kalevan\s+kisat/iu;
 const ELSEWHERE_GRACE_DAYS = 2;
 const ELSEWHERE_WINDOW_DAYS = 60;
 
-// Returns the meets of `/api/meets` that may be due a row (elsewhereIsDue).
-function elsewhereCandidates(meets, file, todayIso) {
+// Returns the championships of `/api/meets` from `from` to `to` with no row.
+function unrowedChampionships(meets, file, from, to) {
   const rowed = new Set((file?.meets || []).map((m) => String(m.comp ?? '')));
-  const from = shiftIsoDay(todayIso, -ELSEWHERE_WINDOW_DAYS);
-  const to = shiftIsoDay(todayIso, -ELSEWHERE_GRACE_DAYS);
   return (meets || []).filter(
     (m) =>
       m.date >= from &&
@@ -757,6 +755,57 @@ function elsewhereCandidates(meets, file, todayIso) {
       (SM_WORD_RE.test(m.name) || KALEVAN_KISAT_RE.test(m.name)) &&
       !NO_SM_RE.test(m.name),
   );
+}
+
+// Returns the meets of `/api/meets` that may be due a row (elsewhereIsDue).
+function elsewhereCandidates(meets, file, todayIso) {
+  return unrowedChampionships(
+    meets,
+    file,
+    shiftIsoDay(todayIso, -ELSEWHERE_WINDOW_DAYS),
+    shiftIsoDay(todayIso, -ELSEWHERE_GRACE_DAYS),
+  );
+}
+
+// A race's files answer days before the race (docs/elsewhere.md).
+const ELSEWHERE_AHEAD_DAYS = 14;
+
+// Returns the championships still to run that may be due a row before they
+// run (elsewhereIsRace).
+function elsewhereUpcoming(meets, file, todayIso) {
+  return unrowedChampionships(meets, file, todayIso, shiftIsoDay(todayIso, ELSEWHERE_AHEAD_DAYS));
+}
+
+// Returns the `comp` rows, with their meets, that run within the windows
+// above, since Tuloslista can still drop such a meet or rename its events.
+function elsewhereRecheck(meets, file, todayIso) {
+  const byId = new Map((meets || []).map((m) => [String(m.id), m]));
+  const from = shiftIsoDay(todayIso, -ELSEWHERE_WINDOW_DAYS);
+  const to = shiftIsoDay(todayIso, ELSEWHERE_AHEAD_DAYS);
+  return (file?.meets || [])
+    .filter((row) => row.comp != null)
+    .map((row) => ({ row, meet: byId.get(String(row.comp)) }))
+    .filter(({ meet }) => meet && meet.date >= from && meet.date <= to);
+}
+
+// Says whether a meet runs in a race. A half marathon has been entered as
+// `Track` (2026-10), so an event's name counts too.
+const RACE_EVENT_RE = /maraton|maantie|maasto|polku/iu;
+function elsewhereIsRace(schedule) {
+  return Object.values(schedule || {})
+    .flat()
+    .some((r) => r?.Category === 'Street' || RACE_EVENT_RE.test(r?.EventName ?? ''));
+}
+
+// Returns the `classes` names that match no event of the meet, which get no
+// results (olGraft).
+function olMissingClasses(row, schedule) {
+  const events = new Set(
+    Object.values(schedule || {})
+      .flat()
+      .map((r) => eventNameKey(r?.EventName)),
+  );
+  return Object.keys(row?.classes || {}).filter((name) => !events.has(eventNameKey(name)));
 }
 
 // Says whether a candidate's schedule puts its results elsewhere. Its last day
@@ -795,15 +844,19 @@ export {
   athleteLicences,
   elsewhereCandidates,
   elsewhereIsDue,
+  elsewhereIsRace,
   elsewhereLastDay,
   elsewhereProblems,
+  elsewhereRecheck,
   elsewhereRow,
   elsewhereTag,
+  elsewhereUpcoming,
   elsewhereYearlyDue,
   graftApplies,
   officialUrl,
   olAloneMeet,
   olGraft,
+  olMissingClasses,
   olProperties,
   olSchedule,
   olTime,

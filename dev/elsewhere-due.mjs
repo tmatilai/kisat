@@ -1,10 +1,19 @@
 // node dev/elsewhere-due.mjs [host] [--open] prints the championships that
-// need a row in elsewhere.json (docs/elsewhere.md, "Keeping elsewhere.json").
+// need a row in elsewhere.json, and the rows that need a fix (docs/elsewhere.md,
+// "Keeping elsewhere.json").
 // With GITHUB_TOKEN and GITHUB_REPOSITORY set
 // (.github/workflows/elsewhere.yml), `--open` opens an issue for each one
 // whose title no issue has used yet.
 import { openIssues } from './github-issues.mjs';
-import { elsewhereCandidates, elsewhereIsDue, elsewhereYearlyDue } from '../public/lib/elsewhere.js';
+import {
+  elsewhereCandidates,
+  elsewhereIsDue,
+  elsewhereIsRace,
+  elsewhereRecheck,
+  elsewhereUpcoming,
+  elsewhereYearlyDue,
+  olMissingClasses,
+} from '../public/lib/elsewhere.js';
 import { API } from '../public/lib/schedule.js';
 import file from '../public/data/elsewhere.json' with { type: 'json' };
 
@@ -24,6 +33,16 @@ async function json(url, headers = {}) {
 
 const { meets } = await json(`https://${host}/api/meets`, { 'x-kisat-client': '1' });
 const due = [];
+// The title is the one a meet past its day gets, so no meet gets two issues.
+for (const m of elsewhereUpcoming(meets, file, today)) {
+  if (!elsewhereIsRace(await json(`${API}/competition/${m.id}`))) continue;
+  due.push({
+    title: `Add ${m.name.trim()} (${m.id}) to elsewhere.json`,
+    body:
+      `The meet begins on ${m.date} and runs in a race, so its results will be in the race's files. ` +
+      `Its row can go in once they answer.\n\n${GUIDE}`,
+  });
+}
 for (const m of elsewhereCandidates(meets, file, today)) {
   if (!elsewhereIsDue(await json(`${API}/competition/${m.id}`), today)) continue;
   due.push({
@@ -35,6 +54,28 @@ for (const c of elsewhereYearlyDue(meets, file, today)) {
   due.push({
     title: `Add ${c.name} ${c.year} to elsewhere.json`,
     body: `${c.name} ${c.year} has no row and no Tuloslista meet. It stands alone as \`${c.word}-${c.year}\`.\n\n${GUIDE}`,
+  });
+}
+// A listed meet that Tuloslista drops, or whose events no longer carry a
+// class's name, gets no results.
+for (const { row, meet } of elsewhereRecheck(meets, file, today)) {
+  const name = `${meet.name.trim()} (${row.comp})`;
+  const res = await fetch(`${API}/competition/${row.comp}`);
+  if (res.status === 404) {
+    due.push({
+      title: `Let the row of ${name} stand alone in elsewhere.json`,
+      body:
+        'Tuloslista answers 404 for the meet. Its row needs an `id` in place of `comp` ' +
+        '(docs/elsewhere.md, "A championship with no meet in Tuloslista").',
+    });
+    continue;
+  }
+  if (!res.ok) throw new Error(`${API}/competition/${row.comp}: ${res.status}`);
+  const missing = row.ol ? olMissingClasses(row, await res.json()) : [];
+  if (!missing.length) continue;
+  due.push({
+    title: `Fix the classes of ${name} in elsewhere.json`,
+    body: `The meet has no event of these names, so they get no results: ${missing.join(', ')}.`,
   });
 }
 for (const d of due) console.log(d.title);
