@@ -796,6 +796,15 @@ function elsewhereUpcoming(meets, file, todayIso) {
   return unrowedChampionships(meets, file, todayIso, shiftIsoDay(todayIso, ELSEWHERE_AHEAD_DAYS));
 }
 
+// Returns the `t4r` directory of a meet still to run, where a meet of its name
+// had its results on time4results the year before, since a championship's
+// directory keeps its name (docs/elsewhere.md). Null otherwise.
+function t4rFromLastYear(meets, file, meet) {
+  const named = new Map((meets || []).map((m) => [String(m.id), looseKey(m.name)]));
+  const row = (file?.meets || []).find((r) => r.t4r && named.get(String(r.comp)) === looseKey(meet.name));
+  return row ? `${meet.date.slice(0, 4)}/${row.t4r.split('/')[1]}` : null;
+}
+
 // Returns the `comp` rows, with their meets, that run within the windows
 // above, since Tuloslista can still drop such a meet or rename its events.
 function elsewhereRecheck(meets, file, todayIso) {
@@ -883,6 +892,7 @@ export {
   olTime,
   standInFor,
   t4rAloneMeet,
+  t4rFromLastYear,
   t4rGraft,
   t4rMark,
   t4rWanted,
