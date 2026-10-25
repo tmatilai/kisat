@@ -445,7 +445,7 @@ const t4rRoundQualRule = (qualRule, subCategory) =>
     ? { ...qualRule, QRank: (Number(qualRule.QRank) / 100).toFixed(2) }
     : qualRule;
 
-// --- A road championship in a mass race's files (docs/elsewhere.md, "A championship in a race's files") ---
+// --- A meet in a mass race's files (docs/elsewhere.md, "A meet in a race's files") ---
 
 // The event file names the fields of the other files' arrays.
 const olRows = (format, rows) => (rows || []).map((r) => Object.fromEntries((format || []).map((k, i) => [k, r[i]])));

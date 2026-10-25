@@ -130,6 +130,14 @@
         "N80 Maantiejuoksu": 1, "M80 Maantiejuoksu": 4, "N85 Maantiejuoksu": 2, "M85 Maantiejuoksu": 5, "M90 Maantiejuoksu": 0
       }
     },
+    {
+      "comp": 20909, "ol": "2026_saulsmmaasto",
+      "classes": {
+        "T9 Maantiejuoksu": 31, "P9 Maantiejuoksu": 30, "T10 Maantiejuoksu": 28, "P10 Maantiejuoksu": 26,
+        "T11 Maantiejuoksu": 29, "P11 Maantiejuoksu": 27, "T12 Maantiejuoksu": 34, "P12 Maantiejuoksu": 32,
+        "T13 Maantiejuoksu": 35, "P13 Maantiejuoksu": 33
+      }
+    },
     { "id": "viestit-2025", "name": "SM-viestit", "date": "2025-09-06", "last": "2025-09-07", "start": "10:00:00+03:00", "t4r": "2025/smviestit" },
     { "id": "viestit-2026", "name": "SM-viestit", "date": "2026-09-05", "last": "2026-09-06", "start": "10:00:00+03:00", "t4r": "2026/smviestit" },
     {

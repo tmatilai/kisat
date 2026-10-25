@@ -97,11 +97,10 @@ Traps:
 - **A made row's club comes from the club index.** A name that `clubs` spells is found by its
   abbreviation, and any other by its name. A club the index lacks gets an `ol-` id made of its name.
 
-## A championship in a race's files
+## A meet in a race's files
 
-A road, terrain or trail SM runs inside a public race. Some have a Tuloslista meet with their
-entries and no results, and some have none (2026-09). A class is one official final, ranked by
-finish time.
+A road, terrain or trail meet can run inside a public race. Its entries may be in a Tuloslista meet
+that gets no results, or nowhere (2026-09). A class is one official final, ranked by finish time.
 
 - `olFiles` (`worker.js`): the reads.
 - `olRace` (`lib/elsewhere.js`): a class's finishers, and the entry made for one.
@@ -141,8 +140,8 @@ Trap:
 
 ## Keeping elsewhere.json
 
-A row is added by hand once the championship is over, and `elsewhereProblems` proof-reads the file
-in the offline suite. `elsewhere.yml` opens an issue each week for a championship due a row, and
+A row is added by hand once the meet is over, and `elsewhereProblems` proof-reads the file in the
+offline suite. `elsewhere.yml` opens an issue each week for a championship due a row, and
 `make elsewhere-due` prints the same list. Close an issue with no row where the meet needs none.
 
 - `elsewhereCandidates`, `elsewhereIsDue` (`lib/elsewhere.js`): an SM meet whose rounds stop at the
@@ -166,7 +165,7 @@ beside `meets`:
 Rules:
 
 - **A row with `comp` joins the results to that Tuloslista meet**, whose entries keep their clubs
-  and licences. Use it whenever the championship has a Tuloslista meet.
+  and licences. Use it whenever there is one.
 - **A row with `id` stands alone.** `date` is its first day, and `last` its last where it has
   several. `start` is the first start with the offset of the site's clocks, and for a race it takes
   the time and offset of the event file's `Classes[].Races[0].MassStartStr`.
@@ -180,9 +179,8 @@ Rules:
   id.** Both are known only once the results are published. The class ids and names change from race
   to race, so nothing is matched on a class name. A class that sums others has no results file, and
   one missing file fails the whole race, so map no such class (2026-09).
-- **Two rows can name one `ol`** where the federation's and SAUL's championships run as one race,
-  and each maps its own classes. Where one championship has two Tuloslista meets with the same
-  entries, list one of them.
+- **Several rows can name one `ol`** where several meets run as one race, and each maps its own
+  classes. Where one championship has two Tuloslista meets with the same entries, list one of them.
 - **`clubs` maps a page's or a race's own spelling of a club to its abbreviation in
   `districts.json`**, for a club that the club index does not find by that name.
 - **Adding a row needs no cache cleared**, since a listed meet's keys carry `elsewhereTag`.

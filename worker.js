@@ -828,7 +828,7 @@ async function aggregateMedals(env, compId) {
 }
 
 // Reads the race files that olAloneMeet and olGraft read (docs/elsewhere.md,
-// "A championship in a race's files"). A race publishes its results whole or
+// "A meet in a race's files"). A race publishes its results whole or
 // one file a class. Returns null when a file does not answer or when the race
 // lacks a class the row names.
 const OL_FILES_BASE = 'https://online.tulospalvelu.fi/tulokset-new/online';
