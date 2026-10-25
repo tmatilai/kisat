@@ -158,8 +158,8 @@ beside `meets`:
 ```text
 {comp: <meet id>, t4r: "<year>/<directory>"}
 {comp: <meet id>, ol: "<event>", classes: {"<event name>": <class id>}}
-{id: "<word>-<year>", name, date, start: "<hh:mm:ss±hh:mm>", ol, classes}
-{id: "<word>-<year>", name, date, last, start, t4r}
+{id: "<word>-<year>", name, location, date, start: "<hh:mm:ss±hh:mm>", ol, classes}
+{id: "<word>-<year>", name, location, date, last, start, t4r}
 ```
 
 Rules:
@@ -171,6 +171,7 @@ Rules:
   the time and offset of the event file's `Classes[].Races[0].MassStartStr`.
 - **`name` is the championship's name, not the race's.** It is the meet's title, and `defaultScopes`
   reads its words to narrow the classes that the national scope covers.
+- **`location` is the venue's town.** The front page prints it, since no listing gives it.
 - **A row that stands alone is added after its race, never before.** `olSchedule` marks every class
   of an `ol` row run and official, so a row added early shows the classes finished and empty.
 - **`t4r` is `<year>/<directory>` under `T4R_BASE`.** A championship's directory has kept its name

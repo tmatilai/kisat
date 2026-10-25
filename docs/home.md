@@ -48,6 +48,16 @@ Rule:
 - **A search covers `Kilpailut` alone.** It turns the list into one flat list of every meet it
   matches, however old, and the sections above it stay.
 
+## Meets that stand alone
+
+A row of `elsewhere.json` that stands alone has no meet in Tuloslista's listing, so home adds it
+(`docs/elsewhere.md`, "A championship with no meet in Tuloslista").
+
+- `aloneListingRows` and `listingFirstDay` (`lib/home.js`): the row in the listing's shape, with its
+  days and venue. Tested in `test/home.test.mjs`, "aloneListingRows/listingFirstDay".
+- `renderHome` (`app/home.js`): a row from the listing's first day on joins `Kilpailut`, and an
+  older one joins the search.
+
 ## A matched row's athlete lines
 
 - `scanDigest` (`lib/digest.js`): the lines a row gets, their order, and the line a relay goes on.
@@ -70,8 +80,9 @@ Rules:
 - `meetWhen`, `meetSortValue` and `meetIsRecent` (`lib/home.js`): where a meet sits against today,
   its place in the sort, and whether it hides behind `Näytä vanhemmat kilpailut`. Tested in
   `test/home.test.mjs`, "meetWhen" and "meetSortValue/scanHits".
-- `knownDays` and `knownRanges` in `renderHome`: a meet's days. They come from `/calendar.json`,
-  then the meets this device opened, then the scan, and each source overrides the one before it.
+- `knownDays` and `knownRanges` in `renderHome`: a meet's days. They come from a row of
+  `elsewhere.json`, then `/calendar.json`, then the meets this device opened, then the scan, and
+  each source overrides the one before it.
 - `fetchCalendarDays` (`app/home.js`) and `rememberComp` (`app/data.js`): the first two sources.
 - `localIsoDay` (`lib/dates.js`): today, on the device's own clock. Tested in `test/home.test.mjs`,
   "localIsoDay".

@@ -1,4 +1,4 @@
-import { dayDiff, fiToIsoDay, isoDay, shiftIsoDay } from './dates.js';
+import { dayDiff, fiToIsoDay, isoDay, isoToFiDay, shiftIsoDay } from './dates.js';
 
 // --- A meet against today ---------------------------------------
 
@@ -98,10 +98,38 @@ function meetPlace(location, organizationName) {
   return [loc, organizationName || ''].filter(Boolean).join(' · ');
 }
 
+// --- Meets that stand alone ------------------------------------
+
+// Returns the rows of elsewhere.json that stand alone, in the listing's shape
+// and with their days. Tuloslista's listing never has them.
+function aloneListingRows(file) {
+  return (file?.meets || [])
+    .filter((m) => m?.id != null)
+    .map((m) => {
+      const days = [];
+      for (let d = m.date; d && d <= (m.last || m.date); d = shiftIsoDay(d, 1)) days.push(isoToFiDay(d));
+      return { Id: m.id, Name: m.name, Date: m.date, Location: m.location || '', OrganizationName: '', days };
+    });
+}
+
+// Returns the listing's first day. It serves about a month back
+// (docs/tuloslista-api.md, "It serves a live window and ignores every
+// parameter"), and a row that stands alone joins it from that day on.
+function listingFirstDay(listing) {
+  return (
+    (listing || [])
+      .map((c) => isoDay(c?.Date))
+      .filter(Boolean)
+      .sort()[0] ?? ''
+  );
+}
+
 export {
   RECENT_DAYS,
+  aloneListingRows,
   calendarCandidates,
   calendarWindow,
+  listingFirstDay,
   meetIsRecent,
   meetPlace,
   meetSortValue,

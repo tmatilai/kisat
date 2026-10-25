@@ -19,7 +19,7 @@ export default async function probe({ W, D, log, ok, wait, appJs, settle }) {
   ok('no Seuratut without a follow-list', !app.textContent.includes('Seuratut'));
 
   const listEl = D.querySelector('#app > .list');
-  const rowIds = () => [...listEl.querySelectorAll('a')].map((a) => a.getAttribute('href').match(/\/c\/(\w+)/)?.[1]);
+  const rowIds = () => [...listEl.querySelectorAll('a')].map((a) => a.getAttribute('href').match(/\/c\/([\w-]+)/)?.[1]);
   const rowById = (id) => [...listEl.querySelectorAll('a')].find((a) => a.getAttribute('href') === `/c/${id}`);
 
   // Fetches the feed apart from the page, to compare the two.
@@ -28,16 +28,30 @@ export default async function probe({ W, D, log, ok, wait, appJs, settle }) {
   const spans = withDays.filter((c) => c.days.length > 1);
   log(`feed: ${feed.comps.length} comps, ${withDays.length} with real days, ${spans.length} multi-day`);
   ok('the feed answers at all', withDays.length > 0);
+  // A meet that stands alone in elsewhere.json joins the list with its venue
+  // (docs/home.md, "Meets that stand alone"). The offline driver serves one
+  // from yesterday.
+  const alone = (await W.fetch('/data/elsewhere.json').then((r) => r.json())).meets.filter((m) => m.id);
 
   const recent = rowIds();
   log(`rows shown by default: ${recent.length}`);
   ok('not cut at a fixed 60-row cap', recent.length !== 60);
 
+  const todayIso = new Date().toLocaleDateString('sv-SE');
+  const weekAgo = new Date(Date.now() - 7 * 86_400_000).toLocaleDateString('sv-SE');
+  const recentAlone = alone.filter((m) => m.date >= weekAgo && m.date <= todayIso);
+  log(`meets that stand alone from the last week: ${recentAlone.length}`);
+  // (Break on purpose: push no row of aloneListingRows in renderHome.)
+  for (const m of recentAlone) {
+    const sub = rowById(m.id)?.querySelector('.row-sub')?.textContent ?? '';
+    ok(`${m.id} is listed with its venue ("${sub}")`, sub.includes(m.location));
+  }
+
   // With no follow-list the whole listing is one list, so its sort is checked
   // here too (meetSortValue, docs/home.md). The value is recomputed from the
   // feed's days or the listing's Date, with today clamped into the range. It
   // is in whole days, and a stable sort keeps a date's meets in listing order.
-  const rawDate = new Map(feed.comps.map((c) => [String(c.id), c.date]));
+  const rawDate = new Map([...feed.comps.map((c) => [String(c.id), c.date]), ...alone.map((m) => [m.id, m.date])]);
   const feedDays = new Map(withDays.map((c) => [String(c.id), c.days]));
   const dayMs = (iso) => Date.parse(`${iso}T00:00:00Z`);
   const toIso = (fi) => {
@@ -79,7 +93,7 @@ export default async function probe({ W, D, log, ok, wait, appJs, settle }) {
   // A meet not on today stays unlit, or a page that lit every row would pass
   // the check above.
   const notToday = [...listEl.querySelectorAll('a.watched')]
-    .map((a) => a.getAttribute('href').match(/\/c\/(\w+)/)?.[1])
+    .map((a) => a.getAttribute('href').match(/\/c\/([\w-]+)/)?.[1])
     .filter((id) => !todayComps.some((c) => String(c.id) === id));
   ok(
     `only today's meets are highlighted (${notToday.length} others lit)`,
