@@ -170,7 +170,7 @@ beside `meets`:
 ```text
 {comp: <meet id>, t4r: "<year>/<directory>"}
 {comp: <meet id>, ol: "<event>", classes: {"<event name>": <class id>}}
-{id: "<word>-<year>", name, location, date, start: "<hh:mm:ss±hh:mm>", ol, classes}
+{id: "<word>-<year>", was?: <meet id>, name, location, date, start: "<hh:mm:ss±hh:mm>", ol, classes}
 {id: "<word>-<year>", name, location, date, last, start, t4r}
 ```
 
@@ -184,6 +184,8 @@ Rules:
 - **`name` is the championship's name, not the race's.** It is the meet's title, and `defaultScopes`
   reads its words to narrow the classes that the national scope covers.
 - **`location` is the venue's town.** The front page prints it, since no listing gives it.
+- **`was` is the Tuloslista meet that a row stands in for**, once Tuloslista has dropped it
+  (`docs/tuloslista-api.md`, "The listing"). A link to that meet opens the row (`standInFor`).
 - **A row that stands alone is added after its race, never before.** `olSchedule` marks every class
   of an `ol` row run and official, so a row added early shows the classes finished and empty.
 - **`t4r` is `<year>/<directory>` under `T4R_BASE`.** A championship's directory has kept its name

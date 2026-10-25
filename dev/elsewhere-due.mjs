@@ -43,8 +43,22 @@ for (const m of elsewhereUpcoming(meets, file, today)) {
       `Its row can go in once they answer.\n\n${GUIDE}`,
   });
 }
+// Tuloslista can drop a meet once it is over (docs/tuloslista-api.md), and
+// such a championship needs a row of its own.
 for (const m of elsewhereCandidates(meets, file, today)) {
-  if (!elsewhereIsDue(await json(`${API}/competition/${m.id}`), today)) continue;
+  const res = await fetch(`${API}/competition/${m.id}`);
+  if (res.status === 404) {
+    due.push({
+      title: `Add ${m.name.trim()} (${m.id}) to elsewhere.json`,
+      body:
+        `The meet began on ${m.date}, and Tuloslista has dropped it. If its results are on another site, ` +
+        `it needs a row of its own, with an \`id\` and \`was: ${m.id}\` (docs/elsewhere.md, ` +
+        `"A championship with no meet in Tuloslista").\n\n${GUIDE}`,
+    });
+    continue;
+  }
+  if (!res.ok) throw new Error(`${API}/competition/${m.id}: ${res.status}`);
+  if (!elsewhereIsDue(await res.json(), today)) continue;
   due.push({
     title: `Add ${m.name.trim()} (${m.id}) to elsewhere.json`,
     body: `The meet began on ${m.date} and has no results in Tuloslista: https://live.tuloslista.com/${m.id}\n\n${GUIDE}`,
@@ -65,8 +79,8 @@ for (const { row, meet } of elsewhereRecheck(meets, file, today)) {
     due.push({
       title: `Let the row of ${name} stand alone in elsewhere.json`,
       body:
-        'Tuloslista answers 404 for the meet. Its row needs an `id` in place of `comp` ' +
-        '(docs/elsewhere.md, "A championship with no meet in Tuloslista").',
+        'Tuloslista answers 404 for the meet. Its row needs an `id` in place of `comp`, and `was` with ' +
+        'the meet id (docs/elsewhere.md, "A championship with no meet in Tuloslista").',
     });
     continue;
   }

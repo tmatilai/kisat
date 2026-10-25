@@ -1,4 +1,4 @@
-import { loadDemo, pruneLapsStore, renderLog, setRenderCost, writeStore } from './app/data.js';
+import { loadDemo, loadElsewhere, pruneLapsStore, renderLog, setRenderCost, writeStore } from './app/data.js';
 import {
   JUOKSUT_ORIGIN,
   KISAT_ORIGIN,
@@ -25,6 +25,7 @@ import {
   showError,
   wantedScroll,
 } from './app/shell.js';
+import { standInFor } from './lib/elsewhere.js';
 import { logRender } from './lib/render-log.js';
 import { MAIN_MODULES, VIEW_MODULES, isDevHost, legacyRoutePath, reloadDue, routeMode } from './lib/routes.js';
 import { meetGone } from './lib/schedule.js';
@@ -158,6 +159,14 @@ async function renderRoute(isRefresh = false) {
   } catch (err) {
     if (seq !== renderSeq) return;
     keepRenderCost(cost, startedAt);
+    // A meet that Tuloslista dropped opens the row that stands in for it, as
+    // the Worker's redirect does for a page load.
+    const standIn = meetGone(err) && standInFor(await loadElsewhere(), route.compId);
+    if (seq !== renderSeq) return;
+    if (standIn) {
+      navigate(`/c/${standIn}`, { replace: true });
+      return;
+    }
     // A meet that is gone is an answer, so its notice counts as updated.
     const replace = !isRefresh || !viewShown;
     if (replace) showError(err);
