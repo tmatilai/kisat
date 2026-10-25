@@ -43,6 +43,7 @@ Traps:
 - `crawlMeets` (`worker.js`), `MEET_CRAWL_FLOOR` (`lib/indexes.js`): the meet index
   (`docs/backend.md`, "The meet index").
 - `meetWhen`, `meetPlace` (`lib/home.js`), `isoDay` (`lib/dates.js`): a meet's days and place.
+- `meetGone` (`lib/schedule.js`): a meet that no longer answers.
 
 Traps:
 
@@ -51,6 +52,8 @@ Traps:
   (2026-08).
 - **A meet answers by id outside the window.** It answers days before the listing names it, and long
   after, with its schedule, `/properties` and every event's results (2026-09).
+- **A meet can vanish from `/competition/{id}` and `/properties` while its events' results still
+  answer.** Both then answer 404 with an empty body, and the listing drops the meet too (2026-10).
 - **`MEET_CRAWL_FLOOR` is the lowest id that answers.** Ids above it are sparse, so one 404 means
   nothing (2026-09).
 - **`Date` is one day, and not reliably a meet's first day.** It can fall after the schedule's first

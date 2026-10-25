@@ -109,7 +109,8 @@ Traps:
 
 The event view refreshes every `GROUP_REFRESH_MS` (`app.js`). The refresh keeps the reader's place
 down the page (`wantedScroll`, `app/shell.js`) and across each ladder (`renderGroup`).
-`dev/probe-refresh.js` checks both.
+`dev/probe-refresh.js` checks both. A refresh that fails keeps the view on screen, but replaces the
+loader of a render it overtook (`renderRoute`, `app.js`).
 
 ## The athlete and club sheets
 

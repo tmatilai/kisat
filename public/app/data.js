@@ -54,9 +54,10 @@ async function fetchJson(url, opts = {}) {
   if (!r.ok) {
     const body = await r.text().catch(() => '');
     const err = new Error(body || `HTTP ${r.status} — ${url}`);
-    // Callers act on the status. A 404 from tuloslista is an answer, not a
-    // failure (roundDetail, lib/schedule.js).
+    // Callers act on the status and the URL. A 404 from tuloslista is an
+    // answer, not a failure (roundDetail, meetGone, lib/schedule.js).
     err.status = r.status;
+    err.url = url;
     throw err;
   }
   return r.status === 204 ? null : r.json();

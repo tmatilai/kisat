@@ -15,12 +15,16 @@ const WRANGLER = 'node_modules/.bin/wrangler';
 // and a module that no route loads fails the run. A start's key holds today's
 // date, so `links` follows the page's own links, and each keeps the query.
 // `blocked` renders with storage blocked, where reading `localStorage` throws,
-// as it does in Chrome with site data blocked.
+// as it does in Chrome with site data blocked. `gone` renders a meet whose
+// schedule and /properties answer 404, as Tuloslista answers for a meet that
+// has vanished (docs/tuloslista-api.md, "The listing"). Its meet body answers
+// nothing, so the Worker fetches nothing.
 const GROUP = 'a[href^="/c/demo/g/"]';
 const ROUTES = [
   { module: 'home', path: '/' },
   { module: 'meet', path: '/c/demo' },
   { module: 'meet', path: '/c/demo', blocked: true },
+  { module: 'meet', path: '/c/1', gone: true },
   { module: 'event', path: '/c/demo', links: [GROUP] },
   { module: 'event', path: '/c/demo', links: ['a[href^="/c/demo/o/"]'] },
   { module: 'medals', path: '/c/demo/mitalit' },
@@ -118,6 +122,10 @@ try {
             },
           });
       });
+    if (route.gone) {
+      await page.route(/\/competition\/\d+(\/properties)?$/, (r) => r.fulfill({ status: 404, body: '' }));
+      await page.route('**/api/meet/*', (r) => r.fulfill({ status: 204 }));
+    }
     let path = route.path;
     for (const link of route.links ?? []) {
       await page.goto(`${BASE}${path}`);
@@ -126,7 +134,7 @@ try {
     }
     const problems = await render(page, path);
     await page.close();
-    const label = `${path}${route.blocked ? ' (storage blocked)' : ''}`;
+    const label = `${path}${route.blocked ? ' (storage blocked)' : ''}${route.gone ? ' (gone)' : ''}`;
     console.log(`${problems.length ? 'FAIL' : 'ok  '} ${route.module.padEnd(8)} ${label}`);
     for (const p of problems) console.log(`       ${p}`);
     if (problems.length) failed++;
