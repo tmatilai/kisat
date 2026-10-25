@@ -147,13 +147,14 @@ Trap:
 ## Keeping elsewhere.json
 
 A row is added by hand, and `elsewhereProblems` proof-reads the file in the offline suite. A `comp`
-row of a race goes in before the meet, once the race's files answer, and any other row once the meet
-is over. A scheduled GitHub workflow, `.github/workflows/elsewhere.yml`, opens an issue each day for
-a championship due a row and for a row due a fix, and `make elsewhere-due` prints the same list.
-Close an issue with no row where the meet needs none.
+row of a race goes in before the meet, once the race's files answer, and so does a time4results row
+with last year's directory. Any other row goes in once the meet is over. A scheduled GitHub
+workflow, `.github/workflows/elsewhere.yml`, opens an issue each day for a championship due a row
+and for a row due a fix, and `make elsewhere-due` prints the same list. Close an issue with no row
+where the meet needs none.
 
-- `elsewhereUpcoming`, `elsewhereIsRace` (`lib/elsewhere.js`): a championship run in a race, due its
-  row from two weeks before it runs.
+- `elsewhereUpcoming`, `elsewhereIsRace`, `t4rFromLastYear` (`lib/elsewhere.js`): a championship run
+  in a race, or one whose name had a `t4r` row last year, due its row from two weeks before it runs.
 - `elsewhereCandidates`, `elsewhereIsDue` (`lib/elsewhere.js`): an SM meet whose rounds stop at the
   start lists (`docs/tuloslista-api.md`, "An SM meet whose rounds never get past the start lists").
 - `ELSEWHERE_YEARLY`, `elsewhereYearlyDue` (`lib/elsewhere.js`): a championship that may have no
@@ -162,10 +163,10 @@ Close an issue with no row where the meet needs none.
 - `elsewhereRecheck`, `olMissingClasses` (`lib/elsewhere.js`): a `comp` row whose meet Tuloslista
   dropped, or whose `classes` name no event of the meet.
 
-Where an SM's results are elsewhere, a track SM's have been on time4results and a road, terrain or
-trail SM's in a race's files (2026-09), but a championship can change its source and its month from
-year to year, so check the calendar. A row has one of these shapes, and the file's `clubs` sits
-beside `meets`:
+Where an SM's results are elsewhere, a track and field SM's have been on time4results and a road,
+terrain or trail SM's in a race's files (2026-09), but a championship can change its source and its
+month from year to year, so check the calendar. A row has one of these shapes, and the file's
+`clubs` sits beside `meets`:
 
 ```text
 {comp: <meet id>, t4r: "<year>/<directory>"}

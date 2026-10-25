@@ -13,6 +13,7 @@ import {
   elsewhereUpcoming,
   elsewhereYearlyDue,
   olMissingClasses,
+  t4rFromLastYear,
 } from '../public/lib/elsewhere.js';
 import { API } from '../public/lib/schedule.js';
 import file from '../public/data/elsewhere.json' with { type: 'json' };
@@ -35,12 +36,15 @@ const { meets } = await json(`https://${host}/api/meets`, { 'x-kisat-client': '1
 const due = [];
 // The title is the one a meet past its day gets, so no meet gets two issues.
 for (const m of elsewhereUpcoming(meets, file, today)) {
-  if (!elsewhereIsRace(await json(`${API}/competition/${m.id}`))) continue;
+  const t4r = t4rFromLastYear(meets, file, m);
+  if (!t4r && !elsewhereIsRace(await json(`${API}/competition/${m.id}`))) continue;
+  const why = t4r
+    ? `Last year's meet of its name had its results on time4results, so its row is probably ` +
+      `\`{comp: ${m.id}, t4r: "${t4r}"}\`, and it can go in now.`
+    : `It runs in a race, so its results will be in the race's files. Its row can go in once they answer.`;
   due.push({
     title: `Add ${m.name.trim()} (${m.id}) to elsewhere.json`,
-    body:
-      `The meet begins on ${m.date} and runs in a race, so its results will be in the race's files. ` +
-      `Its row can go in once they answer.\n\n${GUIDE}`,
+    body: `The meet begins on ${m.date}. ${why}\n\n${GUIDE}`,
   });
 }
 // Tuloslista can drop a meet once it is over (docs/tuloslista-api.md), and

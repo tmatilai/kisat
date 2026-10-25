@@ -25,6 +25,7 @@ import {
   olTime,
   standInFor,
   t4rAloneMeet,
+  t4rFromLastYear,
   t4rGraft,
   t4rWanted,
 } from '../public/lib/elsewhere.js';
@@ -1053,6 +1054,25 @@ test('elsewhereUpcoming/elsewhereIsRace', () => {
   assert.deepEqual(
     elsewhereUpcoming(index, file, '2026-10-21').map((m) => m.id),
     ['90012'],
+  );
+  // An SM on time4results takes the directory its name had last year. (Break on purpose:
+  // compare the names as written.)
+  const lastYear = [
+    { id: '90020', name: 'SM-hallit', date: '2026-02-28' },
+    { id: '90021', name: 'Kalevan Kisat', date: '2026-07-24' },
+  ];
+  const t4rRows = {
+    meets: [
+      { comp: 90020, t4r: '2026/smhallit' },
+      { comp: 90021, t4r: '2026/kalevankisat' },
+    ],
+  };
+  assert.deepEqual(
+    [
+      t4rFromLastYear(lastYear, t4rRows, { id: '90022', name: 'Kalevan kisat', date: '2027-07-30' }),
+      t4rFromLastYear(lastYear, t4rRows, { id: '90023', name: 'SAUL SM-hallit', date: '2027-02-19' }),
+    ],
+    ['2027/kalevankisat', null],
   );
   // A `comp` row is checked again while its meet is in the same window.
   // (Break on purpose: drop an end of the window.)
