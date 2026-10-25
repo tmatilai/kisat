@@ -877,7 +877,7 @@ async function graftRace(env, compId, row, schedule, all, official) {
 
 // Builds a championship with no meet here off a mass race's files or off the
 // other site, once its last day is over (docs/elsewhere.md). Returns null
-// where the source gives nothing. A race's schedule is not kept (olSchedule).
+// where the source gives nothing.
 async function aggregateAlone(env, row) {
   const meet = { name: row.name, organiser: '', listed: true };
   const stats = { eventsTotal: Object.keys(row.classes || {}).length, eventsFailed: 0, failedStatuses: {} };
@@ -896,7 +896,7 @@ async function aggregateAlone(env, row) {
     built = files ? olAloneMeet(row, files, clubs, elsewhere, districts, licences) : null;
   }
   if (!built) return null;
-  const schedule = row.t4r ? built.schedule : null;
+  const { schedule } = built;
   await putResults(env, row.id, built.events, schedule);
   return {
     body: meetMedalsBody(built.schedule, built.events, districts, meet),
@@ -960,10 +960,10 @@ async function handleMedals(compId, env, request) {
 
 // Answers a listed meet's grafted event, or its schedule with no `eventId`,
 // off the keys a medal build wrote. A miss runs that build and keeps its medal
-// body. A row alone in a race's files serves no schedule (olSchedule).
+// body.
 async function handleResults(compId, eventId, env, request) {
   const row = elsewhereRow(elsewhere, compId);
-  if (!row || (!eventId && row.id && row.ol)) return new Response('Kilpailua ei löytynyt.', { status: 404 });
+  if (!row) return new Response('Kilpailua ei löytynyt.', { status: 404 });
 
   const label = eventId ? `results ${compId}/${eventId}` : `schedule ${compId}`;
   const key = eventId ? resultsKey(compId, eventId) : graftedScheduleKey(compId);

@@ -703,6 +703,23 @@ test("olAloneMeet: a road championship off a mass race's files", () => {
     [road.length, road[0].key, road[0].entries.length],
     [1, '2026-08-08T09:00:00.0000000+00:00|Maraton', 3],
   );
+  // A class starts at its own time in the race's event file, and at the row's
+  // start where the file has none, as a cross-country meet's classes did
+  // (2026-10). (Break on purpose: read the row's start alone.)
+  const event = {
+    Classes: [
+      { ID: 5, Races: [{ RaceNo: 1, MassStartStr: '2026-08-08T11:00:28+03:00' }] },
+      { ID: 6, Races: [{ RaceNo: 1, MassStartStr: null }] },
+    ],
+  };
+  assert.deepEqual(
+    olSchedule(DEMO_ROAD_ROW, event)['8.8.2026'].map((r) => [r.EventName, r.BeginDateTimeWithTZ]),
+    [
+      ['M Maraton', '2026-08-08T11:00:28+03:00'],
+      ['N Maraton', '2026-08-08T12:00:00+03:00'],
+      ['M40 Maraton', '2026-08-08T12:00:00+03:00'],
+    ],
+  );
   // A masters' class carries its age. (Break on purpose: give every class
   // age 0.)
   assert.deepEqual(

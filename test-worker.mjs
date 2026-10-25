@@ -333,6 +333,14 @@ seedKv(`medals:v9:${ALONE_ROW.id}${elsewhereTag(elsewhere, ALONE_ROW.id)}`, {
   body: ALONE_BODY,
   stats: { eventsTotal: 0, eventsFailed: 0, failedStatuses: {} },
 });
+// The same build keeps the race's schedule, with each class's own start.
+const ALONE_SCHEDULE = {
+  '1.1.2026': [{ ...LISTED_SCHEDULE['1.1.2026'][0], Id: 'ol-0', EventId: 'ol-0', EventName: 'N Maraton' }],
+};
+seedKv(`schedule:v1:${ALONE_ROW.id}${elsewhereTag(elsewhere, ALONE_ROW.id)}`, {
+  builtAt: Date.now(),
+  data: ALONE_SCHEDULE,
+});
 
 function api(path, opts = {}) {
   return fetch(`${BASE}${path}`, { ...opts, headers: { ...HEADERS, ...opts.headers } });
@@ -1148,11 +1156,10 @@ try {
       404,
       'a meet elsewhere.json does not list has no schedule here',
     );
-    assert.equal(
-      (await api(`/api/results/${ALONE_ROW.id}`)).status,
-      404,
-      'a row that stands alone keeps its schedule in the file, so it is not built for one',
-    );
+    // (Break on purpose: answer a race's row that stands alone with 404.)
+    const alone = await api(`/api/results/${ALONE_ROW.id}`);
+    assert.equal(alone.headers.get('x-results-cache'), 'hit', "a race's row serves the schedule its build kept");
+    assert.deepEqual(await alone.json(), ALONE_SCHEDULE);
     assert.equal((await api(`/api/results/${LISTED_COMP}`, { method: 'POST' })).status, 405);
     assert.equal(
       (await fetch(`${BASE}/api/results/${LISTED_COMP}`)).status,
