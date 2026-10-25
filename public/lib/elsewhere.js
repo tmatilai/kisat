@@ -583,8 +583,11 @@ function olAloneMeet(row, files, orgs, file, districts, licences) {
 // row's names are written by hand and a meet can name an event two ways
 // (docs/tuloslista-api.md, "A meet can name an event one way"). A finisher is the event's entry of that name, or else a
 // made one.
-function olGraft(schedule, eventResults, row, files, orgs, file, districts, licences) {
+function olGraft(schedule, eventResults, row, files, orgs, file, districts, licences, official = true) {
   const race = olRace(files, orgs, file, districts, licences);
+  // A time can still move after its race (docs/elsewhere.md), so a class read
+  // on the meet's day is in progress, not official.
+  const status = official ? 'Official' : 'Progress';
   const classes = new Map(Object.entries(row?.classes || {}).map(([name, classId]) => [eventNameKey(name), classId]));
   const done = new Set();
   const events = (eventResults || []).map(({ eventId, data }) => {
@@ -608,14 +611,14 @@ function olGraft(schedule, eventResults, row, files, orgs, file, districts, lice
     done.add(round.Id);
     return {
       eventId,
-      data: { ...data, Rounds: rounds.map((r) => (r === round ? { ...r, Status: 'Official', Heats: [heat] } : r)) },
+      data: { ...data, Rounds: rounds.map((r) => (r === round ? { ...r, Status: status, Heats: [heat] } : r)) },
     };
   });
   return {
     schedule: Object.fromEntries(
       Object.entries(schedule || {}).map(([day, rows]) => [
         day,
-        (rows || []).map((r) => (done.has(r.Id) ? { ...r, Status: 'Official' } : r)),
+        (rows || []).map((r) => (done.has(r.Id) ? { ...r, Status: status } : r)),
       ]),
     ),
     events,
@@ -675,13 +678,21 @@ function elsewhereTag(file, compId) {
   return `:elsewhere:${[...text].reduce((h, c) => (Math.imul(h, 31) + c.codePointAt(0)) >>> 0, ELSEWHERE_GRAFT_VERSION).toString(36)}`;
 }
 
+// Says when the graft reads a listed meet's source: 'over' once its last day
+// is before `todayIso`, the Worker's own UTC day (docs/backend.md), and 'day'
+// on its days for a race, whose files carry a finisher within minutes
+// (docs/elsewhere.md). Null otherwise.
+function graftPhase(row, schedule, todayIso) {
+  const days = scheduleDays(schedule).map(fiToIsoDay);
+  if (!row || !days.length) return null;
+  if (days[days.length - 1] < todayIso) return 'over';
+  return row.ol && days[0] <= todayIso ? 'day' : null;
+}
+
 // Says whether a view reads a meet's results from the graft (resultsBase,
-// app/data.js). It does once the file lists the meet and its last day is before
-// `todayIso`, which is the Worker's own UTC day (docs/backend.md).
+// app/data.js).
 function graftApplies(file, compId, schedule, todayIso) {
-  const days = scheduleDays(schedule);
-  const last = days.length ? fiToIsoDay(days[days.length - 1]) : '';
-  return Boolean(last && last < todayIso && elsewhereRow(file, compId));
+  return Boolean(graftPhase(elsewhereRow(file, compId), schedule, todayIso));
 }
 
 // Proof-reads the file, and returns one line a problem or [] when it is sound.
@@ -853,6 +864,7 @@ export {
   elsewhereUpcoming,
   elsewhereYearlyDue,
   graftApplies,
+  graftPhase,
   officialUrl,
   olAloneMeet,
   olGraft,

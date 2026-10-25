@@ -3,8 +3,9 @@
 An adults' SM has only its entries in Tuloslista and its results on `live.time4results.com`. The
 relay SM has no Tuloslista meet at all. A road, terrain or trail SM has its results in a mass race's
 files on `online.tulospalvelu.fi`. `public/data/elsewhere.json` lists each one, and the Worker reads
-its results once it is over. The routes and keys are in `docs/backend.md`, "Results from another
-site", and the views' side is in `docs/views.md`, "Results on another site".
+its results once it is over, or a race's on its days too. The routes and keys are in
+`docs/backend.md`, "Results from another site", and the views' side is in `docs/views.md`, "Results
+on another site".
 
 - `graftElsewhere` (`worker.js`): the source a listed Tuloslista meet reads.
 - `aggregateAlone` (`worker.js`): a championship with no Tuloslista meet.
@@ -105,6 +106,8 @@ that gets no results, or nowhere (2026-09). A class is one official final, ranke
 - `olFiles` (`worker.js`): the reads.
 - `olRace` (`lib/elsewhere.js`): a class's finishers, and the entry made for one.
 - `olGraft` (`lib/elsewhere.js`): the finishers on a meet's own entries, matched by name.
+- `graftPhase` (`lib/elsewhere.js`): a race's meet is read on its days, with each class in progress,
+  and official once the meet is over.
 - `olAloneMeet`, `olSchedule` (`lib/elsewhere.js`): a meet with no Tuloslista meet.
 - `DEMO_ROAD_ROW`, `DEMO_ROAD_FILES`, `DEMO_ROAD_COMP` (`demo.js`): the fixture. Tested in
   `test/elsewhere.test.mjs`, "olAloneMeet: a road championship off a mass race's files".
@@ -120,6 +123,9 @@ Traps:
   in tenths of a second. A row that did not finish has a null time. The rows carry no place and come
   in no order, and no two finishers of a class have shared a time (2026-09).
 - **The files give no licence and give a club as free text.** `LicenseNumber` is 0 (2026-09).
+- **A finisher reaches `results.json` within a minute or two, and a time can still move after the
+  race.** A corrected start time moved every finisher's time in four classes 45 minutes after their
+  last finisher, and a day's files are rewritten the next morning (2026-10).
 
 ## The licence a made person gets
 

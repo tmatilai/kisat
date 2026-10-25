@@ -15,6 +15,7 @@ import {
   elsewhereUpcoming,
   elsewhereYearlyDue,
   graftApplies,
+  graftPhase,
   officialUrl,
   olAloneMeet,
   olGraft,
@@ -776,6 +777,28 @@ test("olAloneMeet: a road championship off a mass race's files", () => {
     ],
     [1, 'Official', 'Official', 'Official'],
   );
+  // On the meet's day the same classes are in progress. (Break on purpose:
+  // ignore `official`.)
+  const onTheDay = olGraft(
+    DEMO_ROAD_SCHEDULE,
+    DEMO_ROAD_EVENTS,
+    DEMO_ROAD_COMP,
+    DEMO_ROAD_FILES,
+    DEMO_ROAD_ORGS,
+    spellings,
+    DEMO_DISTRICTS,
+    null,
+    false,
+  );
+  assert.deepEqual(
+    [
+      ...onTheDay.events.map((e) => e.data.Rounds[0].Status),
+      ...Object.values(onTheDay.schedule)
+        .flat()
+        .map((r) => r.Status),
+    ],
+    Array(6).fill('Progress'),
+  );
   // (Break on purpose: mark the round Official whether or not the class has
   // a finisher.)
   for (const classes of [{}, { 'N Maraton': 9 }]) {
@@ -931,6 +954,21 @@ test('elsewhere.json: the championships whose results are on another site', () =
       graftApplies(elsewhere, row.comp, {}, '2026-08-10'),
     ],
     [true, false, false, false],
+  );
+  // A race is read on its days too, from its first day on, and anything else
+  // only once it is over. (Break on purpose: drop the `ol` test, or the first
+  // day's.)
+  assert.deepEqual(
+    [
+      graftPhase(DEMO_ROAD_COMP, sched, '2026-08-07'),
+      graftPhase(DEMO_ROAD_COMP, sched, '2026-08-08'),
+      graftPhase(DEMO_ROAD_COMP, sched, '2026-08-09'),
+      graftPhase(DEMO_ROAD_COMP, sched, '2026-08-10'),
+      graftPhase(row, sched, '2026-08-09'),
+      graftPhase(null, sched, '2026-08-10'),
+      graftApplies({ meets: [DEMO_ROAD_COMP] }, DEMO_ROAD_COMP.comp, sched, '2026-08-09'),
+    ],
+    [null, 'day', 'day', 'over', null, null, true],
   );
   // (Break on purpose: drop the name test, the row test or an end of the
   // window.)
