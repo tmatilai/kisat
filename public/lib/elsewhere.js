@@ -661,6 +661,12 @@ function elsewhereRow(file, compId) {
   return (file?.meets || []).find((m) => String(m.comp ?? m.id) === String(compId)) || null;
 }
 
+// Returns the id of the row that stands in for a Tuloslista meet that
+// Tuloslista has dropped (docs/elsewhere.md), or null.
+function standInFor(file, compId) {
+  return (file?.meets || []).find((m) => m.id != null && m.was != null && String(m.was) === String(compId))?.id ?? null;
+}
+
 // Returns a row's last day. A one-day row has `date` and no `last`.
 const elsewhereLastDay = (row) => row?.last || row?.date || '';
 
@@ -720,6 +726,8 @@ function elsewhereProblems(file, districts) {
       if (m?.id != null) {
         if (!String(m.name ?? '').trim()) problems.push(`row ${i + 1}: no name`);
         if (!String(m.location ?? '').trim()) problems.push(`row ${i + 1}: no location`);
+        if (m.was !== undefined && (!Number.isInteger(m.was) || m.was <= 0))
+          problems.push(`row ${i + 1}: was is not a meet id`);
         if (!/^\d{4}-\d\d-\d\d$/.test(m.date ?? '') || !String(m.id).endsWith(m.date.slice(0, 4)))
           problems.push(`row ${i + 1}: date is not a day of the id's year`);
         if (!/^\d\d:\d\d:\d\d[+-]\d\d:\d\d$/.test(m.start ?? ''))
@@ -757,7 +765,8 @@ const ELSEWHERE_WINDOW_DAYS = 60;
 
 // Returns the championships of `/api/meets` from `from` to `to` with no row.
 function unrowedChampionships(meets, file, from, to) {
-  const rowed = new Set((file?.meets || []).map((m) => String(m.comp ?? '')));
+  // A row that stands in for a dropped meet is that meet's row (standInFor).
+  const rowed = new Set((file?.meets || []).map((m) => String(m.comp ?? m.was ?? '')));
   return (meets || []).filter(
     (m) =>
       m.date >= from &&
@@ -872,6 +881,7 @@ export {
   olProperties,
   olSchedule,
   olTime,
+  standInFor,
   t4rAloneMeet,
   t4rGraft,
   t4rMark,

@@ -23,6 +23,7 @@ import {
   olProperties,
   olSchedule,
   olTime,
+  standInFor,
   t4rAloneMeet,
   t4rGraft,
   t4rWanted,
@@ -863,6 +864,7 @@ test('elsewhere.json: the championships whose results are on another site', () =
           id: 'Maraton',
           name: ' ',
           location: '',
+          was: '90026',
           date: '2025-08-08',
           start: '11.00',
           ol: '../x',
@@ -876,6 +878,7 @@ test('elsewhere.json: the championships whose results are on another site', () =
       'row 3: id is not "<word>-<year>"',
       'row 3: no name',
       'row 3: no location',
+      'row 3: was is not a meet id',
       "row 3: date is not a day of the id's year",
       'row 3: start is not a time of day and its offset',
       'row 3: ol is not an event id',
@@ -905,6 +908,18 @@ test('elsewhere.json: the championships whose results are on another site', () =
     ],
   );
   assert.deepEqual(elsewhereRow({ meets: [road] }, 'maraton-2026'), road);
+  // A row that stands in for a dropped meet answers to its id. (Break on
+  // purpose: match on `comp` in place of `was`.)
+  const standIn = {
+    meets: [
+      { comp: 90026, ol: 'x', classes: {} },
+      { ...road, was: 90026 },
+    ],
+  };
+  assert.deepEqual(
+    [standInFor(standIn, '90026'), standInFor(standIn, 90026), standInFor(standIn, '90027'), standInFor(null, '1')],
+    ['maraton-2026', 'maraton-2026', null, null],
+  );
   // officialUrl is where a meet's results are published, for its title menu.
   // (Break on purpose: answer the mass race's url for a {comp, t4r} row, or
   // Tuloslista's for a demo.)
@@ -985,6 +1000,14 @@ test('elsewhere.json: the championships whose results are on another site', () =
   assert.deepEqual(
     elsewhereCandidates(index, file, '2026-09-21').map((m) => m.id),
     ['90002', '90003'],
+  );
+  // A row that stands in for a dropped meet is its row. (Break on purpose:
+  // read `comp` alone.)
+  assert.deepEqual(
+    elsewhereCandidates(index, { meets: [...file.meets, { id: 'maastot-2026', was: 90002 }] }, '2026-09-21').map(
+      (m) => m.id,
+    ),
+    ['90003'],
   );
   // (Break on purpose: let a Progress round through, or drop the last day's
   // grace.)

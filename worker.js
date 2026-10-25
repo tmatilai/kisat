@@ -16,6 +16,7 @@ import {
   graftPhase,
   olAloneMeet,
   olGraft,
+  standInFor,
   t4rAloneMeet,
   t4rGraft,
 } from './public/lib/elsewhere.js';
@@ -326,6 +327,10 @@ export default {
         docUrl.pathname = '/';
         const route = parseRoute(url.pathname);
         const compId = meetPath ? route.compId : null;
+        // A meet that Tuloslista dropped opens the row that stands in for it.
+        // Its views' ids differ, so the redirect lands on the meet itself.
+        const standIn = compId && standInFor(elsewhere, compId);
+        if (standIn) return Response.redirect(`${url.origin}${MEET_PATH_PREFIX}${standIn}`, 302);
         const [doc, meet, files] = await Promise.all([
           env.ASSETS.fetch(new Request(docUrl, request)),
           compId ? loadMeetRow(env, request, compId) : null,

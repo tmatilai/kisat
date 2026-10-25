@@ -151,7 +151,7 @@
       }
     },
     {
-      "id": "maastot-2026", "name": "SM-maastot", "location": "Tampere", "date": "2026-10-24", "start": "11:00:28+03:00", "ol": "2026_smmaasto",
+      "id": "maastot-2026", "was": 20907, "name": "SM-maastot", "location": "Tampere", "date": "2026-10-24", "start": "11:00:28+03:00", "ol": "2026_smmaasto",
       "classes": {
         "N Maastojuoksu 10km": 0, "M Maastojuoksu 10km": 1, "N Maastojuoksu 4km": 8, "M Maastojuoksu 4km": 9,
         "N15 Maastojuoksu 4km": 2, "M15 Maastojuoksu 4km": 3, "N17 Maastojuoksu 4km": 4, "M17 Maastojuoksu 4km": 5,
