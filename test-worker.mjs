@@ -10,7 +10,7 @@ import { join, resolve } from 'node:path';
 // A listed meet's keys carry elsewhereTag, so the seeded keys compute it. A
 // tag spelled by hand would miss after a bump and send the route to a build.
 import elsewhere from './public/data/elsewhere.json' with { type: 'json' };
-import { elsewhereTag } from './public/lib/elsewhere.js';
+import { ALONE_ID_RE, elsewhereTag } from './public/lib/elsewhere.js';
 import { DIGEST_VERSION } from './public/lib/digest.js';
 
 const PORT = process.env.TEST_WORKER_PORT || 8933;
@@ -759,20 +759,32 @@ try {
     assert.equal(r.headers.get('x-scan-built'), '0', 'a request that did not ask to build must not build');
     assert.equal(r.headers.get('x-scan-stale'), '1', 'the one seeded past-freshness digest is reported stale');
     const body = await r.json();
+    // A row of elsewhere.json that stands alone joins the window from the
+    // file. (Break on purpose: leave the file's rows out of handleScan.)
+    const aloneInWindow = elsewhere.meets
+      .filter((m) => m.id && m.date <= body.to && (m.last || m.date) >= body.from)
+      .map((m) => m.id);
+    assert.ok(aloneInWindow.length > 0, 'the file has a row that stands alone in the window');
+    assert.deepEqual(
+      body.comps.filter((c) => ALONE_ID_RE.test(c.id)).map((c) => c.id),
+      aloneInWindow,
+      "a row that stands alone is in the scan's window",
+    );
+    const own = body.comps.filter((c) => !ALONE_ID_RE.test(c.id));
     assert.deepEqual(
       [body.from, body.to],
       ['2026-08-01', '2026-10-07'],
       'the window is -7/+60 days around the day the client asked about (CAL_WINDOW_PAST_DAYS/CAL_WINDOW_FUTURE_DAYS, worker.js)',
     );
     assert.deepEqual(
-      body.comps.map((c) => String(c.id)),
+      own.map((c) => String(c.id)),
       ['99001', 'testi-2', '99006', '99005', '99004'],
       'meets running in the window, chronological — the July one (before it) is out, and the ' +
         'September one (~5 weeks ahead) is in',
     );
 
     assert.deepEqual(
-      body.comps[0].matches,
+      own[0].matches,
       [
         {
           name: 'Emma Mittainen',
@@ -783,15 +795,15 @@ try {
       ],
       'the follow-list resolves through the digest by LicenseId',
     );
-    assert.equal(body.comps[0].name, 'Digestikisat');
-    assert.equal(body.comps[0].stale, false, 'freshly built (seeded with a current builtAt) — not stale');
+    assert.equal(own[0].name, 'Digestikisat');
+    assert.equal(own[0].stale, false, 'freshly built (seeded with a current builtAt) — not stale');
 
     // The front page says different things for null and for an empty list.
-    assert.equal(body.comps[1].matches, null, 'a meet with no digest at all reports null, not an empty list');
-    assert.equal(body.comps[1].stale, false, 'null and stale are different kinds of "not fresh" — never both');
+    assert.equal(own[1].matches, null, 'a meet with no digest at all reports null, not an empty list');
+    assert.equal(own[1].stale, false, 'null and stale are different kinds of "not fresh" — never both');
 
     assert.deepEqual(
-      body.comps[3].matches,
+      own[3].matches,
       [
         {
           name: 'Emma Mittainen',
@@ -802,16 +814,16 @@ try {
       ],
       'a stale digest still reports its last known matches, not null',
     );
-    assert.equal(body.comps[3].stale, true, 'but is flagged so the client can mark it and refresh in the background');
+    assert.equal(own[3].stale, true, 'but is flagged so the client can mark it and refresh in the background');
 
     // A digest of another version is not read, so it rebuilds as pending.
     // (Break on purpose: drop the version check in handleScan and this
     // reports matches.)
-    assert.equal(body.comps[2].matches, null, 'a digest of an older version reads as not scanned');
-    assert.equal(body.comps[2].stale, false);
+    assert.equal(own[2].matches, null, 'a digest of an older version reads as not scanned');
+    assert.equal(own[2].stale, false);
 
     assert.deepEqual(
-      body.pending,
+      body.pending.filter((id) => !ALONE_ID_RE.test(id)),
       ['testi-2', 99006, 99004],
       'pending carries ids in their original type, unstringified',
     );
@@ -836,7 +848,7 @@ try {
       ['2026-08-01', '2026-10-07'],
       'a client cannot widen the window it is asking about',
     );
-    assert.equal(widenedBody.comps.length, 5, 'and so cannot pull in meets outside it');
+    assert.equal(widenedBody.comps.length, body.comps.length, 'and so cannot pull in meets outside it');
 
     // A followed club's relays come first, as a line of the club's own.
     // (Break on purpose: seed the digest without its teams and only Emma

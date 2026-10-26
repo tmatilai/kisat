@@ -15,6 +15,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 import { DIGEST_VERSION } from '../public/lib/digest.js';
+import { aloneCalendarRows } from '../public/lib/home.js';
+import elsewhere from '../public/data/elsewhere.json' with { type: 'json' };
 
 // The probes that need only the demo, with their queries.
 const OFFLINE = {
@@ -102,7 +104,7 @@ const LISTING = MEETS.map((m) => ({
 const ELSEWHERE = {
   meets: [
     {
-      id: `maastot-${isoDay(-1).slice(0, 4)}`,
+      id: `testimaastot-${isoDay(-1).slice(0, 4)}`,
       name: 'Testimaastot',
       location: 'Mallila',
       date: isoDay(-1),
@@ -152,6 +154,13 @@ function workerKv() {
     entries[`digest:${m.id}`] = {
       builtAt: now,
       digest: { v: DIGEST_VERSION, days: m.days.map(fiDay), orgs: [[1, 'DemU']], teams: [], athletes: m.athletes },
+    };
+  // The Worker scans the real file's rows that stand alone, and would build
+  // a missing digest off the live race files.
+  for (const r of aloneCalendarRows(elsewhere))
+    entries[`digest:${r.id}`] = {
+      builtAt: now,
+      digest: { v: DIGEST_VERSION, days: r.days, orgs: [], teams: [], athletes: [] },
     };
   return Object.entries(entries).map(([key, value]) => ({ key, value: JSON.stringify(value) }));
 }

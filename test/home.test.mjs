@@ -14,6 +14,7 @@ import {
   shiftIsoDay,
 } from '../public/lib/dates.js';
 import {
+  aloneCalendarRows,
   aloneListingRows,
   calendarCandidates,
   calendarWindow,
@@ -52,7 +53,7 @@ test('meetPlace', () => {
 
 // --- aloneListingRows / listingFirstDay: a meet that stands alone in
 // elsewhere.json, as a row of the listing (docs/home.md) ---
-test('aloneListingRows/listingFirstDay', () => {
+test('aloneListingRows/aloneCalendarRows/listingFirstDay', () => {
   const relay = { id: 'viestit-2026', name: 'SM-viestit', location: 'Testilä', date: '2026-08-29', last: '2026-08-31' };
   const file = { meets: [{ comp: 7, ol: 'x', classes: {} }, DEMO_ROAD_ROW, relay] };
   // (Break on purpose: stop the day loop at `date`.)
@@ -75,6 +76,15 @@ test('aloneListingRows/listingFirstDay', () => {
     },
   ]);
   assert.deepEqual(aloneListingRows(null), []);
+  // The scan takes the same rows in the calendar's shape.
+  assert.deepEqual(aloneCalendarRows(file)[1], {
+    id: 'viestit-2026',
+    name: 'SM-viestit',
+    location: 'Testilä',
+    organizationName: '',
+    date: '2026-08-29',
+    days: ['29.8.2026', '30.8.2026', '31.8.2026'],
+  });
   const listing = [{ Date: '2026-08-12T09:00:00+00:00' }, { Date: '2026-07-20T12:00:00+03:00' }, { Date: null }];
   assert.equal(listingFirstDay(listing), '2026-07-20');
   assert.equal(listingFirstDay([]), '');

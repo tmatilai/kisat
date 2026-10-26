@@ -112,6 +112,19 @@ function aloneListingRows(file) {
     });
 }
 
+// Returns the same rows in the calendar's shape, for the scan's window
+// (handleScan, worker.js).
+function aloneCalendarRows(file) {
+  return aloneListingRows(file).map((c) => ({
+    id: c.Id,
+    name: c.Name,
+    location: c.Location,
+    organizationName: '',
+    date: c.Date,
+    days: c.days,
+  }));
+}
+
 // Returns the listing's first day. It serves about a month back
 // (docs/tuloslista-api.md, "It serves a live window and ignores every
 // parameter"), and a row that stands alone joins it from that day on.
@@ -126,6 +139,7 @@ function listingFirstDay(listing) {
 
 export {
   RECENT_DAYS,
+  aloneCalendarRows,
   aloneListingRows,
   calendarCandidates,
   calendarWindow,

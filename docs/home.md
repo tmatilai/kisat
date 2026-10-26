@@ -54,7 +54,10 @@ A row of `elsewhere.json` that stands alone has no meet in Tuloslista's listing,
 (`docs/elsewhere.md`, "A championship with no meet in Tuloslista").
 
 - `aloneListingRows` and `listingFirstDay` (`lib/home.js`): the row in the listing's shape, with its
-  days and venue. Tested in `test/home.test.mjs`, "aloneListingRows/listingFirstDay".
+  days and venue. Tested in `test/home.test.mjs`,
+  "aloneListingRows/aloneCalendarRows/listingFirstDay".
+- `aloneCalendarRows` (`lib/home.js`) and `handleScan` (`worker.js`): the row in the scan's window,
+  so `Seuratut` finds a followed person in it too.
 - `renderHome` (`app/home.js`): a row from the listing's first day on joins `Kilpailut`, and an
   older one joins the search.
 

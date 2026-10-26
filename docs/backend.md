@@ -239,6 +239,8 @@ Rules:
 - **L3 is the scan itself.** A `build=1` request builds at most `SCAN_BUILD_LIMIT` digests, one at a
   time. A cold window of a summer listing needs some 26 rounds under `SCAN_LIMITER`, a few minutes
   (2026-08), and `MAX_BUILD_ROUNDS` (`app/shell.js`) outlasts it.
+- **A row of `elsewhere.json` that stands alone joins the window from the file**, as the calendar
+  has no meet of it. Its digest comes from the build of its roster (`aloneRoster`).
 - **The Worker builds only when asked** (`build=1`), in the scan and in both years, so a plain read
   costs nothing upstream.
 - **The window comes from `day` alone**, through `CAL_WINDOW_PAST_DAYS` and
