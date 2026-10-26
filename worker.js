@@ -20,7 +20,7 @@ import {
   t4rAloneMeet,
   t4rGraft,
 } from './public/lib/elsewhere.js';
-import { RECENT_DAYS, calendarCandidates, calendarWindow } from './public/lib/home.js';
+import { RECENT_DAYS, aloneCalendarRows, calendarCandidates, calendarWindow } from './public/lib/home.js';
 import { DIGEST_VERSION, buildDigest, digestPeople, scanDigest, scheduleEventOrder } from './public/lib/digest.js';
 import {
   athleteBackfillAt,
@@ -437,9 +437,11 @@ async function handleRoster(compId, env, request, ctx) {
     });
     // After the response, these results build the scan's digest, the picker's
     // two indexes, the meet body and the medals. The meet body and the medals
-    // share one /properties read. A row that stands alone skips all five, as
-    // aloneRoster writes its medals and the other four are a Tuloslista meet's.
-    if (!alone?.id) {
+    // share one /properties read. A row that stands alone writes its digest
+    // alone, as aloneRoster writes its medals and the other three are a
+    // Tuloslista meet's.
+    if (alone?.id) ctx?.waitUntil(cacheDigest(env, compId, built));
+    else {
       const props = fetchProps(compId);
       ctx?.waitUntil(
         Promise.all([
@@ -457,7 +459,8 @@ async function handleRoster(compId, env, request, ctx) {
 
 // Builds the roster of a meet that stands alone off the build its medals come
 // from (aggregateAlone). Its rows are the people of its rounds, as it has no
-// entries here (aloneEntries). It keeps that build's medal body.
+// entries here (aloneEntries). It keeps that build's medal body, and returns
+// the events and schedule that the scan's digest reads (cacheDigest).
 async function aloneRoster(env, row) {
   const built = await aggregateAlone(env, row);
   if (!built) return null;
@@ -466,7 +469,13 @@ async function aloneRoster(env, row) {
     eventId,
     data: { ...data, Enrollments: aloneEntries(data) },
   }));
-  return { roster: buildRoster(events), stats: built.stats, lastDay: built.lastDay };
+  return {
+    roster: buildRoster(events),
+    events,
+    schedule: built.schedule,
+    stats: built.stats,
+    lastDay: built.lastDay,
+  };
 }
 
 // Tuloslista publishes no rate limit (docs/tuloslista-api.md), so a miss runs
@@ -1459,7 +1468,9 @@ async function handleScan(watchId, env, request, url) {
 
   const cal = await loadCalendar(env, day, from, to);
   if (!cal) return new Response('Kilpailulistaa ei saatu haettua.', { status: 502 });
-  const { inWindow } = calendarWindow(cal.comps, from, to);
+  // A row of elsewhere.json that stands alone has no meet in the calendar,
+  // so it joins the window from the file.
+  const { inWindow } = calendarWindow([...cal.comps, ...aloneCalendarRows(elsewhere)], from, to);
 
   // A digest of another DIGEST_VERSION counts as missing, as scanDigest would
   // misread it. It rebuilds as pending (derived data, AGENTS.md).
@@ -1484,14 +1495,21 @@ async function handleScan(watchId, env, request, url) {
     // cap bounds.
     for (const i of needsBuild.slice(0, SCAN_BUILD_LIMIT)) {
       const compId = String(inWindow[i].id);
-      if (!COMP_ID_RE.test(compId)) continue;
-      const built = await aggregateRoster(compId);
+      const alone = elsewhereRow(elsewhere, compId);
+      const built = alone?.id
+        ? await aloneRoster(env, alone)
+        : COMP_ID_RE.test(compId)
+          ? await aggregateRoster(compId)
+          : null;
       if (!built) continue;
       digests[i] = { builtAt: now, digest: await cacheDigest(env, compId, built) };
       // A front page's own scans fill the picker's two indexes too, as
-      // handleRoster's builds do.
-      await cacheOrgs(env, built.roster);
-      await cacheAthletes(env, built);
+      // handleRoster's builds do. A row that stands alone has made people,
+      // who belong in neither.
+      if (!alone?.id) {
+        await cacheOrgs(env, built.roster);
+        await cacheAthletes(env, built);
+      }
       staleFlags[i] = false;
       builtCount += 1;
     }

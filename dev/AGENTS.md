@@ -18,8 +18,9 @@ the Worker, each with its query. Every probe's header says what it covers and it
   a `make dev`.
 - **`make probes` runs offline.** The driver answers each request that leaves the page's origin, the
   Tuloslista listing with `LISTING` and the rest with an empty list. Before the Worker starts it
-  writes `workerKv()`: the calendar, a digest per meet in it, and the club and athlete indexes. A
-  meet in the calendar with no digest would make the Worker build one from the live API.
+  writes `workerKv()`: the calendar, a digest per meet in it and per row of `elsewhere.json` that
+  stands alone, and the club and athlete indexes. A meet in the calendar with no digest would make
+  the Worker build one from the live API.
 - **A probe run on a `make dev` reads live data**, so a `FAIL` there is checked against the live
   page first.
 
