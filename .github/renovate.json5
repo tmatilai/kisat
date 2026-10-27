@@ -8,6 +8,9 @@
   ],
   // pnpm installs nothing younger either (pnpm-workspace.yaml).
   minimumReleaseAge: '3 days',
+  // GitHub's auto-merge, which still waits for the ruleset's approval and checks.
+  automerge: true,
+  automergeStrategy: 'squash',
   // Security fixes wait too, since pnpm refuses a younger version.
   vulnerabilityAlerts: { minimumReleaseAge: '3 days' },
   // Weekly update of the transitive dependencies.
