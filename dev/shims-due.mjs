@@ -18,4 +18,4 @@ const due = shimsDue(shims, today).map((s) => ({
 for (const d of due) console.log(d.title);
 if (!due.length) console.log('nothing due');
 
-if (process.argv.includes('--open')) await openIssues(due);
+if (process.argv.includes('--open')) await openIssues(due, 'shim');

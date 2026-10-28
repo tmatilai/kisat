@@ -99,4 +99,4 @@ for (const { row, meet } of elsewhereRecheck(meets, file, today)) {
 for (const d of due) console.log(d.title);
 if (!due.length) console.log('nothing due');
 
-if (open) await openIssues(due);
+if (open) await openIssues(due, 'elsewhere');

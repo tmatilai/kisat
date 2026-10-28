@@ -2,10 +2,10 @@
 
 A shim is retired code kept so that a stored link or view state keeps working (`AGENTS.md`, "A
 breaking change keeps users working"). A shim goes on any day after its date, and its row goes in
-the same commit. Every Tuesday `.github/workflows/shims.yml` opens an issue for each row past its
-date (`dev/shims-due.mjs`, `make shims-due`). The issue's title reads "Delete the <shim> shim (after
-<date>)" and its body "Delete <what goes>.", so the cells are written to fit. The offline suite
-checks the table's form (`shimProblems`, `test/source.test.mjs`).
+the same commit. Every Tuesday `.github/workflows/shims.yml` opens an issue labelled `shim` for each
+row past its date (`dev/shims-due.mjs`, `make shims-due`). The issue's title reads "Delete the
+<shim> shim (after <date>)" and its body "Delete <what goes>.", so the cells are written to fit. The
+offline suite checks the table's form (`shimProblems`, `test/source.test.mjs`).
 
 | after      | shim                  | what goes                                                                                                                                                      |
 | ---------- | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
