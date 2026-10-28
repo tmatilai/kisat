@@ -149,9 +149,9 @@ Trap:
 A row is added by hand, and `elsewhereProblems` proof-reads the file in the offline suite. A `comp`
 row of a race goes in before the meet, once the race's files answer, and so does a time4results row
 with last year's directory. Any other row goes in once the meet is over. A scheduled GitHub
-workflow, `.github/workflows/elsewhere.yml`, opens an issue each day for a championship due a row
-and for a row due a fix, and `make elsewhere-due` prints the same list. Close an issue with no row
-where the meet needs none.
+workflow, `.github/workflows/elsewhere.yml`, opens an issue labelled `elsewhere` each day for a
+championship due a row and for a row due a fix, and `make elsewhere-due` prints the same list. Close
+an issue with no row where the meet needs none.
 
 - `elsewhereUpcoming`, `elsewhereIsRace`, `t4rFromLastYear` (`lib/elsewhere.js`): a championship run
   in a race, or one whose name had a `t4r` row last year, due its row from two weeks before it runs.
