@@ -18,7 +18,7 @@ import {
   scopeSplitLabel,
   tickedScopes,
 } from '../public/lib/districts.js';
-import { SEASON_FIRST_YEAR, seasonYearOk, seasonYears } from '../public/lib/indexes.js';
+import { SEASON_FIRST_YEAR, medalYearOk, medalYears, seasonYearOk, seasonYears } from '../public/lib/indexes.js';
 import {
   buildRoundGoesOn,
   cacheTtlFor,
@@ -43,6 +43,7 @@ import {
   medalTables,
   medalistBoxes,
   medalistsOpenAll,
+  meetChampionships,
   meetMedals,
   meetMedalsBody,
   recordSettled,
@@ -50,6 +51,8 @@ import {
   scopeMedalStarts,
   scopeResults,
   scopeTablesAddNothing,
+  seasonRecordKeep,
+  seasonRecordUnkept,
   warmSeasonMeets,
 } from '../public/lib/medals.js';
 import { displayRank, isFinalRound, officialRank } from '../public/lib/results.js';
@@ -1230,6 +1233,27 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
     ].map(([last, today]) => recordSettled(last, today)),
     [true, false, false, false],
   );
+  // A settled record is kept with no TTL, and one written before it settled is
+  // written again. (Break on purpose: give a settled record the TTL, or drop
+  // the `kept` test.)
+  const ttlS = 180 * 86400;
+  assert.deepEqual(seasonRecordKeep({ lastDay: '2026-09-10' }, '2026-09-16', ttlS), {
+    record: { lastDay: '2026-09-10' },
+    options: { expirationTtl: ttlS },
+  });
+  assert.deepEqual(seasonRecordKeep({ lastDay: '2026-08-10' }, '2026-09-16', ttlS), {
+    record: { lastDay: '2026-08-10', kept: true },
+    options: {},
+  });
+  assert.deepEqual(
+    [
+      [{ lastDay: '2026-08-10' }, true],
+      [{ lastDay: '2026-08-10', kept: true }, false],
+      [{ lastDay: '2026-09-10' }, false],
+      [null, false],
+    ].map(([r]) => seasonRecordUnkept(r, '2026-09-16')),
+    [true, false, false, false],
+  );
   // The cron warms each scope's meets of the year once, none still to come.
   // (Break on purpose: warm the whole index.)
   const indexRows = [
@@ -1241,7 +1265,7 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
     { id: 6, name: 'Seuracup III', date: '2026-10-01', organizationName: 'Demon Urheilijat' },
   ];
   assert.deepEqual(
-    warmSeasonMeets(indexRows, 2026, DEMO_DISTRICTS, '2026-09-16').map((m) => [m.id, m.kind]),
+    warmSeasonMeets(indexRows, [2026], DEMO_DISTRICTS, '2026-09-16').map((m) => [m.id, m.kind]),
     [
       ['1', undefined],
       ['5', 'osa'],
@@ -1249,7 +1273,22 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
     ],
     'the championships and cup meets that have run, oldest first, each once',
   );
-  assert.deepEqual(warmSeasonMeets(indexRows, 2025, DEMO_DISTRICTS, '2026-09-16'), [], 'another year');
+  assert.deepEqual(warmSeasonMeets(indexRows, [2025], DEMO_DISTRICTS, '2026-09-16'), [], 'another year');
+  // Every championship year is warmed, and the cup of the first year alone.
+  // (Break on purpose: warm the first year alone, or every year's cup.)
+  const lastYear = [
+    { id: 7, name: 'DemY:n pm-kisat', date: '2025-05-01', organizationName: 'Demon Urheilijat' },
+    { id: 8, name: 'Seuracup I', date: '2025-05-20', organizationName: 'Demon Urheilijat' },
+  ];
+  assert.deepEqual(
+    warmSeasonMeets([...indexRows, ...lastYear], [2026, 2025], DEMO_DISTRICTS, '2026-09-16').map((m) => m.id),
+    ['7', '1', '5', '2'],
+  );
+  // A meet index row is a championship when some scope's year lists it.
+  assert.deepEqual(
+    indexRows.map((m) => meetChampionships(m, DEMO_DISTRICTS).length > 0),
+    [true, true, false, true, false, false],
+  );
   // A build round stops at its count or its time budget, but always makes its
   // first build (docs/backend.md). (Break on purpose: drop the budget, or the
   // first build.)
@@ -1363,11 +1402,11 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
     ],
   );
   assert.deepEqual(
-    warmSeasonMeets(mestaruus, 2026, DEMO_DISTRICTS, '2026-09-16', listed).map((m) => m.id),
+    warmSeasonMeets(mestaruus, [2026], DEMO_DISTRICTS, '2026-09-16', listed).map((m) => m.id),
     ['30008'],
     'the cron warms it',
   );
-  assert.deepEqual(warmSeasonMeets(mestaruus, 2026, DEMO_DISTRICTS, '2026-09-16'), []);
+  assert.deepEqual(warmSeasonMeets(mestaruus, [2026], DEMO_DISTRICTS, '2026-09-16'), []);
   // A row that stands alone is a meet of its year.
   // (Break on purpose: drop `alone` from medalSeasonMeets.)
   const alone = { meets: [DEMO_ROAD_ROW] };
@@ -1386,7 +1425,7 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
     [false, []],
   );
   assert.deepEqual(
-    warmSeasonMeets([], 2026, DEMO_DISTRICTS, '2026-09-16', alone).map((m) => m.id),
+    warmSeasonMeets([], [2026], DEMO_DISTRICTS, '2026-09-16', alone).map((m) => m.id),
     ['maraton-2026'],
   );
   assert.deepEqual(medalSeasonMeets(index, 'maly', 2025, DEMO_DISTRICTS), []);
@@ -1529,6 +1568,11 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
   assert.deepEqual(seasonYears('2025-03-01'), [SEASON_FIRST_YEAR]);
   assert.ok(seasonYearOk('2025', '2026-09-15') && seasonYearOk(2026, '2026-09-15'));
   for (const y of ['2024', '2027', '26', '2026x', null]) assert.equal(seasonYearOk(y, '2026-09-15'), false, `${y}`);
+  // A championship's years run from the floor to this year.
+  assert.deepEqual(medalYears('2028-01-02'), [2028, 2027, 2026, SEASON_FIRST_YEAR]);
+  assert.deepEqual(medalYears('2025-03-01'), [SEASON_FIRST_YEAR]);
+  assert.ok(medalYearOk('2025', '2028-01-02'));
+  for (const y of ['2024', '2029', '26', null]) assert.equal(medalYearOk(y, '2028-01-02'), false, `${y}`);
   assert.deepEqual(tickedScopes(null, byCover.defaults), byCover.defaults);
   assert.deepEqual(
     tickedScopes(

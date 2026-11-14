@@ -34,6 +34,8 @@ import {
   meetIndexMeets,
   mergeAthleteIndex,
   mergeMeetIndex,
+  medalYearOk,
+  medalYears,
   mergeOrgIndex,
   orgIndexClubs,
   propertiesMeetRow,
@@ -45,8 +47,11 @@ import {
   medalSeasonMeetEmpty,
   medalSeasonMeets,
   medalSeasonRecord,
+  meetChampionships,
   meetMedalsBody,
   recordSettled,
+  seasonRecordKeep,
+  seasonRecordUnkept,
   scopeMedalStarts,
   warmSeasonMeets,
 } from './public/lib/medals.js';
@@ -684,17 +689,18 @@ function medalsKey(compId) {
   return `medals:v9:${compId}${elsewhereTag(elsewhere, compId)}`;
 }
 
-// Writes the medal body and its season record, which lasts as long as a
-// digest (medalSeasonRecord, lib/medals.js). The meet's `lastDay` sets the
-// body's TTL and the record's freshness (isStale). Returns the record.
+// Writes the medal body and its season record (medalSeasonRecord,
+// lib/medals.js). The record lasts as long as a digest, or for good once
+// settled (seasonRecordKeep). The meet's `lastDay` sets the body's TTL and the
+// record's freshness (isStale). Returns the record.
 async function putMedals(env, compId, body, stats, lastDay) {
   const builtAt = Date.now();
-  const record = medalSeasonRecord(body, builtAt, lastDay);
+  const { record, options } = seasonRecordKeep(medalSeasonRecord(body, builtAt, lastDay), todayIso(), DIGEST_KV_TTL_S);
   await Promise.all([
     env.ROSTER.put(medalsKey(compId), JSON.stringify({ builtAt, body, stats }), {
       expirationTtl: cacheTtlFor(lastDay, todayIso(), CACHE_TTLS),
     }),
-    env.ROSTER.put(medalSeasonKey(compId), JSON.stringify(record), { expirationTtl: DIGEST_KV_TTL_S }),
+    env.ROSTER.put(medalSeasonKey(compId), JSON.stringify(record), options),
   ]);
   return record;
 }
@@ -1232,6 +1238,10 @@ const MEETS_KEY = 'meets:v1';
 // "The meet index").
 const MEET_CRAWL_BUDGET = 400;
 
+// A championship stays in the meet index past its two seasons, so its year
+// still lists it (mergeMeetIndex).
+const keepChampionship = (m) => meetChampionships(m, districts, elsewhere).length > 0;
+
 // Crawls the meet index. The cron is the key's only writer, so the write
 // cannot race. The key has no TTL, as the merge prunes by season. An answer
 // other than a meet or a 404 ends the run (meetCrawlStops).
@@ -1241,7 +1251,7 @@ async function crawlMeets(env) {
   const res = await fetch(`${API}/competition`).catch(() => null);
   const listing = res?.ok ? await upstreamJson(res) : null;
   if (!listing) console.warn(`meets: listing fetch failed (${res?.status ?? 'network'})`);
-  const merged = mergeMeetIndex(stored, listingMeets(listing), { todayIso: todayIso() });
+  const merged = mergeMeetIndex(stored, listingMeets(listing), { todayIso: todayIso(), keepOld: keepChampionship });
   const ids = (listing || []).map((c) => Number(c.Id)).filter(Number.isFinite);
   const plan = meetCrawlPlan(merged.index, { top: ids.length ? Math.max(...ids) : null, budget: MEET_CRAWL_BUDGET });
 
@@ -1252,7 +1262,7 @@ async function crawlMeets(env) {
     answers.push({ id, status, props: r?.ok ? await r.json().catch(() => null) : null });
     if (meetCrawlStops(status)) break;
   }
-  const applied = meetCrawlApply(merged.index, plan, answers, { todayIso: todayIso() });
+  const applied = meetCrawlApply(merged.index, plan, answers, { todayIso: todayIso(), keepOld: keepChampionship });
   const { index } = applied;
   const stop = answers.find((a) => meetCrawlStops(a.status));
   console.log(
@@ -1568,7 +1578,7 @@ const SEASON_ROUND = { limit: 4, budgetMs: 12_000 };
 async function handleMedalSeason(scopeId, yearParam, env, request, url) {
   if (!meetScopes(districts).some((s) => s.id === scopeId))
     return new Response('Aluetta ei löytynyt.', { status: 404 });
-  if (!seasonYearOk(yearParam, todayIso())) return new Response('Virheellinen vuosi.', { status: 400 });
+  if (!medalYearOk(yearParam, todayIso())) return new Response('Virheellinen vuosi.', { status: 400 });
   const year = Number(yearParam);
   // Only build=1 builds, as in the scan, so repeated reads cost nothing.
   const wantBuild = url.searchParams.get('build') === '1';
@@ -1738,10 +1748,11 @@ async function handleCupSeason(yearParam, env, request, url) {
 
 // --- The cron's warming -------------------------------------------------
 //
-// Warms the championship and cup years' records over the year's meets that
-// have run, at SEASON_WARM_LIMIT builds and SEASON_WARM_READS reads a run.
-// A run starts its reads at an offset set by its 10-minute slot. A settled
-// record is never rebuilt, so a finished year goes quiet.
+// Warms the records of every championship year and this year's cup over the
+// meets that have run, at SEASON_WARM_LIMIT builds and SEASON_WARM_READS reads
+// a run. A run starts its reads at an offset set by its 10-minute slot. A
+// settled record is never rebuilt, so a finished year goes quiet once each of
+// its records is kept for good (seasonRecordUnkept).
 const SEASON_WARM_LIMIT = 2;
 const SEASON_WARM_READS = 60;
 
@@ -1749,11 +1760,12 @@ async function warmSeason(env) {
   const startMs = Date.now();
   const today = todayIso();
   const index = await env.ROSTER.get(MEETS_KEY, 'json');
-  const meets = warmSeasonMeets(meetIndexMeets(index), Number(today.slice(0, 4)), districts, today, elsewhere);
+  const meets = warmSeasonMeets(meetIndexMeets(index), medalYears(today), districts, today, elsewhere);
   if (!meets.length) return;
   const from = Math.floor(startMs / (10 * 60 * 1000)) % meets.length;
   let warmed = 0;
   let read = 0;
+  let kept = 0;
   // Copies a record's `closed` pair onto its index row, since a year lists its
   // meets off the index alone. A record without the field changes nothing.
   const pairs = [];
@@ -1766,6 +1778,11 @@ async function warmSeason(env) {
     read += 1;
     const record = await env.ROSTER.get(meet.kind ? cupSeasonKey(meet.id) : medalSeasonKey(meet.id), 'json');
     if (!meet.kind) closedOf(meet, record);
+    if (!meet.kind && seasonRecordUnkept(record, today)) {
+      const keep = seasonRecordKeep(record, today, DIGEST_KV_TTL_S);
+      await env.ROSTER.put(medalSeasonKey(meet.id), JSON.stringify(keep.record), keep.options);
+      kept += 1;
+    }
     if (record && (recordSettled(record.lastDay, today) || !isStale(record.builtAt, record.lastDay, Date.now())))
       continue;
     if (meet.kind) {
@@ -1779,9 +1796,7 @@ async function warmSeason(env) {
   }
   const joined = meetIndexClosed(index, pairs);
   if (joined.changed) await env.ROSTER.put(MEETS_KEY, JSON.stringify(joined.index));
-  console.log(
-    `season warm: ${warmed} built, ${read} read of ${meets.length} in ${today.slice(0, 4)}, ${Date.now() - startMs}ms`,
-  );
+  console.log(`season warm: ${warmed} built, ${kept} kept, ${read} read of ${meets.length}, ${Date.now() - startMs}ms`);
 }
 
 // --- Watches ----------------------------------------------

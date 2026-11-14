@@ -71,6 +71,17 @@ function seasonYearOk(year, todayIso) {
   return /^\d{4}$/.test(String(year)) && seasonYears(todayIso).includes(Number(year));
 }
 
+// Returns every year from SEASON_FIRST_YEAR to this one, newest first. A
+// championship's year is kept for good, so its page offers them all
+// (docs/backend.md, "A scope's year").
+function medalYears(todayIso) {
+  const year = Number(String(todayIso).slice(0, 4));
+  return Array.from({ length: Math.max(0, year - SEASON_FIRST_YEAR + 1) }, (_, i) => year - i);
+}
+function medalYearOk(year, todayIso) {
+  return /^\d{4}$/.test(String(year)) && medalYears(todayIso).includes(Number(year));
+}
+
 function meetIndexOf(index) {
   return index?.v === MEET_INDEX_VERSION ? index : { v: MEET_INDEX_VERSION, meets: [] };
 }
@@ -88,22 +99,27 @@ function propertiesMeetRow(props) {
 
 // Returns {index, changed} over meets {id, name, date, location,
 // organizationName}. A later value wins, and a nameless meet is skipped. The
-// index keeps only seasonYears' two seasons, old rows and new alike.
-function mergeMeetIndex(index, meets, { todayIso }) {
+// index keeps seasonYears' two seasons, old rows and new alike. Before them,
+// back to SEASON_FIRST_YEAR, it keeps the meets `keepOld` takes, which are the
+// championships (docs/backend.md, "The meet index").
+function mergeMeetIndex(index, meets, { todayIso, keepOld = () => false }) {
   const keep = seasonYears(todayIso);
-  const inSeason = (date) => keep.includes(Number(String(date).slice(0, 4)));
+  const kept = (m) => {
+    const year = Number(String(m.date).slice(0, 4));
+    return keep.includes(year) || (year >= SEASON_FIRST_YEAR && year < Math.min(...keep) && keepOld(m));
+  };
   const base = meetIndexOf(index);
   const rows = new Map();
   let changed = index?.v !== MEET_INDEX_VERSION;
   for (const r of base.meets || []) {
-    if (!inSeason(r[2])) {
+    if (!kept(meetOfRow(r))) {
       changed = true;
       continue;
     }
     rows.set(String(r[0]), r);
   }
   for (const m of meets || []) {
-    if (m?.id == null || !m.name || !inSeason(m.date)) continue;
+    if (m?.id == null || !m.name || !kept(m)) continue;
     const row = [String(m.id), m.name, m.date || '', m.location || '', m.organizationName || ''];
     const prev = rows.get(row[0]);
     if (prev && row.every((v, i) => v === prev[i])) continue;
@@ -143,14 +159,11 @@ function listingMeets(listing) {
 
 // Returns the index as objects, in the shape /api/meets serves.
 function meetIndexMeets(index) {
-  return meetIndexOf(index).meets.map(([id, name, date, location, organizationName, closed]) => ({
-    id,
-    name,
-    date,
-    location,
-    organizationName,
-    ...(closed ? { closed } : {}),
-  }));
+  return meetIndexOf(index).meets.map(meetOfRow);
+}
+
+function meetOfRow([id, name, date, location, organizationName, closed]) {
+  return { id, name, date, location, organizationName, ...(closed ? { closed } : {}) };
 }
 
 // Plans the ids the next run asks /properties about, from the last stop or
@@ -175,8 +188,9 @@ function meetCrawlStops(status) {
 
 // Returns the index after a run. `answers` are {id, status, props} in the
 // order asked, up to the one that stopped it. A meet is kept only once it is
-// over, as one ahead of the listing may be unpublished.
-function meetCrawlApply(index, plan, answers, { todayIso, floor = MEET_CRAWL_FLOOR }) {
+// over, as one ahead of the listing may be unpublished. `keepOld` is
+// mergeMeetIndex's.
+function meetCrawlApply(index, plan, answers, { todayIso, keepOld, floor = MEET_CRAWL_FLOOR }) {
   let base = meetIndexOf(index);
   if (plan.next == null) return { index: base, changed: false };
   const failed = answers.find((a) => meetCrawlStops(a.status));
@@ -187,7 +201,7 @@ function meetCrawlApply(index, plan, answers, { todayIso, floor = MEET_CRAWL_FLO
       return row && row.date && row.date < todayIso ? { ...row, id: a.id } : null;
     })
     .filter(Boolean);
-  base = mergeMeetIndex(base, found, { todayIso }).index;
+  base = mergeMeetIndex(base, found, { todayIso, keepOld }).index;
   const next = failed ? failed.id : plan.next;
   return { index: { ...base, crawl: next < floor ? { done: true } : { next } }, changed: true };
 }
@@ -299,6 +313,8 @@ export {
   digestSeasonPeople,
   isFollowableOrgId,
   listingMeets,
+  medalYearOk,
+  medalYears,
   meetCrawlApply,
   meetCrawlPlan,
   meetCrawlStops,
