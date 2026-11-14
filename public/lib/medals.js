@@ -600,17 +600,35 @@ function recordSettled(lastDay, todayIso) {
   return days != null && days > SETTLED_AFTER_DAYS;
 }
 
+// Returns a medal season record and its KV options. A settled record is kept
+// with no TTL and marked `kept`, as Tuloslista drops old meets and the record
+// may be the only copy of a year's medals (docs/backend.md, "A scope's year").
+// Any other lasts `ttlS`.
+function seasonRecordKeep(record, todayIso, ttlS) {
+  if (!recordSettled(record?.lastDay, todayIso)) return { record, options: { expirationTtl: ttlS } };
+  return { record: { ...record, kept: true }, options: {} };
+}
+
+// Says whether a stored record settled after it was written with a TTL, so
+// the cron writes it again to keep it (seasonRecordKeep).
+function seasonRecordUnkept(record, todayIso) {
+  return Boolean(record) && !record.kept && recordSettled(record.lastDay, todayIso);
+}
+
 // Returns the meets the cron warms (warmSeason, worker.js), which a scope's
-// year or the cup's year would show. Each comes once and oldest first, none is
-// later than today, and a cup meet's row carries its `kind`.
-function warmSeasonMeets(meets, year, districts, todayIso, elsewhere = null) {
+// year of `years` or the cup's year of the first would show. Each comes once
+// and oldest first, none is later than today, and a cup meet's row carries its
+// `kind`.
+function warmSeasonMeets(meets, years, districts, todayIso, elsewhere = null) {
   const byId = new Map();
-  for (const scope of meetScopes(districts)) {
-    for (const m of medalSeasonMeets(meets, scope.id, year, districts, elsewhere)) {
-      if (m.date <= todayIso && !byId.has(m.id)) byId.set(m.id, m);
+  for (const year of years) {
+    for (const scope of meetScopes(districts)) {
+      for (const m of medalSeasonMeets(meets, scope.id, year, districts, elsewhere)) {
+        if (m.date <= todayIso && !byId.has(m.id)) byId.set(m.id, m);
+      }
     }
   }
-  const cup = cupSeasonMeets(meets, year, districts).filter((m) => m.date <= todayIso);
+  const cup = cupSeasonMeets(meets, years[0], districts).filter((m) => m.date <= todayIso);
   return [...byId.values(), ...cup].sort((a, b) => a.date.localeCompare(b.date));
 }
 
@@ -827,6 +845,19 @@ function medalSeasonMeetHolds(meet, cover = null) {
   return cover.ages.some((a) => (!meet?.cover?.ages || meet.cover.ages.includes(a)) && !taken.includes(a));
 }
 
+// Returns the scopes a meet index row is the championship of (defaultScopes).
+// A meet with any is on a scope's year, and the meet index keeps it for good.
+function meetChampionships(m, districts, elsewhere = null) {
+  return defaultScopes(
+    m.name,
+    m.organizationName,
+    districts,
+    () => null,
+    () => m.closed ?? null,
+    Boolean(elsewhereRow(elsewhere, m.id)),
+  );
+}
+
 // Returns the meets defaultScopes gives a scope in a year by date, with `above`
 // a piiri's alue's cover. An index row has no abbreviations, so an organiser
 // matches by name alone. A row of `elsewhere` that stands alone counts too.
@@ -837,17 +868,7 @@ function medalSeasonMeets(meets, scopeId, year, districts, elsewhere = null) {
     .map((m) => ({ id: m.id, name: m.name, date: m.date }));
   return [...(meets || []), ...alone]
     .filter((m) => String(m?.date || '').startsWith(`${year}-`))
-    .map((m) => ({
-      m,
-      defaults: defaultScopes(
-        m.name,
-        m.organizationName,
-        districts,
-        () => null,
-        () => m.closed ?? null,
-        Boolean(elsewhereRow(elsewhere, m.id)),
-      ),
-    }))
+    .map((m) => ({ m, defaults: meetChampionships(m, districts, elsewhere) }))
     .map(({ m, defaults }) => ({
       m,
       scope: defaults.find((s) => s.id === scopeId),
@@ -889,6 +910,7 @@ export {
   medalTables,
   medalistBoxes,
   medalistsOpenAll,
+  meetChampionships,
   meetMedals,
   meetMedalsBody,
   recordSettled,
@@ -896,5 +918,7 @@ export {
   scopeMedalStarts,
   scopeResults,
   scopeTablesAddNothing,
+  seasonRecordKeep,
+  seasonRecordUnkept,
   warmSeasonMeets,
 };

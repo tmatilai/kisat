@@ -186,7 +186,8 @@ Two pages show a year of meets from the Worker's records (`docs/backend.md`, "A 
 - `/seuracup`: `renderCupSeason` (`app/cup.js`), from the section "The cup's year" of `lib/cup.js`.
   Tested in `test/cup.test.mjs`.
 - `/mestaruudet`: `renderMedalSeason` (`app/medals.js`), from the section "A championship's year" of
-  `lib/medals.js`. Tested in `test/medals.test.mjs`.
+  `lib/medals.js`. Tested in `test/medals.test.mjs`. It offers every year from `SEASON_FIRST_YEAR`
+  (`medalYears`), and `/seuracup` this year and last (`seasonYears`).
 
 Home's fill-in loop adds a year's missing meets (`docs/home.md`, "Filling the scan in").
 

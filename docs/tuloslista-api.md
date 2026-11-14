@@ -51,7 +51,8 @@ Traps:
   day or two ahead (2026-09), whatever `?from`, `?to`, `?year`, `?month`, `?date` or `?id` asks
   (2026-08).
 - **A meet answers by id outside the window.** It answers days before the listing names it, and long
-  after, with its schedule, `/properties` and every event's results (2026-09).
+  after, with its schedule, `/properties` and every event's results (2026-09). The championships of
+  `SEASON_FIRST_YEAR` still answered `/properties` (2026-11).
 - **A meet can vanish from `/competition/{id}` and `/properties` while its events' results still
   answer.** Both then answer 404 with an empty body, and the listing drops the meet too (2026-10).
 - **`MEET_CRAWL_FLOOR` is the lowest id that answers.** Ids above it are sparse, so one 404 means

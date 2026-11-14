@@ -109,6 +109,36 @@ test('meet index', () => {
     'and is pruned once the season is two back',
   );
   assert.equal(rolled.changed, true, 'so the pruned index is written');
+  // A meet `keepOld` takes stays past its two seasons, back to the floor, and
+  // keepOld sees the row as a meet. (Break on purpose: drop keepOld from the
+  // stored rows, and last season's championship goes in 2027.)
+  const championship = (m) => /mestaruus/.test(m.name);
+  const withPm = mergeMeetIndex(
+    lastSeason.index,
+    [{ id: 16501, name: 'Demon piirinmestaruus', date: '2025-02-01', organizationName: 'Demon Urheilijat' }],
+    { todayIso },
+  );
+  assert.deepEqual(
+    mergeMeetIndex(withPm.index, [], { todayIso: '2027-01-01', keepOld: championship }).index.meets.map((r) => r[0]),
+    ['20500', '20410', '16501'],
+    'a championship stays and an ordinary meet goes',
+  );
+  assert.equal(
+    mergeMeetIndex(first.index, [{ id: 16502, name: 'Demon aluemestaruus', date: '2025-06-01' }], {
+      todayIso: '2027-01-01',
+      keepOld: championship,
+    }).index.meets.some((r) => r[0] === '16502'),
+    true,
+    'a championship found late is indexed too',
+  );
+  assert.equal(
+    mergeMeetIndex(first.index, [{ id: 16400, name: 'Vanha mestaruus', date: '2024-12-30' }], {
+      todayIso: '2027-01-01',
+      keepOld: championship,
+    }).changed,
+    false,
+    'but nothing before the floor is kept',
+  );
   assert.deepEqual(
     meetIndexMeets({ v: MEET_INDEX_VERSION + 1, meets: [['1', 'Vanha', '', '', '']] }),
     [],
@@ -196,6 +226,15 @@ test('meet index', () => {
     { todayIso, floor: 20400 },
   );
   assert.equal(oldRun.index.meets.length, 2, 'the backfill adds no meet before the seasons');
+  // The crawl passes keepOld to the merge. (Break on purpose: drop it from
+  // meetCrawlApply, and the crawl prunes what the listing's merge kept.)
+  const keptRun = meetCrawlApply(
+    first.index,
+    plan,
+    [{ id: 20499, status: 200, props: props(20499, 'Testilän aluemestaruus', '2025-02-03T09:00:00+00:00') }],
+    { todayIso: '2027-01-01', floor: 20400, keepOld: () => true },
+  );
+  assert.ok(keptRun.index.meets.some((r) => r[0] === '20499'));
   assert.deepEqual(
     meetCrawlPlan(run.index, { top: 20500, budget: 2, floor: 20400 }).ids,
     [20496, 20495],

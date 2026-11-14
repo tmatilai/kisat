@@ -1,6 +1,6 @@
 import { dateRange, dateSortKey, isoToFiDay } from '../lib/dates.js';
 import { coverWords, coversStart, medalScope, meetScopes, scopeTree, tickedScopes } from '../lib/districts.js';
-import { seasonYearOk, seasonYears } from '../lib/indexes.js';
+import { medalYearOk, medalYears } from '../lib/indexes.js';
 import {
   clubMedalStarts,
   clubMedalists,
@@ -118,7 +118,7 @@ async function renderMedals(compId, ages = [], club = null) {
   const meetLine = el('div', { class: 'medals-meet' }, `${compName} · ${dateRange(days)}`);
   const year = days[0]?.slice(days[0].lastIndexOf('.') + 1);
   const seasonOf = (p) =>
-    !isDemoId(compId) && seasonYearOk(year, scanTodayIso())
+    !isDemoId(compId) && medalYearOk(year, scanTodayIso())
       ? el('a', { href: `${MEDAL_SEASON_PAGE_PATH}${seasonHash(p.id, Number(year), ages, pick)}` }, p.short)
       : p.short;
 
@@ -490,7 +490,7 @@ async function renderMedalSeason({ scopeId, year: wantedYear, ages, club }) {
   }
 
   const todayIso = scanTodayIso();
-  const year = wantedYear ?? seasonYears(todayIso)[0];
+  const year = wantedYear ?? medalYears(todayIso)[0];
   setScrollKey(`medalseason:${scope.id}:${year}`);
   setBack(MEDAL_SEASON_PAGE_PATH);
   titleEl.textContent = scope.kind === 'alue' ? scope.short : scope.name;
@@ -498,7 +498,7 @@ async function renderMedalSeason({ scopeId, year: wantedYear, ages, club }) {
   const state = viewStateFor(HOME_VIEW_KEY);
   const label = watchLabel(state.watchId);
   const bar = filterBar(HOME_VIEW_KEY, state, { label }, false);
-  const yearLinks = seasonYears(todayIso).map((y) => [
+  const yearLinks = medalYears(todayIso).map((y) => [
     y,
     el(
       'a',
@@ -512,7 +512,7 @@ async function renderMedalSeason({ scopeId, year: wantedYear, ages, club }) {
       yearLinks.map(([, a]) => a),
     ),
   );
-  if (!seasonYearOk(year, todayIso)) {
+  if (!medalYearOk(year, todayIso)) {
     appEl.replaceChildren(bar, el('div', { class: 'notice' }, `Vuoden ${year} mitaleita ei ole saatavilla.`));
     return;
   }

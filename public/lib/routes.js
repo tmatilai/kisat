@@ -299,8 +299,8 @@ function medalsPath(compId, ages = [], club = null) {
 }
 
 // Parses a year page's fragment, a scope id the view checks or a year alone for
-// the scopes' list. No year is this year, and the view refuses a year outside
-// seasonYears, as that needs today.
+// the scopes' list. No year is this year, and the view refuses a year it does
+// not offer, as that needs today.
 function parseSeasonHash(rawHash) {
   const none = { scopeId: null, year: null, ages: [], club: null };
   let hash;

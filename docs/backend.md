@@ -37,22 +37,22 @@ Rules:
 
 Every key is in `ROSTER` except the Watches.
 
-| key                                                     | written by                                           | life                                |
-| ------------------------------------------------------- | ---------------------------------------------------- | ----------------------------------- |
-| `meta:<id>`                                             | `loadMeetRow`                                        | a day                               |
-| `cal:v1`                                                | `loadCalendar`                                       | rebuilt after 15 min, kept an hour  |
-| `roster:<id>`                                           | `handleRoster`                                       | 5 min, a week once the meet is over |
-| `meet:<id>`, `cup:<id>`                                 | `putMeet`                                            | 60 s on a cup, else 300 s           |
-| `medals:v9:<id>[tag]`                                   | `putMedals`                                          | as the roster                       |
-| `digest:<id>`                                           | `cacheDigest`                                        | 180 days                            |
-| `medalseason:v4:<id>[tag]`                              | `putMedals`                                          | 180 days                            |
-| `cupseason:v2:<id>`                                     | `putMeet`, `buildCupSeason`                          | 180 days                            |
-| `results:v2:<id>:<event>[tag]`, `schedule:v1:<id>[tag]` | `putResults`                                         | 180 days                            |
-| `t4r:v7:<id>`                                           | `t4rPagesOf`                                         | 45 days                             |
-| `orgs:v1`                                               | `cacheOrgs`, only on a change                        | no TTL, never pruned                |
-| `athletes:v1`                                           | `cacheAthletes` only on a change, `backfillAthletes` | no TTL, two seasons (`seasonYears`) |
-| `meets:v1`                                              | the cron alone                                       | no TTL, two seasons (`seasonYears`) |
-| `watch:<id>` in `WATCHES`                               | the Watch handlers                                   | 180 days after the last write       |
+| key                                                     | written by                                           | life                                        |
+| ------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------- |
+| `meta:<id>`                                             | `loadMeetRow`                                        | a day                                       |
+| `cal:v1`                                                | `loadCalendar`                                       | rebuilt after 15 min, kept an hour          |
+| `roster:<id>`                                           | `handleRoster`                                       | 5 min, a week once the meet is over         |
+| `meet:<id>`, `cup:<id>`                                 | `putMeet`                                            | 60 s on a cup, else 300 s                   |
+| `medals:v9:<id>[tag]`                                   | `putMedals`                                          | as the roster                               |
+| `digest:<id>`                                           | `cacheDigest`                                        | 180 days                                    |
+| `medalseason:v4:<id>[tag]`                              | `putMedals`, `warmSeason`                            | 180 days, for good once settled             |
+| `cupseason:v2:<id>`                                     | `putMeet`, `buildCupSeason`                          | 180 days                                    |
+| `results:v2:<id>:<event>[tag]`, `schedule:v1:<id>[tag]` | `putResults`                                         | 180 days                                    |
+| `t4r:v7:<id>`                                           | `t4rPagesOf`                                         | 45 days                                     |
+| `orgs:v1`                                               | `cacheOrgs`, only on a change                        | no TTL, never pruned                        |
+| `athletes:v1`                                           | `cacheAthletes` only on a change, `backfillAthletes` | no TTL, two seasons (`seasonYears`)         |
+| `meets:v1`                                              | the cron alone                                       | no TTL, two seasons and older championships |
+| `watch:<id>` in `WATCHES`                               | the Watch handlers                                   | 180 days after the last write               |
 
 `[tag]` is `elsewhereTag`, which is empty for a meet that `elsewhere.json` does not list
 (`docs/elsewhere.md`, "Keeping elsewhere.json").
@@ -67,7 +67,8 @@ Every key is in `ROSTER` except the Watches.
 - **To rebuild the athlete index, raise `ATHLETE_INDEX_VERSION`.** The cron's backfill
   (`backfillAthletes`) then refills it from the stored digests.
 - **To change settled season records, raise their key's version.** A settled record is never built
-  again, so a change such as a club added to `districts.json` reaches it only under a new key.
+  again, so a change such as a club added to `districts.json` reaches it only under a new key. A new
+  key also loses every meet that no longer answers ("A scope's year").
 
 ## The document, and what a preview says
 
@@ -258,7 +259,8 @@ the digest's.
   meets.
 - `medalSeasonRecord` (`lib/medals.js`): a meet's record, which `putMedals` writes wherever it
   writes the medal body.
-- `warmSeason` (`worker.js`): the cron's builds of this year's records.
+- `warmSeason` (`worker.js`): the cron's builds of every year's records.
+- `medalYears` (`lib/indexes.js`): the years, from `SEASON_FIRST_YEAR` to this one.
 
 Rules:
 
@@ -270,6 +272,11 @@ Rules:
   (`meetIndexClosed`).
 - **A season record settles a month after its meet's last day** (`recordSettled`), and it never goes
   stale after that.
+- **A settled record is kept for good** (`seasonRecordKeep`), since it may be the only copy of its
+  meet's medals. A meet can stop answering (`docs/tuloslista-api.md`, "The listing"), and a record
+  of it cannot be built again. The cron writes a record that settled under a TTL again without one
+  (`seasonRecordUnkept`). So the key's version, the `elsewhereTag` of a past meet's row, and
+  `MEET_INDEX_VERSION` change only where losing such meets is meant.
 
 ### The cup's year
 
@@ -323,9 +330,14 @@ listing's month. `GET /api/meets` serves it (`meetIndexMeets`).
 - `crawlMeets` (`worker.js`): the crawl, which runs in the cron.
 - `mergeMeetIndex`, `meetCrawlPlan` and `meetCrawlApply` (`lib/indexes.js`): the merge and the
   crawl's steps.
+- `keepChampionship` (`worker.js`) and `meetChampionships` (`lib/medals.js`): the older meets the
+  index keeps.
 
-Rule:
+Rules:
 
+- **The index keeps two seasons (`seasonYears`), and the championships back to
+  `SEASON_FIRST_YEAR`.** A scope's year lists its meets off the index alone, so a championship that
+  left it would leave its year too.
 - **A run asks `/properties` about up to `MEET_CRAWL_BUDGET` ids, one at a time.** 400 took 23 s on
   a local `wrangler dev` (2026-09). That is well inside the cron's ten minutes and the Workers Paid
   plan's 10,000 subrequests a request (2026-09).
