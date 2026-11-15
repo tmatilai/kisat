@@ -76,10 +76,12 @@ function compareCategories(a, b) {
 
 // Returns a row's class age, 0 for yleinen, from a name that names a class, as
 // Age can be the group's (docs/tuloslista-api.md). Otherwise it is the filed
-// Age (filedStart).
+// Age (filedStart). A bare Mixed names no age, and its filed Age is the
+// class's, so reading it as yleinen puts a youth relay under the adults.
 function rowClassAge(row, schedule = null) {
   const parts = categoryParts(parseEventName(row?.EventName).sex);
-  return parts.bucket !== 4 ? parts.age : startAge(filedStart(row, schedule));
+  const named = parts.bucket !== 4 && !(parts.bucket === 2 && parts.sex === 2);
+  return named ? parts.age : startAge(filedStart(row, schedule));
 }
 
 // --- A round's status ---

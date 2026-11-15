@@ -1049,6 +1049,10 @@ test('class and discipline filter', () => {
     'a token that names no class leaves it to the filing',
   );
   assert.equal(rowClassAge({ EventName: 'M/N 4x100m aitaviesti', Age: '' }), null);
+  // (Break on purpose: drop the Mixed case from rowClassAge's `named`.)
+  assert.equal(rowClassAge({ EventName: 'Mixed 4x200m viesti', Age: '11' }), 11, 'a bare Mixed is filed by class');
+  assert.equal(rowClassAge({ EventName: 'Mixed 15 4x400m viesti', Age: '0' }), 15, 'a Mixed with an age names it');
+  assert.equal(rowClassAge({ EventName: 'M 4x100m viesti', Age: '15' }), 0, 'a bare M is yleinen');
   // A multi-event's leg is the discipline it is. (Break on purpose: drop
   // multiEventLeg from rowDiscipline.)
   assert.equal(
