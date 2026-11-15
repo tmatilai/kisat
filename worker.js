@@ -11,6 +11,7 @@ import {
   aloneEntries,
   athleteLicences,
   elsewhereLastDay,
+  elsewhereListsSm,
   elsewhereRow,
   elsewhereTag,
   graftPhase,
@@ -45,11 +46,14 @@ import {
   buildRoundGoesOn,
   cacheTtlFor,
   clubSeasonMeets,
+  isNotableMeet,
   medalSeasonMeetEmpty,
   medalSeasonMeets,
   medalSeasonRecord,
   meetChampionships,
   meetMedalsBody,
+  notableYear,
+  recordLacksOwn,
   recordSettled,
   seasonMeetBody,
   seasonRecordKeep,
@@ -84,6 +88,7 @@ import { WATCH_MAX_BODY_BYTES, normalizeWatchInput, watchTargets } from './publi
 import { DEMO_API, demoMeet, demoEvents, demoSchedule, demoResponse } from './public/demo.js';
 import districts from './public/data/districts.json';
 import elsewhere from './public/data/elsewhere.json';
+import notable from './public/data/notable.json';
 
 // A live meet's roster can gain a late entry, and a miss rebuilds it with a
 // subrequest per event (docs/backend.md, "The roster"). The TTL is a guess.
@@ -720,7 +725,7 @@ function meetNames(compId, props) {
   return {
     name: props?.Competition?.Name || '',
     organiser: props?.Competition?.Organization || '',
-    listed: Boolean(elsewhereRow(elsewhere, compId)),
+    listed: elsewhereListsSm(elsewhere, compId),
   };
 }
 
@@ -896,7 +901,7 @@ async function graftRace(env, compId, row, schedule, all, official) {
 // other site, once its last day is over (docs/elsewhere.md). Returns null
 // where the source gives nothing.
 async function aggregateAlone(env, row) {
-  const meet = { name: row.name, organiser: '', listed: true };
+  const meet = { name: row.name, organiser: '', listed: row.sm !== false };
   const stats = { eventsTotal: Object.keys(row.classes || {}).length, eventsFailed: 0, failedStatuses: {} };
   const lastDay = elsewhereLastDay(row);
   if (lastDay >= todayIso()) {
@@ -1240,9 +1245,9 @@ const MEETS_KEY = 'meets:v1';
 // "The meet index").
 const MEET_CRAWL_BUDGET = 400;
 
-// A championship stays in the meet index past its two seasons, so its year
-// still lists it (mergeMeetIndex).
-const keepChampionship = (m) => meetChampionships(m, districts, elsewhere).length > 0;
+// A championship or a notable meet stays in the meet index past its two
+// seasons, so its year still lists it (mergeMeetIndex).
+const keepChampionship = (m) => isNotableMeet(notable, m.id) || meetChampionships(m, districts, elsewhere).length > 0;
 
 // Crawls the meet index. The cron is the key's only writer, so the write
 // cannot race. The key has no TTL, as the merge prunes by season. An answer
@@ -1660,7 +1665,14 @@ async function handleMedalClub(orgId, env) {
   const today = todayIso();
   const asked = medalYears(today).map((year) => ({
     year,
-    scopes: scopes.map((s) => ({ id: s.id, meets: medalSeasonMeets(meets, s.id, year, districts, elsewhere) })),
+    scopes: [
+      ...scopes.map((s) => ({
+        id: s.id,
+        own: false,
+        meets: medalSeasonMeets(meets, s.id, year, districts, elsewhere),
+      })),
+      ...notableYear(notable, meets, year, elsewhere).map((n) => ({ id: n.id, own: true, meets: n.meets })),
+    ],
   }));
   const ids = [...new Set(asked.flatMap((y) => y.scopes.flatMap((s) => s.meets.map((m) => m.id))))];
   const found = await Promise.all(ids.map((id) => env.ROSTER.get(medalSeasonKey(id), 'json')));
@@ -1669,15 +1681,17 @@ async function handleMedalClub(orgId, env) {
   const stale = (r) => !!r && isStale(r.builtAt, r.lastDay, now) && !recordSettled(r.lastDay, today);
   const years = asked.map(({ year, scopes: seasons }) => ({
     year,
-    scopes: seasons.map(({ id, meets: ms }) => {
-      const kept = ms.filter((m) => !medalSeasonMeetEmpty(records.get(m.id)));
+    scopes: seasons.map(({ id, own, meets: ms }) => {
+      // docs/backend.md, "A club's years".
+      const recordOf = (m) => (own && recordLacksOwn(records.get(m.id)) ? null : records.get(m.id));
+      const kept = ms.filter((m) => !medalSeasonMeetEmpty(recordOf(m)));
       return {
         id,
         meets: clubSeasonMeets(
-          kept.map((m) => seasonMeetBody(m, records.get(m.id), id, stale(records.get(m.id)))),
+          kept.map((m) => seasonMeetBody(m, recordOf(m), own ? null : id, stale(recordOf(m)))),
           orgId,
         ),
-        pending: kept.filter((m) => !records.get(m.id)).map((m) => m.id),
+        pending: kept.filter((m) => !recordOf(m)).map((m) => m.id),
       };
     }),
   }));
@@ -1685,7 +1699,10 @@ async function handleMedalClub(orgId, env) {
   return new Response(
     JSON.stringify({
       club: { id: String(club.id), name: club.name },
-      scopes: scopes.map(({ id, kind, name, short }) => ({ id, kind, name, short })),
+      scopes: [
+        ...scopes.map(({ id, kind, name, short }) => ({ id, kind, name, short })),
+        ...(notable.meets || []).map(({ id, name }) => ({ id, kind: 'notable', name, short: null })),
+      ],
       years,
     }),
     {
@@ -1796,11 +1813,12 @@ async function handleCupSeason(yearParam, env, request, url) {
 
 // --- The cron's warming -------------------------------------------------
 //
-// Warms the records of every championship year and this year's cup over the
-// meets that have run, at SEASON_WARM_LIMIT builds and SEASON_WARM_READS reads
-// a run. A run starts its reads at an offset set by its 10-minute slot. A
-// settled record is never rebuilt, so a finished year goes quiet once each of
-// its records is kept for good (seasonRecordUnkept).
+// Warms the records of every championship year, the notable meets and this
+// year's cup over the meets that have run, at SEASON_WARM_LIMIT builds and
+// SEASON_WARM_READS reads a run. A run starts its reads at an offset set by its
+// 10-minute slot. A settled record is rebuilt only where a notable meet's lacks
+// the meet's own medals, so a finished year goes quiet once each of its records
+// is kept for good (seasonRecordUnkept).
 const SEASON_WARM_LIMIT = 2;
 const SEASON_WARM_READS = 60;
 
@@ -1808,7 +1826,7 @@ async function warmSeason(env) {
   const startMs = Date.now();
   const today = todayIso();
   const index = await env.ROSTER.get(MEETS_KEY, 'json');
-  const meets = warmSeasonMeets(meetIndexMeets(index), medalYears(today), districts, today, elsewhere);
+  const meets = warmSeasonMeets(meetIndexMeets(index), medalYears(today), districts, today, elsewhere, notable);
   if (!meets.length) return;
   const from = Math.floor(startMs / (10 * 60 * 1000)) % meets.length;
   let warmed = 0;
@@ -1831,7 +1849,12 @@ async function warmSeason(env) {
       await env.ROSTER.put(medalSeasonKey(meet.id), JSON.stringify(keep.record), keep.options);
       kept += 1;
     }
-    if (record && (recordSettled(record.lastDay, today) || !isStale(record.builtAt, record.lastDay, Date.now())))
+    const lacks = isNotableMeet(notable, meet.id) && recordLacksOwn(record);
+    if (
+      record &&
+      !lacks &&
+      (recordSettled(record.lastDay, today) || !isStale(record.builtAt, record.lastDay, Date.now()))
+    )
       continue;
     if (meet.kind) {
       if (await buildCupSeason(env, meet)) warmed += 1;

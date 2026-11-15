@@ -202,5 +202,9 @@ Rule:
   the page.
 - **A club's year counts as the scope's year does.** `clubYearTable` runs `medalSeasonTable` over
   the club's medals.
+- **A notable meet's year links to the meet's medal page.** Where the year has several meets, each
+  links by its classes (`ageRangeLabel`), such as `T/P 8–15`, youngest first. A year has a row where
+  the club entered one of its meets or one is not built yet, and a notable meet with no such year
+  has no table. A meet's record names every club with a result row (`names`).
 - **Every meet of a championship's year is a row that links to its medal table.** So a meet that
   `defaultScopes` reads wrongly is still seen.

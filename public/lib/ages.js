@@ -30,6 +30,16 @@ const girlsBoysAge = (age) => age > 0 && age <= 13;
 // One chip names an age class of both sexes, as "T/P 12", "N/M" or "N/M 50".
 const ageChipLabel = (age) => (age === 0 ? 'N/M' : `${girlsBoysAge(age) ? 'T/P' : 'N/M'} ${age}`);
 
+// One label names a range of age classes by its youngest's letters, as
+// "T/P 8–15". A range that reaches yleinen or the masters ends in "+".
+function ageRangeLabel(ages) {
+  const sorted = parseAges(ages);
+  if (!sorted.length) return '';
+  const [lo, hi] = [sorted[0], sorted.at(-1)];
+  const open = hi === 0 || hi >= MASTERS_MIN_AGE;
+  return `${ageChipLabel(lo)}${hi === lo ? '' : open ? '+' : `–${hi}`}`;
+}
+
 // The age chips' rows (ageChips, app/follow.js) are T/P, N/M with yleinen,
 // and the masters.
 function ageChipRows(classAges) {
@@ -42,4 +52,14 @@ function ageChipRows(classAges) {
   return rows.filter((r) => r.ages.length);
 }
 
-export { MASTERS_MIN_AGE, ageChipLabel, ageChipRows, ageOrder, agesSegment, girlsBoysAge, parseAges, startAge };
+export {
+  MASTERS_MIN_AGE,
+  ageChipLabel,
+  ageChipRows,
+  ageOrder,
+  ageRangeLabel,
+  agesSegment,
+  girlsBoysAge,
+  parseAges,
+  startAge,
+};

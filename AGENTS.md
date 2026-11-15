@@ -174,6 +174,7 @@ sentence. Lists, tables and colons are fine. A doc points into the code in a lis
   one.
 - `docs/districts.md`: medals per piiri, `districts.json`.
 - `docs/seuracup.md`: the club cup's series, `seuracup.json`.
+- `docs/notable.md`: the notable meets of a club's years, `notable.json`.
 - `docs/deployment.md`: the deploy, Workers Builds, a preview and its own data, the WAF rules, and a
   deployment of your own.
 - `docs/shims.md`: a shim and its date.

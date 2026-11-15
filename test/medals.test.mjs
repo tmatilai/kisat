@@ -28,6 +28,7 @@ import {
   clubYearAges,
   clubYearTable,
   followedRows,
+  isNotableMeet,
   medalAges,
   medalFor,
   medalPlaces,
@@ -49,6 +50,8 @@ import {
   meetChampionships,
   meetMedals,
   meetMedalsBody,
+  notableYear,
+  recordLacksOwn,
   recordSettled,
   restMedals,
   scopeMedalStarts,
@@ -73,6 +76,8 @@ import {
   demoSchedule,
 } from '../public/demo.js';
 import districts from '../public/data/districts.json' with { type: 'json' };
+import elsewhere from '../public/data/elsewhere.json' with { type: 'json' };
+import notable from '../public/data/notable.json' with { type: 'json' };
 import seuracup from '../public/data/seuracup.json' with { type: 'json' };
 
 // --- isFinalRound/medalFor/followedRows/medalistBoxes/medalTable: the
@@ -930,7 +935,19 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
     [null, ['demy', 'maly']],
     "the body's closed pair rides on the record",
   );
-  assert.deepEqual(Object.keys(record.starts[0]), ['start', 'scoped'], "the record keeps the scopes' medals alone");
+  assert.deepEqual(
+    Object.keys(record.starts[0]),
+    ['start', 'medals', 'scoped'],
+    "the record keeps the meet's own medals and the scopes'",
+  );
+  // An older record lacks the meet's own medals, so a notable meet's is built
+  // again. (Break on purpose: answer false always.)
+  assert.deepEqual([record, { starts: [{ start: {}, scoped: [] }] }, { starts: [] }, null].map(recordLacksOwn), [
+    false,
+    true,
+    false,
+    false,
+  ]);
   assert.deepEqual(record.athletes, body.athletes, "and its medalists, for a club's year");
   const cupSchedule = demoSchedule(DEMO_CUP_ID);
   const cupRecord = medalSeasonRecord(
@@ -1008,6 +1025,58 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
       },
     ],
   };
+  // A notable meet's year counts the meet's own medals, as its medal page does.
+  // (Break on purpose: project a notable meet to a scope.)
+  const ownBody = {
+    club: { id: '1' },
+    scopes: [{ id: 'avoimet', kind: 'notable' }],
+    years: [
+      {
+        year: 2026,
+        scopes: [
+          {
+            id: 'avoimet',
+            meets: clubSeasonMeets([seasonMeetBody({ id: DEMO_ID, date: '2026-06-06' }, record, null, false)], '1'),
+            pending: [],
+          },
+        ],
+      },
+    ],
+  };
+  const ownTable = clubYearTable(ownBody)[0].years[0];
+  const meetRow = body.table.find((c) => String(c.id) === '1');
+  assert.deepEqual(
+    [ownTable.medals, ownTable.total, ownTable.meets],
+    [meetRow.medals, meetRow.total, [{ id: DEMO_ID, date: '2026-06-06', ages: [11, 13, 15, 17, 19, 0] }]],
+  );
+  // A year's meets are the ones the club entered and the unbuilt ones. (Break
+  // on purpose: keep every meet in clubYearTable.)
+  const absentBody = {
+    club: { id: '999' },
+    scopes: ownBody.scopes,
+    years: [
+      {
+        year: 2026,
+        scopes: [
+          {
+            id: 'avoimet',
+            meets: clubSeasonMeets(
+              [
+                seasonMeetBody({ id: DEMO_ID, date: '2026-06-06' }, record, null, false),
+                seasonMeetBody({ id: 'x', date: '2026-07-01' }, null, null, false),
+              ],
+              '999',
+            ),
+            pending: ['x'],
+          },
+        ],
+      },
+    ],
+  };
+  assert.deepEqual(
+    clubYearTable(absentBody)[0].years[0].meets.map((m) => m.id),
+    ['x'],
+  );
   const clubLines = (cover) =>
     clubYearTable(clubBody, cover).map(({ scope, years }) => [
       scope.id,
@@ -1349,6 +1418,29 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
     warmSeasonMeets([...indexRows, ...lastYear], [2026, 2025], DEMO_DISTRICTS, '2026-09-16').map((m) => m.id),
     ['7', '1', '5', '2'],
   );
+  // A notable meet's index rows are warmed too.
+  // (Break on purpose: drop notable meets from warmSeasonMeets.)
+  const notableFile = { meets: [{ id: 'avoimet', name: 'Avoimet kisat', comps: [3, 9] }] };
+  assert.deepEqual(
+    warmSeasonMeets(indexRows, [2026], DEMO_DISTRICTS, '2026-09-16', null, notableFile).map((m) => m.id),
+    ['1', '5', '2', '3'],
+  );
+  assert.deepEqual(notableYear(notableFile, indexRows, 2026), [
+    { id: 'avoimet', name: 'Avoimet kisat', meets: [{ id: '3', name: 'Avoimet kisat', date: '2026-06-02' }] },
+  ]);
+  assert.deepEqual(notableYear(notableFile, indexRows, 2025)[0].meets, [], 'a year with no edition');
+  // A notable meet can be a row of elsewhere.json that stands alone. (Break on
+  // purpose: read the index alone.)
+  assert.deepEqual(
+    notableYear({ meets: [{ id: 'demo', name: 'Demon kisat', comps: ['demo-2025'] }] }, indexRows, 2025, {
+      meets: [{ id: 'demo-2025', name: 'Demon kisat', date: '2025-06-12' }],
+    })[0].meets,
+    [{ id: 'demo-2025', name: 'Demon kisat', date: '2025-06-12' }],
+  );
+  assert.deepEqual(
+    indexRows.map((m) => isNotableMeet(notableFile, m.id)),
+    [false, false, true, false, false, false],
+  );
   // A meet index row is a championship when some scope's year lists it.
   assert.deepEqual(
     indexRows.map((m) => meetChampionships(m, DEMO_DISTRICTS).length > 0),
@@ -1492,6 +1584,12 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
   assert.deepEqual(
     warmSeasonMeets([], [2026], DEMO_DISTRICTS, '2026-09-16', alone).map((m) => m.id),
     ['maraton-2026'],
+  );
+  // A row with `sm: false` is a notable meet's and no championship. (Break on
+  // purpose: read every row as an SM in elsewhereListsSm.)
+  assert.deepEqual(
+    medalSeasonMeets(index, 'sm', 2026, DEMO_DISTRICTS, { meets: [{ ...DEMO_ROAD_ROW, sm: false }] }).map((m) => m.id),
+    ['30007'],
   );
   assert.deepEqual(medalSeasonMeets(index, 'maly', 2025, DEMO_DISTRICTS), []);
   assert.deepEqual(medalSeasonMeets(null, 'demy', 2026, DEMO_DISTRICTS), []);
@@ -1993,5 +2091,26 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
     lines(split.slice(0, 1)),
     [['Rasmus Demoinen', null]],
     'a followed line outside the cover draws no disc',
+  );
+});
+
+// A notable meet's id names a table of a club's years beside the scopes', and
+// a meet counts in one entry alone. (Break on purpose: name an entry `sm`, list
+// a meet twice, or drop the row's `sm: false` from elsewhere.json.)
+test('notable.json: each meet once, under an id no scope takes', () => {
+  const ids = notable.meets.map((n) => n.id);
+  const comps = notable.meets.flatMap((n) => n.comps);
+  assert.equal(new Set(ids).size, ids.length);
+  const alone = new Set(elsewhere.meets.filter((m) => m.id != null && m.sm === false).map((m) => m.id));
+  assert.deepEqual(
+    comps.filter((c) => !Number.isInteger(c) && !alone.has(c)),
+    [],
+    "a Tuloslista meet's id, or the id of a row of elsewhere.json that stands alone with `sm: false`",
+  );
+  assert.equal(new Set(comps).size, comps.length);
+  const taken = new Set([...meetScopes(districts).map((s) => s.id), 'seura']);
+  assert.deepEqual(
+    ids.filter((id) => taken.has(id)),
+    [],
   );
 });

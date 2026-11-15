@@ -659,6 +659,13 @@ function officialUrl(row, compId) {
   return /^\d+$/.test(String(compId ?? '')) ? `${TULOSLISTA_BASE}/${compId}` : null;
 }
 
+// Says whether elsewhere.json lists a meet as a championship. A row with
+// `sm: false` is a notable meet's (docs/notable.md).
+function elsewhereListsSm(file, compId) {
+  const row = elsewhereRow(file, compId);
+  return Boolean(row) && row.sm !== false;
+}
+
 // Returns elsewhere.json's row for a meet. A {comp, t4r} row names the meet's
 // directory on the other site, and a {comp, ol, classes} row names its race
 // (olGraft). A row with an `id` stands alone (olAloneMeet, t4rAloneMeet).
@@ -728,6 +735,8 @@ function elsewhereProblems(file, districts) {
         problems.push(`row ${i + 1}: ${m?.id != null ? 'id is not "<word>-<year>"' : 'comp is not a meet id'}`);
       else if (seen.has(key)) problems.push(`row ${i + 1}: ${key} is listed twice`);
       seen.add(key);
+      if (m?.sm !== undefined && (m.id == null || m.sm !== false))
+        problems.push(`row ${i + 1}: ${m.id == null ? 'sm is on a row with comp' : 'sm is not false'}`);
       if (m?.id != null) {
         if (!String(m.name ?? '').trim()) problems.push(`row ${i + 1}: no name`);
         if (!String(m.location ?? '').trim()) problems.push(`row ${i + 1}: no location`);
@@ -880,6 +889,7 @@ export {
   elsewhereIsDue,
   elsewhereIsRace,
   elsewhereLastDay,
+  elsewhereListsSm,
   elsewhereProblems,
   elsewhereRecheck,
   elsewhereRow,

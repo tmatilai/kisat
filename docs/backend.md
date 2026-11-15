@@ -51,7 +51,7 @@ Every key is in `ROSTER` except the Watches.
 | `t4r:v8:<id>`                                           | `t4rPagesOf`                                         | 45 days                                     |
 | `orgs:v1`                                               | `cacheOrgs`, only on a change                        | no TTL, never pruned                        |
 | `athletes:v1`                                           | `cacheAthletes` only on a change, `backfillAthletes` | no TTL, two seasons (`seasonYears`)         |
-| `meets:v1`                                              | the cron alone                                       | no TTL, two seasons and older championships |
+| `meets:v1`                                              | the cron alone                                       | no TTL, two seasons and older ones it keeps |
 | `watch:<id>` in `WATCHES`                               | the Watch handlers                                   | 180 days after the last write               |
 
 `[tag]` is `elsewhereTag`, which is empty for a meet that `elsewhere.json` does not list
@@ -280,14 +280,18 @@ Rules:
 
 ### A club's years
 
-`GET /api/medalclub/:orgId` answers a club's medals in the championships of its scopes, over every
-year of `medalYears`. Its meets have the shape of a scope's year, with the club's medals alone:
+`GET /api/medalclub/:orgId` answers a club's medals in the championships of its scopes and at the
+notable meets (`docs/notable.md`), over every year of `medalYears`:
 
 ```
 {club: {id, name},
  scopes: [{id, kind, name, short}],
  years: [{year, scopes: [{id, meets, pending}]}]}
 ```
+
+A championship's `kind` is `maa`, `alue` or `piiri`, and a notable meet's is `notable`, with
+`short: null`. A championship's meets have the shape of a scope's year. A notable meet's meets carry
+the meet's own medals instead, and the meet's classes in `ages`. Both are cut to the club's medals.
 
 - `handleMedalClub` (`worker.js`): the response.
 - `clubScopes` (`lib/districts.js`): the country, and the club's piiri and its alue.
@@ -298,7 +302,9 @@ Rules:
 - **The club's piiri comes from its `NameShort` in `orgs:v1`.** A season record names a club by
   `Name` alone, so a club the index lacks answers 404.
 - **It reads the records and builds none.** A meet with no record is `pending`, and the scope's year
-  builds it.
+  or the cron builds it.
+- **A notable meet's record without the meet's own medals counts as none**, and the cron builds it
+  again (`recordLacksOwn`).
 
 ### The cup's year
 
@@ -352,14 +358,14 @@ listing's month. `GET /api/meets` serves it (`meetIndexMeets`).
 - `crawlMeets` (`worker.js`): the crawl, which runs in the cron.
 - `mergeMeetIndex`, `meetCrawlPlan` and `meetCrawlApply` (`lib/indexes.js`): the merge and the
   crawl's steps.
-- `keepChampionship` (`worker.js`) and `meetChampionships` (`lib/medals.js`): the older meets the
-  index keeps.
+- `keepChampionship` (`worker.js`), `meetChampionships` and `isNotableMeet` (`lib/medals.js`): the
+  older meets the index keeps.
 
 Rules:
 
-- **The index keeps two seasons (`seasonYears`), and the championships back to
-  `SEASON_FIRST_YEAR`.** A scope's year lists its meets off the index alone, so a championship that
-  left it would leave its year too.
+- **The index keeps two seasons (`seasonYears`), and the championships and notable meets back to
+  `SEASON_FIRST_YEAR`.** A year lists its meets off the index alone, so a meet that left it would
+  leave its year too.
 - **A run asks `/properties` about up to `MEET_CRAWL_BUDGET` ids, one at a time.** 400 took 23 s on
   a local `wrangler dev` (2026-09). That is well inside the cron's ten minutes and the Workers Paid
   plan's 10,000 subrequests a request (2026-09).

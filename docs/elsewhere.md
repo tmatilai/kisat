@@ -173,7 +173,7 @@ month from year to year, so check the calendar. A row has one of these shapes, a
 {comp: <meet id>, t4r: "<year>/<directory>"}
 {comp: <meet id>, ol: "<event>", classes: {"<event name>": <class id>}}
 {id: "<word>-<year>", was?: <meet id>, name, location, date, start: "<hh:mm:ss±hh:mm>", ol, classes}
-{id: "<word>-<year>", name, location, date, last, start, t4r}
+{id: "<word>-<year>", sm?: false, name, location, date, last, start, t4r}
 ```
 
 Rules:
@@ -186,6 +186,8 @@ Rules:
 - **A race's class starts at its own time.** `olSchedule` reads each class's `MassStartStr` from the
   race's event file, and falls back to the row's `start` where the file has none, as the page does
   while the Worker cannot answer. A cross-country meet's classes started apart (2026-10).
+- **A row with `sm: false` is no championship** (`elsewhereListsSm`). A notable meet's row has it
+  (`docs/notable.md`). A row with `comp` has no `sm`.
 - **`name` is the championship's name, not the race's.** It is the meet's title, and `defaultScopes`
   reads its words to narrow the classes that the national scope covers.
 - **`location` is the venue's town.** The front page prints it, since no listing gives it.

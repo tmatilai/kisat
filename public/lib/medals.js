@@ -14,7 +14,7 @@ import {
   scopeFor,
   startLine,
 } from './districts.js';
-import { elsewhereRow } from './elsewhere.js';
+import { elsewhereListsSm } from './elsewhere.js';
 import { isFollowableOrgId } from './indexes.js';
 import {
   followedKey,
@@ -616,16 +616,19 @@ function seasonRecordUnkept(record, todayIso) {
 }
 
 // Returns the meets the cron warms (warmSeason, worker.js), which a scope's
-// year of `years` or the cup's year of the first would show. Each comes once
-// and oldest first, none is later than today, and a cup meet's row carries its
-// `kind`.
-function warmSeasonMeets(meets, years, districts, todayIso, elsewhere = null) {
+// year of `years`, a notable meet's year or the cup's year of the first would
+// show. Each comes once and oldest first, none is later than today, and a cup
+// meet's row carries its `kind`.
+function warmSeasonMeets(meets, years, districts, todayIso, elsewhere = null, notable = null) {
   const byId = new Map();
   for (const year of years) {
     for (const scope of meetScopes(districts)) {
       for (const m of medalSeasonMeets(meets, scope.id, year, districts, elsewhere)) {
         if (m.date <= todayIso && !byId.has(m.id)) byId.set(m.id, m);
       }
+    }
+    for (const n of notableYear(notable, meets, year, elsewhere)) {
+      for (const m of n.meets) if (m.date <= todayIso && !byId.has(m.id)) byId.set(m.id, m);
     }
   }
   const cup = cupSeasonMeets(meets, years[0], districts).filter((m) => m.date <= todayIso);
@@ -641,14 +644,14 @@ function buildRoundGoesOn(built, elapsedMs, { limit, budgetMs }) {
 // --- A championship's year ---
 
 // Returns a meet's medal season record, stamped for the freshness rule. It
-// keeps each start's `scoped` medals, `names`, `athletes`, `closed` and
-// `unknown`.
+// keeps each start's own and `scoped` medals, `names`, `athletes`, `closed`
+// and `unknown`.
 function medalSeasonRecord(body, builtAt, lastDay) {
   return {
     builtAt,
     lastDay,
     closed: body?.closed ?? null,
-    starts: (body?.starts || []).map(({ start, scoped }) => ({ start, scoped })),
+    starts: (body?.starts || []).map(({ start, medals, scoped }) => ({ start, medals, scoped })),
     names: body?.names || [],
     athletes: body?.athletes || [],
     unknown: body?.unknown || [],
@@ -656,11 +659,15 @@ function medalSeasonRecord(body, builtAt, lastDay) {
 }
 
 // Returns a year's meet as /api/medalseason answers it, with its record's
-// medals projected to the scope. A meet with no record has null `starts`.
+// medals projected to the scope. With no scope, it has the meet's own medals
+// and `ages`, its classes' ages over every club. A meet with no record has
+// null `starts`.
 function seasonMeetBody(meet, record, scopeId, stale) {
+  const own = record && !scopeId ? ownMedalStarts(record) : null;
   return {
     ...meet,
-    starts: record ? scopeMedalStarts(record, scopeId) : null,
+    ...(own ? { ages: medalSeasonAges([{ starts: own }]) } : {}),
+    starts: record ? (own ?? scopeMedalStarts(record, scopeId)) : null,
     names: record?.names || [],
     athletes: record?.athletes || [],
     unknown: record?.unknown || [],
@@ -675,6 +682,16 @@ function scopeMedalStarts(record, scopeId, cover = null) {
     .filter((s) => coversStart(cover, s.start))
     .map((s) => ({ start: s.start, medals: s.scoped.find(([id]) => id === scopeId)?.[1] || [] }))
     .filter((s) => s.medals.length);
+}
+
+// Returns a record's [{start, medals}] of the meet's own places 1 to 3.
+function ownMedalStarts(record) {
+  return (record?.starts || []).filter((s) => s.medals?.length).map((s) => ({ start: s.start, medals: s.medals }));
+}
+
+// Says whether a record was built before it kept the meet's own medals.
+function recordLacksOwn(record) {
+  return Boolean(record) && (record.starts || []).some((s) => !s.medals);
 }
 
 // Says whether a year leaves the meet out. A meet built after its last day with
@@ -867,7 +884,7 @@ function meetChampionships(m, districts, elsewhere = null) {
     districts,
     () => null,
     () => m.closed ?? null,
-    Boolean(elsewhereRow(elsewhere, m.id)),
+    elsewhereListsSm(elsewhere, m.id),
   );
 }
 
@@ -921,8 +938,9 @@ function clubSeasonMeets(meets, clubId) {
 }
 
 // Returns a club's medals per scope and year under the chips' `cover`, as
-// [{scope, years: [{year, medals, total, pending}]}], where `pending` counts
-// the year's unbuilt meets.
+// [{scope, years: [{year, medals, total, pending, meets}]}], where `pending`
+// counts the year's unbuilt meets, and `meets` are the unbuilt ones and those
+// the club entered (docs/views.md, "The years").
 function clubYearTable(body, cover = null) {
   const id = String(body?.club?.id);
   return (body?.scopes || []).map((scope) => ({
@@ -930,9 +948,39 @@ function clubYearTable(body, cover = null) {
     years: (body.years || []).map(({ year, scopes }) => {
       const season = scopes.find((s) => s.id === scope.id);
       const row = medalSeasonTable(season?.meets, cover).find((c) => String(c.id) === id);
-      return { year, medals: row?.medals || [0, 0, 0], total: row?.total || 0, pending: season?.pending?.length || 0 };
+      return {
+        year,
+        medals: row?.medals || [0, 0, 0],
+        total: row?.total || 0,
+        pending: season?.pending?.length || 0,
+        meets: (season?.meets || [])
+          .filter((m) => m.starts == null || m.names.length)
+          .map(({ id, date, ages }) => ({ id, date, ages })),
+      };
     }),
   }));
+}
+
+// Returns each notable meet of notable.json with its index rows of a year, as
+// [{id, name, meets: [{id, name, date}]}]. A meet's year is its index row's,
+// or that of the row of `elsewhere` that stands alone under its id.
+function notableYear(notable, meets, year, elsewhere = null) {
+  const alone = (elsewhere?.meets || []).filter((m) => m.id != null);
+  const rows = new Map([...(meets || []), ...alone].map((m) => [String(m.id), m]));
+  return (notable?.meets || []).map((n) => ({
+    id: n.id,
+    name: n.name,
+    meets: n.comps
+      .map((c) => rows.get(String(c)))
+      .filter((m) => String(m?.date || '').startsWith(`${year}-`))
+      .map((m) => ({ id: String(m.id), name: m.name, date: m.date }))
+      .sort((a, b) => a.date.localeCompare(b.date)),
+  }));
+}
+
+// Says whether the meet index keeps a row for good as a notable meet's.
+function isNotableMeet(notable, id) {
+  return (notable?.meets || []).some((n) => n.comps.some((c) => String(c) === String(id)));
 }
 
 // Returns the age chips over all of a club's years (medalSeasonAges).
@@ -949,6 +997,7 @@ export {
   clubYearAges,
   clubYearTable,
   followedRows,
+  isNotableMeet,
   medalAges,
   medalFor,
   medalPlaces,
@@ -971,6 +1020,9 @@ export {
   meetChampionships,
   meetMedals,
   meetMedalsBody,
+  notableYear,
+  ownMedalStarts,
+  recordLacksOwn,
   recordSettled,
   restMedals,
   scopeMedalStarts,
