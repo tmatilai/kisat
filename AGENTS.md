@@ -62,7 +62,8 @@ Check at the level of the change, cheapest first.
 CI runs the first seven on every pull request and every push to `main`.
 
 One look at the real render is cheap, but measuring a layout is a probe's job. Before committing,
-run `make format`.
+run `make format`. Then read the diff's added comments and doc lines together. Cut a line that
+repeats another line or the code, and fix a reference to a name the change renamed.
 
 ## Words
 
@@ -127,7 +128,11 @@ sentence. Lists, tables and colons are fine. A doc points into the code in a lis
   says what breaks if the code changes. It gives no argument and no rejected alternative.
 - **No runtime data in a comment or doc.** Do not name a kenttä, a class, a club, a meet or a row of
   results. Nothing checks such a name, so it goes stale.
-- **Say a thing once, in one place.** A doc paragraph states the rule and where it is tested.
+- **Say a thing once, in one place.** A doc paragraph states the rule and where it is tested. A code
+  comment cites the doc's section, such as `(docs/backend.md, "A scope's year")`, and does not
+  restate the rule. Code that copies other code does not copy its comment.
+- **Short is not compressed.** A sentence keeps the nouns and verbs a stranger needs to parse it. A
+  longer plain sentence beats a short cryptic one.
 - **Written for a stranger.** The reader has no context and no way to ask. Nothing names a person, a
   machine, a path outside the repo, "the user" or the tool an agent used. An example uses the demo's
   clubs and athletes, or invented names in their style, never a real club or person.
