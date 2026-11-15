@@ -139,6 +139,7 @@ const MEET_INDEX = {
     ['testi-s1', 'Helsy:n pm-viestit', `${SEASON_YEAR}-08-01`, '', 'Demon Urheilijat'],
     ['testi-s2', 'Eteläisen alueen aluemestaruuskilpailut', STALE_DAY, '', 'Malliseura'],
     ['testi-s3', 'Helsy:n pm-maastot', `${SEASON_YEAR}-01-01`, '', 'Demon Urheilijat'],
+    ['testi-s4', 'Nuorten SM-testikisat', `${SEASON_YEAR}-07-01`, '', 'Malliseura'],
     ['testi-c1', 'Helsy:n Seuracup 9v lajit', `${SEASON_YEAR}-06-10`, '', 'Demon Urheilijat'],
     ['testi-c2', 'Seuracup I - Helsy, UudY', `${SEASON_YEAR}-06-02`, '', 'Demon Urheilijat'],
     ['democup', 'Helsy:n Seuracup II', `${SEASON_YEAR}-06-20`, '', 'Demon Urheilijat'],
@@ -255,6 +256,34 @@ seedKv('medalseason:v4:testi-s3', {
   lastDay: `${SEASON_YEAR}-01-01`,
   starts: [],
   names: [],
+  unknown: [],
+});
+// An SM where club 1 took silver, for its years (/api/medalclub).
+seedKv('medalseason:v4:testi-s4', {
+  builtAt: Date.now(),
+  lastDay: `${SEASON_YEAR}-07-01`,
+  starts: [
+    {
+      start: { EventName: 'P17 Kuula', Age: '17' },
+      scoped: [
+        [
+          'sm',
+          [
+            ['1', 2, 'a1'],
+            ['2', 1, 'a2'],
+          ],
+        ],
+      ],
+    },
+  ],
+  names: [
+    ['1', 'Demon Urheilijat'],
+    ['2', 'Malliseura'],
+  ],
+  athletes: [
+    ['a1', 'Aino Esimerkki', '111'],
+    ['a2', 'Eero Esimerkki', '222'],
+  ],
   unknown: [],
 });
 seedKv('medalseason:v4:testi-s2', {
@@ -972,7 +1001,7 @@ try {
   {
     const r = await api('/api/meets');
     assert.equal(r.status, 200);
-    assert.equal(r.headers.get('x-meets'), '10');
+    assert.equal(r.headers.get('x-meets'), '11');
     assert.equal(r.headers.get('x-meets-crawl'), '18000');
     assert.deepEqual(
       (await r.json()).meets.find((m) => m.id === '16500'),
@@ -1311,6 +1340,52 @@ try {
   }
   console.log('GET /api/cupseason/:year ok');
 
+  // --- GET /api/medalclub/:orgId: a club's medals in its scopes' years, off
+  // the stored records alone. ---
+  {
+    const r = await api('/api/medalclub/1');
+    assert.equal(r.status, 200);
+    assert.equal(r.headers.get('cache-control'), 'no-store');
+    const body = await r.json();
+    assert.deepEqual(body.club, { id: '1', name: 'Demon Urheilijat' });
+    // (Break on purpose: answer every scope.)
+    assert.deepEqual(
+      body.scopes.map((s) => s.id),
+      ['sm'],
+      'a club no piiri lists has the country alone',
+    );
+    assert.deepEqual(
+      body.years.map((y) => y.year),
+      Array.from({ length: Number(SEASON_YEAR) - 2024 }, (_, i) => Number(SEASON_YEAR) - i),
+      'every year from the first',
+    );
+    const sm = body.years[0].scopes[0];
+    // (Break on purpose: keep every club's medals.)
+    // The year's rows of elsewhere.json are SMs with no record here.
+    assert.deepEqual(
+      sm.meets.filter((m) => m.id === 'testi-s4').map((m) => [m.id, m.starts, m.names, m.athletes]),
+      [
+        [
+          'testi-s4',
+          [{ start: { EventName: 'P17 Kuula', Age: '17' }, medals: [['1', 2, 'a1']] }],
+          [['1', 'Demon Urheilijat']],
+          [['a1', 'Aino Esimerkki', '111']],
+        ],
+      ],
+      "the club's own medal, name and medalist",
+    );
+    assert.deepEqual(
+      sm.pending,
+      sm.meets.filter((m) => m.starts == null).map((m) => m.id),
+      'a meet with no record is pending',
+    );
+    assert.equal((await api('/api/medalclub/999')).status, 404, 'a club the index lacks');
+    assert.equal((await api('/api/medalclub/a%20b')).status, 400);
+    assert.equal((await api('/api/medalclub/1', { method: 'POST' })).status, 405);
+    assert.equal((await fetch(`${BASE}/api/medalclub/1`)).status, 403, 'the x-kisat-client gate covers this route too');
+  }
+  console.log('GET /api/medalclub/:orgId ok');
+
   // --- GET /api/medalseason/:scopeId/:year: the scope's meets off the seeded
   // index, each with its record projected to the scope. ---
   {
@@ -1617,6 +1692,7 @@ try {
       '/api/roster/demo',
       '/api/meet/demo',
       '/api/scan/abc',
+      '/api/medalclub/1',
       '/api/watch',
       `/api/results/${LISTED_COMP}`,
       `/api/results/${LISTED_COMP}/${LISTED_EVENT_ID}`,

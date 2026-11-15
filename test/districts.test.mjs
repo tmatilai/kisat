@@ -6,6 +6,7 @@ import { DEMO_DISTRICTS } from '../public/demo.js';
 import districts from '../public/data/districts.json' with { type: 'json' };
 import {
   closedPair,
+  clubScopes,
   coversStart,
   defaultScopes,
   districtProblems,
@@ -63,6 +64,16 @@ test("districts.json: the piiris' clubs, proof-reading itself", () => {
     districts.piirit.flatMap((p) => p.clubs).length,
     "the country over every piiri's clubs",
   );
+  // A club's scopes are the country and its piiri's alue and piiri, by
+  // abbreviation or by name. (Break on purpose: drop the alue, or match the
+  // abbreviation alone.)
+  const scopesOf = (org) => clubScopes(DEMO_DISTRICTS, org).map((s) => s.id);
+  assert.deepEqual(scopesOf({ NameShort: 'MalV', Name: '' }), ['sm', 'demolainen', 'maly']);
+  assert.deepEqual(scopesOf({ NameShort: '', Name: 'Demon Urheilijat ry' }), ['sm', 'demolainen', 'demy']);
+  assert.deepEqual(scopesOf({ NameShort: 'UlkV', Name: 'Ulkoseura' }), ['sm'], 'a club no piiri lists');
+  // No scope's id is the club page's word (parseClubYearsHash, lib/routes.js).
+  // (Break on purpose: name a piiri `seura`.)
+  assert.ok(!meetScopes(districts).some((s) => s.id === 'seura'));
   // (Break on purpose: an alue given the country's id.)
   {
     const d = broken();

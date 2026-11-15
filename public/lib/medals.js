@@ -655,6 +655,19 @@ function medalSeasonRecord(body, builtAt, lastDay) {
   };
 }
 
+// Returns a year's meet as /api/medalseason answers it, with its record's
+// medals projected to the scope. A meet with no record has null `starts`.
+function seasonMeetBody(meet, record, scopeId, stale) {
+  return {
+    ...meet,
+    starts: record ? scopeMedalStarts(record, scopeId) : null,
+    names: record?.names || [],
+    athletes: record?.athletes || [],
+    unknown: record?.unknown || [],
+    stale,
+  };
+}
+
 // Returns one scope's [{start, medals}] from a medal season record, over the
 // classes `cover` holds where the scope took a medal.
 function scopeMedalStarts(record, scopeId, cover = null) {
@@ -885,11 +898,56 @@ function medalSeasonMeets(meets, scopeId, year, districts, elsewhere = null) {
     .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id, 'en', { numeric: true }));
 }
 
+// --- A club's years ---
+
+// Returns a year's meets (seasonMeetBody's) with only the club's medals, name
+// and medalists. An unbuilt meet stays unbuilt.
+function clubSeasonMeets(meets, clubId) {
+  const id = String(clubId);
+  return (meets || []).map((m) => {
+    if (m.starts == null) return { ...m, names: [], athletes: [], unknown: [] };
+    const starts = m.starts
+      .map((s) => ({ ...s, medals: s.medals.filter(([c]) => c === id) }))
+      .filter((s) => s.medals.length);
+    const keys = new Set(starts.flatMap((s) => s.medals.map(([, , key]) => key)));
+    return {
+      ...m,
+      starts,
+      names: m.names.filter(([c]) => c === id),
+      athletes: m.athletes.filter(([key]) => keys.has(key)),
+      unknown: [],
+    };
+  });
+}
+
+// Returns a club's medals per scope and year under the chips' `cover`, as
+// [{scope, years: [{year, medals, total, pending}]}], where `pending` counts
+// the year's unbuilt meets.
+function clubYearTable(body, cover = null) {
+  const id = String(body?.club?.id);
+  return (body?.scopes || []).map((scope) => ({
+    scope,
+    years: (body.years || []).map(({ year, scopes }) => {
+      const season = scopes.find((s) => s.id === scope.id);
+      const row = medalSeasonTable(season?.meets, cover).find((c) => String(c.id) === id);
+      return { year, medals: row?.medals || [0, 0, 0], total: row?.total || 0, pending: season?.pending?.length || 0 };
+    }),
+  }));
+}
+
+// Returns the age chips over all of a club's years (medalSeasonAges).
+function clubYearAges(body) {
+  return medalSeasonAges((body?.years || []).flatMap((y) => y.scopes.flatMap((s) => s.meets)));
+}
+
 export {
   buildRoundGoesOn,
   cacheTtlFor,
   clubMedalStarts,
   clubMedalists,
+  clubSeasonMeets,
+  clubYearAges,
+  clubYearTable,
   followedRows,
   medalAges,
   medalFor,
@@ -918,6 +976,7 @@ export {
   scopeMedalStarts,
   scopeResults,
   scopeTablesAddNothing,
+  seasonMeetBody,
   seasonRecordKeep,
   seasonRecordUnkept,
   warmSeasonMeets,

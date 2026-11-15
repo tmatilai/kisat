@@ -24,6 +24,8 @@ The views:
   the hurdle and implement tables.
 - `/mestaruudet[#/[<scopeId>/]<year>[/<ages>][/s/<orgId>]]`: a scope's medals over a year
   (`docs/views.md`, "The years"). Without a scope, it lists the scopes.
+- `/mestaruudet#/seura/<orgId>[/<ages>]`: a club's medals per year in its scopes' championships
+  (`docs/views.md`, "The years").
 - `/seuracup[#/[<osakilpailut, finaalit or piiriId>/]<year>[/s/<orgId>]]`: the club cup's year.
   Without a tab, it opens the default tab.
 
