@@ -291,6 +291,8 @@ Traps:
   formula names no class (2026-09).
 - **One meet can spell a mixed series two ways**, with and without a space between `Mixed` and the
   age (2026-08).
+- **A mixed relay whose name has no age is filed under its class's `Age`.** One name can then run in
+  several classes of one meet (2026-11).
 - **A meet can name an event one way in its schedule and another in the event's document**, such as
   a boys' class written with M in one and P in the other (2026-09).
 - **`Athletes[].Id` identifies an entry, not a person.** A person entered individually and in a
