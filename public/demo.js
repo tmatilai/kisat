@@ -3961,9 +3961,11 @@ const DEMO_SM_PAGES = [
     ],
   ],
   ['Esiurheilija M Pituus', '', 'la/12:20', '1 2 3', ['1 Urho Esimerkki 5,12~+0,2 / 5,12~+0,2 X~+0,3 4,98~+0,1']],
+  // A final can be named Finaali, and its page can have a Maa column before
+  // the result (docs/elsewhere.md).
   [
     'N 100 m aj',
-    'Loppukilpailu',
+    'Finaali',
     'la/12:40',
     '',
     [
@@ -4083,16 +4085,18 @@ const demoSmSplit = (runner, i) => `${runner} ${DEMO_SM_SPLITS[i % DEMO_SM_SPLIT
 // columns, or last where there are none. A page without them has another
 // unheaded cell of digits and a comma, and only a cell of digits alone scores
 // (docs/elsewhere.md).
-const demoSmHeatHtml = ({ wind, heads, rows }, i) => {
+const demoSmHeatHtml = ({ wind, heads, rows }, i, country) => {
   const scored = rows.some((r) => r.points != null);
   const blank = '<th width="46px"></th>';
+  const maa = country ? '<th width="50px">Maa</th>' : '';
   return `<table><tr><td width="50%">Erä ${i + 1}</td><td width="25%">${wind ? `Tuuli: ${wind}` : ''}</td><td width="25%"></td></tr></table>
-<table class="tblRes"><thead><tr><th>Sija</th><th>Nimi / Seura</th><th>Tulos</th><th><!-- record --></th><th width="11px"></th>${scored ? blank : ''}${heads.map((h) => `<th width="37px">${h.join('<br>')}</th>`).join('')}${scored && !heads.length ? blank : ''}</tr></thead>
+<table class="tblRes"><thead><tr><th>Sija</th><th>Nimi / Seura</th>${maa}<th>Tulos</th><th><!-- record --></th><th width="11px"></th>${scored ? blank : ''}${heads.map((h) => `<th width="37px">${h.join('<br>')}</th>`).join('')}${scored && !heads.length ? blank : ''}</tr></thead>
 ${rows
   .map(
     (r) => `<tr>
   <td class="drr">${r.place}</td>
   <td class="dr">${r.name} <br>${r.club}</td>
+  ${country ? '<td class="drr"><img src="images/.png" width="27" height="16" align="center"><br></td>' : ''}
   <td class="drr"><b>${r.result}${r.wind ? `<br>${r.wind}` : ''}</b></td>
   <td class="dr"></td>
   <td class="dr">${r.qual}</td>
@@ -4105,7 +4109,7 @@ ${rows
 };
 const demoSmPageHtml = ({ event, round, heats }) => `<div id="header"><h1>${event}</h1></div>
 <table width="100%"><tr><td style="text-align: center"><h2>${round || ' '}</h2></td></tr></TABLE>
-${heats.map(demoSmHeatHtml).join('\n')}
+${heats.map((h, i) => demoSmHeatHtml(h, i, round === 'Finaali')).join('\n')}
 ${
   /\./.test(heats[0].rows[0].result)
     ? `<table class="tblRes"><caption>Väliajat</caption>

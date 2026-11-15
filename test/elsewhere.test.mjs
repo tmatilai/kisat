@@ -351,7 +351,7 @@ test("t4rGraft: an SM meet's results from another site on its entries", async ()
   // under the final's name. (Break on purpose: keep the meet's own name.)
   assert.deepEqual(
     graft.schedule['8.8.2026'].filter((r) => r.EventId === 's3').map((r) => [r.Name, r.BeginDateTimeWithTZ]),
-    [['Loppukilpailu', DEMO_SM_STARTS[2].ts]],
+    [['Finaali', DEMO_SM_STARTS[2].ts]],
     'a round the site has no page for leaves its name and its time to the one it has',
   );
   // (Break on purpose: drop t4rHeats' QRank and QResult.)

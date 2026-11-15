@@ -90,11 +90,13 @@ function t4rResultPage(html) {
   let columns = [];
   let blanks = [];
   let label = [];
+  let resultAt = 2;
   for (const tr of t4rAll(doc, 'tr')) {
     const cells = t4rCells(tr);
     if (cells.some((c) => c.tagName === 'th')) {
       const opens = t4rText(cells[0]) === 'Sija';
-      const after = opens ? cells.slice(3).map((c, i) => [t4rLines(c), i + 3]) : [];
+      if (opens) resultAt = t4rText(cells[2]) === 'Maa' ? 3 : 2;
+      const after = opens ? cells.slice(resultAt + 1).map((c, i) => [t4rLines(c), i + resultAt + 1]) : [];
       columns = after.filter(([head]) => head.length);
       blanks = after.filter(([head]) => !head.length).map(([, at]) => at);
       heat = opens ? { wind: t4rHeatWind(label), heads: columns.map(([head]) => head), rows: [] } : null;
@@ -105,11 +107,11 @@ function t4rResultPage(html) {
     const [name, club] = t4rLines(cells[1]);
     const team = heat?.rows.at(-1);
     if (team && !club && name && !t4rText(cells[0])) team.runners = t4rRunners(name);
-    if (!heat || cells.length < 3 || !club) {
+    if (!heat || cells.length <= resultAt || !club) {
       label = cells.map(t4rText);
       continue;
     }
-    const [result, wind] = t4rLines(cells[2]);
+    const [result, wind] = t4rLines(cells[resultAt]);
     const scored = blanks.map((at) => t4rText(cells[at])).filter((t) => /^\d+$/.test(t));
     heat.rows.push({
       place: t4rText(cells[0]),
@@ -119,7 +121,7 @@ function t4rResultPage(html) {
       wind: wind || null,
       qual:
         cells
-          .slice(3)
+          .slice(resultAt + 1)
           .map(t4rText)
           .find((t) => /^[Qq]$/.test(t)) || '',
       points: scored.length === 1 ? Number(scored[0]) : null,

@@ -48,7 +48,7 @@ Every key is in `ROSTER` except the Watches.
 | `medalseason:v4:<id>[tag]`                              | `putMedals`, `warmSeason`                            | 180 days, for good once settled             |
 | `cupseason:v2:<id>`                                     | `putMeet`, `buildCupSeason`                          | 180 days                                    |
 | `results:v2:<id>:<event>[tag]`, `schedule:v1:<id>[tag]` | `putResults`                                         | 180 days                                    |
-| `t4r:v7:<id>`                                           | `t4rPagesOf`                                         | 45 days                                     |
+| `t4r:v8:<id>`                                           | `t4rPagesOf`                                         | 45 days                                     |
 | `orgs:v1`                                               | `cacheOrgs`, only on a change                        | no TTL, never pruned                        |
 | `athletes:v1`                                           | `cacheAthletes` only on a change, `backfillAthletes` | no TTL, two seasons (`seasonYears`)         |
 | `meets:v1`                                              | the cron alone                                       | no TTL, two seasons and older championships |

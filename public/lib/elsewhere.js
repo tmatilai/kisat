@@ -31,7 +31,7 @@ const personNameKey = (s) =>
       .normalize('NFD')
       .replace(/([ao]\u0308|a\u030a)|\p{M}/giu, (m, kept) => kept || ''),
   );
-const T4R_FINAL_RE = /^(?:loppukilpailu)?$/iu;
+const T4R_FINAL_RE = /^(?:loppukilpailu|finaali)?$/iu;
 // A wheelchair race is in the meet but is not a championship event
 // (docs/elsewhere.md), so it gets no results and no medals.
 const T4R_NOT_SM_RE = /kelaus/iu;

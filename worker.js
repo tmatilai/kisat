@@ -733,7 +733,7 @@ const ELSEWHERE_USER_AGENT = 'kisat.matilainen.fi (+https://kisat.matilainen.fi/
 const T4R_KV_TTL_S = 45 * 24 * 60 * 60;
 
 function t4rPagesKey(compId) {
-  return `t4r:v7:${compId}`;
+  return `t4r:v8:${compId}`;
 }
 
 // Returns {schedule, events} for meetMedalsBody with the roots among the

@@ -31,7 +31,7 @@ whose results are on another site"), and the graft fills its rounds from the sit
   `showEvent('<n>-<round>-r.html')` and the start list `-sl.html`. The time is the start's and the
   site's only clock. The round is `Alkuerät`, `Karsinta`, `Välierät` or `Loppukilpailu`, or empty
   for an event with no qualifying round and for a multi-event. A result page's `<h2>` is the index
-  row's round (2026-09).
+  row's round (2026-09). A final can also be `Finaali` (2026-11).
 - **Event names differ from Tuloslista's** in spacing, in `aj` and `ej` for aidat and esteet, in a
   relay that has no `viesti`, and in `M` and `N` for a youth class's `P` and `T` (2026-09).
 - **The pages are labelled `ISO-8859-1`, which a browser reads as windows-1252.** They send an
@@ -45,7 +45,8 @@ whose results are on another site"), and the graft fills its rounds from the sit
   `<br>` there. The third cell is the result, with a comma for the decimal and a jump's wind after a
   `<br>`. A row with no result has an empty place and a word such as `DNF`. A relay team's row has
   the team where a person's name is, and the next row has an empty first cell and the team's runners
-  separated by commas (2026-09).
+  separated by commas (2026-09). A page can have a `Maa` column between the name and the result,
+  which makes the result the fourth cell (2026-11).
 - **The cells between the result and the attempts have empty headers.** They hold, in an order that
   differs between pages, the record mark, a reaction time, `Q` or `q` alone for a row that went
   through, and a multi-event leg's points as the one cell of digits alone (2026-09).
