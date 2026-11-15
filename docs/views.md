@@ -188,10 +188,19 @@ Two pages show a year of meets from the Worker's records (`docs/backend.md`, "A 
 - `/mestaruudet`: `renderMedalSeason` (`app/medals.js`), from the section "A championship's year" of
   `lib/medals.js`. Tested in `test/medals.test.mjs`. It offers every year from `SEASON_FIRST_YEAR`
   (`medalYears`), and `/seuracup` this year and last (`seasonYears`).
+- `/mestaruudet#/seura/<orgId>`: `renderMedalClub` (`app/medals.js`), from the section "A club's
+  years" of `lib/medals.js`. Tested in `test/medals.test.mjs`. It opens from `Vuositilastot` at the
+  top of `/mestaruudet`: the active list's clubs (`watchClubs`, `lib/watch.js`), or a search's
+  (`/api/search`).
 
 Home's fill-in loop adds a year's missing meets (`docs/home.md`, "Filling the scan in").
 
 Rule:
 
+- **A scope's year with a club in its address on arrival opens at the club's section, and goes back
+  to the club's years.** Otherwise it goes back to `/mestaruudet`, even after a club is picked on
+  the page.
+- **A club's year counts as the scope's year does.** `clubYearTable` runs `medalSeasonTable` over
+  the club's medals.
 - **Every meet of a championship's year is a row that links to its medal table.** So a meet that
   `defaultScopes` reads wrongly is still seen.

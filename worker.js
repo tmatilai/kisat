@@ -5,7 +5,7 @@ import { confirmSetting } from './public/lib/confirmation.js';
 import { cupBody, cupDetail, cupMode, cupSeasonMeets, cupSeasonRecord, cupSeasonRows } from './public/lib/cup.js';
 import { fiToIsoDay, isoDay, scheduleDays, shiftIsoDay } from './public/lib/dates.js';
 import { demoApiBody, demoSearchScope } from './public/lib/demo-api.js';
-import { meetScopes } from './public/lib/districts.js';
+import { clubScopes, meetScopes } from './public/lib/districts.js';
 import {
   T4R_BASE,
   aloneEntries,
@@ -44,15 +44,16 @@ import {
 import {
   buildRoundGoesOn,
   cacheTtlFor,
+  clubSeasonMeets,
   medalSeasonMeetEmpty,
   medalSeasonMeets,
   medalSeasonRecord,
   meetChampionships,
   meetMedalsBody,
   recordSettled,
+  seasonMeetBody,
   seasonRecordKeep,
   seasonRecordUnkept,
-  scopeMedalStarts,
   warmSeasonMeets,
 } from './public/lib/medals.js';
 import {
@@ -258,6 +259,7 @@ const API_ROUTES = [
     re: /^\/api\/medalseason\/([^/]+)\/([^/]+)$/,
     GET: (r, scope, year) => handleMedalSeason(scope, year, r.env, r.request, r.url),
   },
+  { re: /^\/api\/medalclub\/([^/]+)$/, GET: (r, orgId) => handleMedalClub(orgId, r.env) },
   { re: /^\/api\/cupseason\/([^/]+)$/, GET: (r, year) => handleCupSeason(year, r.env, r.request, r.url) },
   { re: /^\/api\/watch$/, POST: (r) => handleWatchCreate(r.env, r.request) },
   {
@@ -1623,14 +1625,7 @@ async function handleMedalSeason(scopeId, yearParam, env, request, url) {
   const body = {
     scope: scopeId,
     year,
-    meets: meets.map((m, i) => ({
-      ...m,
-      starts: records[i] ? scopeMedalStarts(records[i], scopeId) : null,
-      names: records[i]?.names || [],
-      athletes: records[i]?.athletes || [],
-      unknown: records[i]?.unknown || [],
-      stale: staleFlags[i],
-    })),
+    meets: meets.map((m, i) => seasonMeetBody(m, records[i], scopeId, staleFlags[i])),
     pending,
   };
   const staleCount = staleFlags.filter(Boolean).length;
@@ -1648,6 +1643,59 @@ async function handleMedalSeason(scopeId, yearParam, env, request, url) {
       'x-season-built': String(builtCount),
     },
   });
+}
+
+// A club id as parseClubYearsHash (lib/routes.js) reads it. A made club's id
+// has letters.
+const CLUB_ID_RE = /^[\p{L}\p{N}_-]{1,64}$/u;
+
+// GET /api/medalclub/:orgId (docs/backend.md, "A club's years").
+async function handleMedalClub(orgId, env) {
+  if (!CLUB_ID_RE.test(orgId)) return new Response('Virheellinen seura.', { status: 400 });
+  const [orgs, index] = await Promise.all([env.ROSTER.get(ORGS_KEY, 'json'), env.ROSTER.get(MEETS_KEY, 'json')]);
+  const club = orgIndexClubs(orgs).find((c) => String(c.id) === orgId);
+  if (!club) return new Response('Seuraa ei löytynyt.', { status: 404 });
+  const scopes = clubScopes(districts, { Name: club.name, NameShort: club.nameShort });
+  const meets = meetIndexMeets(index);
+  const today = todayIso();
+  const asked = medalYears(today).map((year) => ({
+    year,
+    scopes: scopes.map((s) => ({ id: s.id, meets: medalSeasonMeets(meets, s.id, year, districts, elsewhere) })),
+  }));
+  const ids = [...new Set(asked.flatMap((y) => y.scopes.flatMap((s) => s.meets.map((m) => m.id))))];
+  const found = await Promise.all(ids.map((id) => env.ROSTER.get(medalSeasonKey(id), 'json')));
+  const records = new Map(ids.map((id, i) => [id, found[i]]));
+  const now = Date.now();
+  const stale = (r) => !!r && isStale(r.builtAt, r.lastDay, now) && !recordSettled(r.lastDay, today);
+  const years = asked.map(({ year, scopes: seasons }) => ({
+    year,
+    scopes: seasons.map(({ id, meets: ms }) => {
+      const kept = ms.filter((m) => !medalSeasonMeetEmpty(records.get(m.id)));
+      return {
+        id,
+        meets: clubSeasonMeets(
+          kept.map((m) => seasonMeetBody(m, records.get(m.id), id, stale(records.get(m.id)))),
+          orgId,
+        ),
+        pending: kept.filter((m) => !records.get(m.id)).map((m) => m.id),
+      };
+    }),
+  }));
+  console.log(`medalclub ${orgId}: ${scopes.length} scopes, ${ids.length} meets read`);
+  return new Response(
+    JSON.stringify({
+      club: { id: String(club.id), name: club.name },
+      scopes: scopes.map(({ id, kind, name, short }) => ({ id, kind, name, short })),
+      years,
+    }),
+    {
+      headers: {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'no-store',
+        'x-content-type-options': 'nosniff',
+      },
+    },
+  );
 }
 
 // GET /api/cupseason/:year[?club=<orgId>][&watch=<watchId>][&build=1] answers

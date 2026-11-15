@@ -26,6 +26,7 @@ import {
   matchedEntries,
   normalizeWatchEntries,
   normalizeWatchInput,
+  watchClubs,
   watchConflictMerge,
   watchEntriesWith,
   watchEntryAthleteIds,
@@ -184,6 +185,26 @@ test('watchConflictMerge', () => {
   // "Demo".)
   assert.equal(watchConflictMerge(base, { ...fresh, label: 'Demot' }, 'Omat', [emma]).label, 'Omat');
   assert.equal(watchConflictMerge(base, { ...fresh, label: 'Demot' }, 'Demo', [emma]).label, 'Demot');
+});
+
+// --- watchClubs: a Watch's clubs, for the championships page ---
+
+test('watchClubs', () => {
+  // (Break on purpose: keep a disabled club, or a club twice.)
+  assert.deepEqual(
+    watchClubs([
+      { type: 'club', id: 1, name: 'Demon Urheilijat', enabled: true },
+      { type: 'athlete', id: '70000001', name: 'Emma Mittainen', enabled: true },
+      { type: 'club', id: '2', name: 'Malliseura', enabled: false },
+      { type: 'club', id: '1', name: 'Demon Urheilijat', enabled: true },
+      { type: 'club', id: '3', name: 'Testilän Kisa' },
+    ]),
+    [
+      { id: '1', name: 'Demon Urheilijat' },
+      { id: '3', name: 'Testilän Kisa' },
+    ],
+  );
+  assert.deepEqual(watchClubs(undefined), []);
 });
 
 // --- watchEntryAthleteIds/watchTargets/filterEventIds/watchGroups: a Watch's

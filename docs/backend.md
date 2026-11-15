@@ -278,6 +278,28 @@ Rules:
   (`seasonRecordUnkept`). So the key's version, the `elsewhereTag` of a past meet's row, and
   `MEET_INDEX_VERSION` change only where losing such meets is meant.
 
+### A club's years
+
+`GET /api/medalclub/:orgId` answers a club's medals in the championships of its scopes, over every
+year of `medalYears`. Its meets have the shape of a scope's year, with the club's medals alone:
+
+```
+{club: {id, name},
+ scopes: [{id, kind, name, short}],
+ years: [{year, scopes: [{id, meets, pending}]}]}
+```
+
+- `handleMedalClub` (`worker.js`): the response.
+- `clubScopes` (`lib/districts.js`): the country, and the club's piiri and its alue.
+- `clubSeasonMeets` (`lib/medals.js`): a year's meets cut to the club.
+
+Rules:
+
+- **The club's piiri comes from its `NameShort` in `orgs:v1`.** A season record names a club by
+  `Name` alone, so a club the index lacks answers 404.
+- **It reads the records and builds none.** A meet with no record is `pending`, and the scope's year
+  builds it.
+
 ### The cup's year
 
 `GET /api/cupseason/:year[?club=<orgId>][&watch=<watchId>][&build=1]` has the same layers over every

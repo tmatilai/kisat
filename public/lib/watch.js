@@ -98,6 +98,15 @@ function watchEntryAthleteIds(entry, roster) {
 // athlete an entry covers. A relay matches on namedAthleteIds, the athletes
 // followed by name, or on clubIds, as a followed club reaches a relay only
 // through the team's club (docs/tuloslista-api.md). licences need no roster.
+// Returns a Watch's clubs as [{id, name}] in the list's order, each once. A
+// disabled entry is left out, as watchTargets leaves it out.
+function watchClubs(entries) {
+  const seen = new Set();
+  return (entries || [])
+    .filter((e) => e?.type === 'club' && e.enabled !== false && !seen.has(String(e.id)) && seen.add(String(e.id)))
+    .map((e) => ({ id: String(e.id), name: e.name || '' }));
+}
+
 function watchTargets(entries, roster) {
   const athleteIds = new Set();
   const namedAthleteIds = new Set();
@@ -247,6 +256,7 @@ export {
   matchedEntries,
   normalizeWatchEntries,
   normalizeWatchInput,
+  watchClubs,
   watchConflictMerge,
   watchEntriesWith,
   watchEntryAthleteIds,

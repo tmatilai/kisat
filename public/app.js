@@ -76,7 +76,8 @@ const RENDERS = {
   implementTable: (m, r) => m.renderImplementTable(r),
   laps: (m, r) => m.renderLaps(r.compId, r.key),
   measure: (m) => m.renderMeasure(),
-  medalSeason: (m, r) => m.renderMedalSeason(r),
+  medalClub: (m, r) => m.renderMedalClub(r),
+  medalSeason: (m, r, isRefresh) => m.renderMedalSeason(r, isRefresh),
   medals: (m, r) => m.renderMedals(r.compId, r.ages, r.club),
   pairLink: (m, r) => m.activatePairLink(r.pairs),
   venueLink: (m, r) => m.activateVenueLink(r.compId, r.venueId),
@@ -129,6 +130,7 @@ async function renderRoute(isRefresh = false) {
       route.view === 'cup' ||
       route.view === 'medals' ||
       route.view === 'medalSeason' ||
+      route.view === 'medalClub' ||
       route.view === 'cupSeason',
   );
   if (!isRefresh) {

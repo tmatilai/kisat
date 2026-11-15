@@ -175,7 +175,10 @@ function parseRoute(pathname, hash = '') {
     const { tab, ...rest } = parseTablePageHash(hash);
     return { view: TABLE_TAB_VIEWS[tab], ...rest };
   }
-  if (path === MEDAL_SEASON_PAGE_PATH) return { view: 'medalSeason', ...parseSeasonHash(hash) };
+  if (path === MEDAL_SEASON_PAGE_PATH) {
+    const club = parseClubYearsHash(hash);
+    return club ? { view: 'medalClub', ...club } : { view: 'medalSeason', ...parseSeasonHash(hash) };
+  }
   // The finals' tab has no club, and no scope leaves the tab to cupDefaultTab.
   if (path === CUP_SEASON_PAGE_PATH) {
     const { scopeId, year, club } = parseSeasonHash(hash);
@@ -230,7 +233,16 @@ function parseLinkHash(rawHash, compId = null) {
   return { view: 'home' };
 }
 
-const KISAT_ONLY_VIEWS = ['watchLink', 'pairLink', 'athleteLink', 'clubLink', 'medals', 'medalSeason', 'cupSeason'];
+const KISAT_ONLY_VIEWS = [
+  'watchLink',
+  'pairLink',
+  'athleteLink',
+  'clubLink',
+  'medals',
+  'medalSeason',
+  'medalClub',
+  'cupSeason',
+];
 const JUOKSUT_ONLY_VIEWS = ['laps', 'venueLink', 'hurdleSheet'];
 
 // Returns the one mode a route renders in, or null where both modes render it.
@@ -316,6 +328,23 @@ function parseSeasonHash(rawHash) {
   return { scopeId: m[1] || null, year: m[2] ? Number(m[2]) : null, ages: parseAges(m[3]), club: m[4] || null };
 }
 
+// Parses a club's years' fragment, `#/seura/<club>[/<ages>]`, or returns null.
+// parseRoute reads it before parseSeasonHash, so no scope's id may be `seura`.
+function parseClubYearsHash(rawHash) {
+  let hash;
+  try {
+    hash = decodeURIComponent(String(rawHash ?? '').replace(/^#/, ''));
+  } catch {
+    return null;
+  }
+  const m = hash.match(/^\/?seura\/([\p{L}\p{N}_-]+)(?:\/([\d,]+))?\/?$/u);
+  return m ? { club: m[1], ages: parseAges(m[2]) } : null;
+}
+
+function clubYearsHash(club, ages = []) {
+  return `#/${['seura', club, agesSegment(ages)].filter(Boolean).join('/')}`;
+}
+
 function seasonHash(scopeId, year = null, ages = [], club = null) {
   if (!scopeId) return `#/${year || ''}`;
   return `#/${[scopeId, year, agesSegment(ages), club ? `s/${club}` : ''].filter(Boolean).join('/')}`;
@@ -351,6 +380,7 @@ const VIEW_MODULES = {
   implementTable: 'tables',
   laps: 'laps',
   measure: 'measure',
+  medalClub: 'medals',
   medalSeason: 'medals',
   medals: 'medals',
   pairLink: 'follow',
@@ -597,6 +627,7 @@ export {
   TABLE_TAB_VIEWS,
   VIEW_MODULES,
   anchorMoved,
+  clubYearsHash,
   compViewMode,
   compViewSetMode,
   compViewState,
@@ -615,6 +646,7 @@ export {
   legacyRoutePath,
   medalsPath,
   menuAnchorPos,
+  parseClubYearsHash,
   parseLinkHash,
   parseRoute,
   parseSeasonHash,

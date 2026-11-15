@@ -126,6 +126,16 @@ function meetScopes(districts) {
   return districtScopes.get(districts);
 }
 
+// Returns the scopes whose championships give a club its medals: the country,
+// and the alue and piiri of the piiri that lists it (inScope). `org` has the
+// API's `Name` and `NameShort`.
+function clubScopes(districts, org) {
+  const scopes = meetScopes(districts);
+  const piiri = scopes.find((s) => s.kind === 'piiri' && inScope(s, org));
+  const alue = (districts?.piirit || []).find((p) => p.id === piiri?.id)?.alue;
+  return scopes.filter((s) => s.kind === 'maa' || s.id === piiri?.id || s.id === alue);
+}
+
 // Returns the scope of `ticked` ([{id, cover}]) a row is ranked within, or
 // null. It is the first in meetScopes' order whose cover holds the start and
 // that holds the club, so an alue's cover leaves the rest to its piiri.
@@ -557,6 +567,7 @@ export {
   SM_WORD_RE,
   closedPair,
   clubNameKey,
+  clubScopes,
   coverOfTicks,
   coverTicks,
   coverWords,

@@ -24,6 +24,7 @@ import {
   TABLE_PAGE_PATH,
   TABLE_TAB_VIEWS,
   anchorMoved,
+  clubYearsHash,
   compViewMode,
   compViewSetMode,
   compViewState,
@@ -42,6 +43,7 @@ import {
   legacyRoutePath,
   medalsPath,
   menuAnchorPos,
+  parseClubYearsHash,
   parseLinkHash,
   parseRoute,
   parseSeasonHash,
@@ -195,6 +197,16 @@ test('parseRoute', () => {
     club: 'ol-mäkimallinkisa',
   });
   assert.equal(routeOf(`/mestaruudet${seasonHash('sm', 2026, [], 'ol-mäkimallinkisa')}`).club, 'ol-mäkimallinkisa');
+  // A club's years: `seura` and the club, then the ages. (Break on purpose:
+  // parse the season's fragment first, and `seura` reads as a scope.)
+  assert.deepEqual(routeOf(`/mestaruudet${clubYearsHash('ol-mäkimallinkisa', [15, 17])}`), {
+    view: 'medalClub',
+    club: 'ol-mäkimallinkisa',
+    ages: [15, 17],
+  });
+  assert.deepEqual(routeOf('/mestaruudet#/seura/123'), { view: 'medalClub', club: '123', ages: [] });
+  assert.equal(parseClubYearsHash('#/seura'), null, 'no club is the scopes');
+  assert.equal(parseClubYearsHash('#/seura/1/2026/13'), null);
   // The kenttä link is written by hand, so its shape is pinned here
   // (docs/venues.md).
   assert.deepEqual(parseRoute('/c/demo/k/demola-mallikentta'), {

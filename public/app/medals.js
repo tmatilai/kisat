@@ -4,6 +4,8 @@ import { medalYearOk, medalYears } from '../lib/indexes.js';
 import {
   clubMedalStarts,
   clubMedalists,
+  clubYearAges,
+  clubYearTable,
   followedRows,
   medalAges,
   medalPlaces,
@@ -20,9 +22,17 @@ import {
   restMedals,
 } from '../lib/medals.js';
 import { allocMark, relayLegs } from '../lib/results.js';
-import { MEDAL_SEASON_PAGE_PATH, MEDAL_SEASON_PAGE_TITLE, isDemoId, medalsPath, seasonHash } from '../lib/routes.js';
+import {
+  MEDAL_SEASON_PAGE_PATH,
+  MEDAL_SEASON_PAGE_TITLE,
+  clubYearsHash,
+  isDemoId,
+  medalsPath,
+  seasonHash,
+} from '../lib/routes.js';
 import { reconcileStatuses, scheduleStatuses } from '../lib/schedule.js';
-import { filterEventIds, watchTargets } from '../lib/watch.js';
+import { SEARCH_MIN_CHARS } from '../lib/search.js';
+import { filterEventIds, watchClubs, watchTargets } from '../lib/watch.js';
 import {
   HOME_VIEW_KEY,
   fetchCompProps,
@@ -54,6 +64,8 @@ import {
   renderSeq,
   replaceAddress,
   scanTodayIso,
+  scrollKey,
+  scrollPositions,
   segControl,
   setBack,
   setHelp,
@@ -459,8 +471,12 @@ function medalSeasonMeetEl(meet, box, href, open, onToggle) {
 
 const SCOPE_CHAMPIONSHIP = { maa: 'Suomenmestaruus', alue: 'Aluemestaruus', piiri: 'Piirinmestaruus' };
 
+// A scope's year's back target, and whether the next render keeps it.
+let seasonBack = null;
+let keepSeasonBack = false;
+
 // Lists the scopes when none is named, and otherwise draws one scope's year.
-async function renderMedalSeason({ scopeId, year: wantedYear, ages, club }) {
+async function renderMedalSeason({ scopeId, year: wantedYear, ages, club }, isRefresh = false) {
   const seq = renderSeq;
   setHelp(null);
   const districts = await loadDistricts(null);
@@ -477,7 +493,65 @@ async function renderMedalSeason({ scopeId, year: wantedYear, ages, club }) {
         { class: s.kind === 'piiri' ? 'row scope-piiri' : 'row', href: seasonHash(s.id) },
         el('div', { class: 'row-main' }, el('div', { class: 'row-title' }, scopeTitle(s))),
       );
+    const state = viewStateFor(HOME_VIEW_KEY);
+    const bar = filterBar(HOME_VIEW_KEY, state, { label: watchLabel(state.watchId) }, false);
+    const watch = state.watchId ? await loadActiveWatch(state.watchId) : null;
+    if (seq !== renderSeq) return;
+    const followed = watchClubs(watch?.entries);
+    const clubsEl = el('div', {});
+    const clubRow = (c) => {
+      clubNames.set(String(c.id), c.name);
+      return el(
+        'a',
+        { class: 'row', href: clubYearsHash(c.id) },
+        el(
+          'div',
+          { class: 'row-main' },
+          el(
+            'div',
+            { class: 'row-title' },
+            c.name,
+            c.nameShort ? [' ', el('span', { class: 'scope-short' }, c.nameShort)] : null,
+          ),
+        ),
+      );
+    };
+    const paintClubs = (found) => {
+      const rows = found ?? followed;
+      clubsEl.replaceChildren(
+        rows.length
+          ? el('div', { class: 'list' }, rows.map(clubRow))
+          : found
+            ? el('div', { class: 'notice' }, 'Ei osumia.')
+            : '',
+      );
+    };
+    // An answer to a query the reader has already typed past is dropped.
+    let asked = 0;
+    const search = el('input', {
+      class: 'search',
+      type: 'search',
+      placeholder: 'Hae seuraa…',
+      oninput: async () => {
+        const q = search.value.trim();
+        const mine = ++asked;
+        if (q.length < SEARCH_MIN_CHARS) {
+          paintClubs(null);
+          return;
+        }
+        const answer = await fetchJson(`/api/search?q=${encodeURIComponent(q)}`).catch(() => null);
+        if (mine !== asked) return;
+        if (answer) paintClubs(answer.clubs || []);
+        else clubsEl.replaceChildren(el('div', { class: 'notice error' }, 'Haku epäonnistui.'));
+      },
+    });
+    paintClubs(null);
     appEl.replaceChildren(
+      bar,
+      el('h2', {}, 'Vuositilastot'),
+      search,
+      clubsEl,
+      el('h2', {}, 'Mestaruudet'),
       districts
         ? el(
             'div',
@@ -491,8 +565,13 @@ async function renderMedalSeason({ scopeId, year: wantedYear, ages, club }) {
 
   const todayIso = scanTodayIso();
   const year = wantedYear ?? medalYears(todayIso)[0];
-  setScrollKey(`medalseason:${scope.id}:${year}`);
-  setBack(MEDAL_SEASON_PAGE_PATH);
+  setScrollKey(`medalseason:${scope.id}:${year}:${club ?? ''}`);
+  // The back target is set on arrival (docs/views.md, "The years"). A redraw
+  // or a year tab keeps it.
+  if (!(isRefresh || keepSeasonBack) || !seasonBack)
+    seasonBack = club ? `${MEDAL_SEASON_PAGE_PATH}${clubYearsHash(club, ages)}` : MEDAL_SEASON_PAGE_PATH;
+  keepSeasonBack = false;
+  setBack(seasonBack);
   titleEl.textContent = scope.kind === 'alue' ? scope.short : scope.name;
   // The page belongs to no meet, so it shows home's filter bar under home's key.
   const state = viewStateFor(HOME_VIEW_KEY);
@@ -502,7 +581,14 @@ async function renderMedalSeason({ scopeId, year: wantedYear, ages, club }) {
     y,
     el(
       'a',
-      { class: 'seg-btn', href: seasonHash(scope.id, y, ages, club), 'aria-current': y === year ? 'page' : null },
+      {
+        class: 'seg-btn',
+        href: seasonHash(scope.id, y, ages, club),
+        'aria-current': y === year ? 'page' : null,
+        onclick: () => {
+          keepSeasonBack = true;
+        },
+      },
       String(y),
     ),
   ]);
@@ -674,6 +760,15 @@ async function renderMedalSeason({ scopeId, year: wantedYear, ages, club }) {
   };
   paint(data);
   appEl.replaceChildren(bar, pendingEl, bodyEl);
+  // renderRoute (app.js) scrolls to the view's stored position after the
+  // render. The club's section is stored only where the view has none.
+  if (pick && pickedEl && !scrollPositions.has(scrollKey)) {
+    const header = document.querySelector('header');
+    scrollPositions.set(
+      scrollKey,
+      pickedEl.getBoundingClientRect().top + window.scrollY - (header?.offsetHeight || 0) - 8,
+    );
+  }
   renderFillStatus(pendingEl, `medalseason:${scope.id}:${year}`, data, {
     left: (season) => season.pending.length + season.meets.filter((m) => m.stale).length,
     // One build round builds a few meets within a time budget (SEASON_ROUND,
@@ -685,6 +780,90 @@ async function renderMedalSeason({ scopeId, year: wantedYear, ages, club }) {
       ),
     onUpdate: paint,
   });
+}
+
+// --- A club's years (MEDAL_SEASON_PAGE_PATH, docs/views.md) ---
+
+// The club names /mestaruudet has shown, so a club's page has its title before
+// its fetch answers, and a refresh keeps it.
+const clubNames = new Map();
+
+// Draws a club's medals, a table per scope with a row per year.
+async function renderMedalClub({ club, ages }) {
+  const seq = renderSeq;
+  setHelp(null);
+  setScrollKey(`medalclub:${club}`);
+  setBack(MEDAL_SEASON_PAGE_PATH);
+  titleEl.textContent = clubNames.get(club) || MEDAL_SEASON_PAGE_TITLE;
+  const state = viewStateFor(HOME_VIEW_KEY);
+  const bar = filterBar(HOME_VIEW_KEY, state, { label: watchLabel(state.watchId) }, false);
+  const data = await fetchJson(`/api/medalclub/${encodeURIComponent(club)}`).catch(() => null);
+  if (seq !== renderSeq) return;
+  if (!data) {
+    appEl.replaceChildren(bar, el('div', { class: 'notice error' }, 'Seuran mitalien haku epäonnistui.'));
+    return;
+  }
+  clubNames.set(club, data.club.name);
+  titleEl.textContent = data.club.name;
+  // A chosen age with no chip stays in the address, as on the year page.
+  const chipAges = clubYearAges(data);
+  const shown = ages.filter((a) => chipAges.includes(a));
+  const cover = shown.length ? { ages: shown, events: null } : null;
+  const go = (next) => navigate(`${MEDAL_SEASON_PAGE_PATH}${clubYearsHash(club, next)}`, { redraw: true });
+  appEl.replaceChildren(
+    bar,
+    el(
+      'div',
+      {},
+      chipAges.length ? ageChips(chipAges, shown, go) : null,
+      clubYearTable(data, cover).flatMap(({ scope, years }) => [
+        el(
+          'h2',
+          {},
+          scope.kind === 'maa' ? SCOPE_CHAMPIONSHIP.maa : `${SCOPE_CHAMPIONSHIP[scope.kind]} · ${scope.short}`,
+        ),
+        clubYearsTableEl(years, (year) => `${MEDAL_SEASON_PAGE_PATH}${seasonHash(scope.id, year, ages, club)}`),
+      ]),
+    ),
+  );
+}
+
+function clubYearsTableEl(years, yearHref) {
+  return wrap(
+    el(
+      'table',
+      { class: 'tbl' },
+      el(
+        'thead',
+        {},
+        el(
+          'tr',
+          {},
+          el('th', {}, 'Vuosi'),
+          [1, 2, 3].map((m) => el('th', { class: 'num' }, medalEl(m))),
+          el('th', { class: 'num' }, 'Yht'),
+        ),
+      ),
+      el(
+        'tbody',
+        {},
+        years.map((y) =>
+          el(
+            'tr',
+            {},
+            el(
+              'td',
+              {},
+              el('a', { class: 'year-link', href: yearHref(y.year) }, String(y.year)),
+              y.pending ? el('span', { class: 'medalist-sub' }, ` · ${y.pending} hakematta`) : null,
+            ),
+            y.medals.map((n) => el('td', { class: 'num' }, n ? String(n) : '')),
+            el('td', { class: 'num' }, String(y.total)),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 // --- The medalists, on the medal pages and the cup's year ---
@@ -831,6 +1010,7 @@ export {
   medalistsSwitchEl,
   openKeysHolder,
   pickedHeadEl,
+  renderMedalClub,
   renderMedalSeason,
   renderMedals,
   scrollToPicked,

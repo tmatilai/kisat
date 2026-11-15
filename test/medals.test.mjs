@@ -24,6 +24,9 @@ import {
   cacheTtlFor,
   clubMedalStarts,
   clubMedalists,
+  clubSeasonMeets,
+  clubYearAges,
+  clubYearTable,
   followedRows,
   medalAges,
   medalFor,
@@ -51,6 +54,7 @@ import {
   scopeMedalStarts,
   scopeResults,
   scopeTablesAddNothing,
+  seasonMeetBody,
   seasonRecordKeep,
   seasonRecordUnkept,
   warmSeasonMeets,
@@ -976,6 +980,67 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
     year('demy', null, null, [[DEMO_ID, record]]).map(({ meets, ...c }) => c),
     body.scopes[1].table,
     "one meet: the scope's own table",
+  );
+  // A club's years count as each scope's year does, from the club's medals
+  // alone. (Break on purpose: keep every club in clubSeasonMeets, or drop the
+  // chips' cover.)
+  const seasonOf = (scopeId, recs) =>
+    recs.map(([mid, r]) => seasonMeetBody({ id: mid, cover: null }, r, scopeId, false));
+  const notBuilt = seasonMeetBody({ id: 'x', cover: null }, null, 'demy', false);
+  const clubMeets = [
+    [DEMO_ID, record],
+    [DEMO_CUP_ID, cupRecord],
+  ];
+  const clubBody = {
+    club: { id: '1', name: 'Demon Urheilijat' },
+    scopes: [{ id: 'sm' }, { id: 'demy' }],
+    years: [
+      { year: 2026, scopes: [{ id: 'demy', meets: clubSeasonMeets(seasonOf('demy', clubMeets), '1'), pending: [] }] },
+      {
+        year: 2025,
+        scopes: [
+          {
+            id: 'demy',
+            meets: clubSeasonMeets([...seasonOf('demy', [[DEMO_ID, record]]), notBuilt], '1'),
+            pending: ['x'],
+          },
+        ],
+      },
+    ],
+  };
+  const clubLines = (cover) =>
+    clubYearTable(clubBody, cover).map(({ scope, years }) => [
+      scope.id,
+      years.map((y) => [y.year, ...y.medals, y.total, y.pending]),
+    ]);
+  assert.deepEqual(clubLines(), [
+    [
+      'sm',
+      [
+        [2026, 0, 0, 0, 0, 0],
+        [2025, 0, 0, 0, 0, 0],
+      ],
+    ],
+    [
+      'demy',
+      [
+        [2026, 11, 5, 2, 18, 0],
+        [2025, 7, 3, 1, 11, 1],
+      ],
+    ],
+  ]);
+  assert.deepEqual(clubLines({ ages: [13], events: null })[1][1][0], [2026, 2, 0, 0, 2, 0], 'under the chips');
+  const clubOnly = clubBody.years[0].scopes[0].meets;
+  assert.deepEqual(
+    new Set(clubOnly.flatMap((m) => m.starts.flatMap((st) => st.medals.map(([c]) => c)))),
+    new Set(['1']),
+  );
+  assert.deepEqual(clubOnly[0].names, [['1', 'Demon Urheilijat']]);
+  assert.equal(clubBody.years[1].scopes[0].meets[1].starts, null, 'an unbuilt meet stays unbuilt');
+  const clubAges = clubYearAges(clubBody);
+  assert.ok(
+    clubAges.length && clubAges.every((a) => medalSeasonAges(seasonOf('demy', clubMeets)).includes(a)),
+    "the chips are the club's ages",
   );
   // (Break on purpose: drop the chips' filter, or the cover's.)
   assert.deepEqual(

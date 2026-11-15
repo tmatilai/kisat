@@ -102,11 +102,18 @@ login: $(INSTALLED)
 tail: $(INSTALLED)
 	$(WRANGLER) tail
 
-# A push deploys main to the custom domains, and any other branch to a
-# preview named after it (docs/deployment.md, "The live site"). PREVIEW_HOST
-# is the preview's host, and it is empty on main.
+# The preview targets act on PREVIEW, the branch's preview unless set
+# (docs/deployment.md, "The live site"). On main, PREVIEW_HOST is empty.
 BRANCH_ALIAS := $(shell git branch --show-current | tr -d '\n' | tr 'A-Z' 'a-z' | tr -cs 'a-z0-9' '-')
-PREVIEW_HOST := $(if $(filter-out main,$(BRANCH_ALIAS)),$(BRANCH_ALIAS)-kisat.teemu-matilainen.workers.dev)
+PREVIEW ?= $(BRANCH_ALIAS)
+PREVIEW_HOST := $(if $(filter-out main,$(PREVIEW)),$(PREVIEW)-kisat.teemu-matilainen.workers.dev)
+
+need-preview:
+	@test -n "$(PREVIEW_HOST)" || { echo 'main has no preview'; exit 1; }
+
+## deploy-preview: run the offline tests, then deploy the checkout to the preview (PREVIEW=)
+deploy-preview: need-preview test-offline $(INSTALLED)
+	$(WRANGLER) preview --name $(PREVIEW)
 
 ## open: open the live site in a browser
 open:
@@ -116,40 +123,33 @@ open:
 open-juoksut:
 	open https://juoksut.matilainen.fi/
 
-## open-preview: open the branch's preview, or the live site on main
+## open-preview: open the preview, or the live site on main
 open-preview:
 	open $(if $(PREVIEW_HOST),https://$(PREVIEW_HOST)/,https://kisat.matilainen.fi/)
 
 # A preview host is a dev host, so ?mode= picks the mode (siteMode, lib/routes.js).
-## open-juoksut-preview: open the branch's preview in Juoksut mode, or the Juoksut domain on main
+## open-juoksut-preview: open the preview in Juoksut mode, or the Juoksut domain on main
 open-juoksut-preview:
 	open $(if $(PREVIEW_HOST),'https://$(PREVIEW_HOST)/?mode=juoksut',https://juoksut.matilainen.fi/)
 
-# The branch's preview reads production's KV until PREVIEW_DATA says "own"
-# (previewEnv, lib/routes.js). The secrets are the preview's, so no commit and
-# no merge carries them. CRON_TOKEN_FILE keeps the token that POST /api/cron
-# requires in this checkout alone
-# (docs/deployment.md, "A preview with its own data").
-CRON_TOKEN_FILE := .wrangler/cron-token/$(BRANCH_ALIAS)
+# docs/deployment.md, "A preview with its own data".
+CRON_TOKEN_FILE := .wrangler/cron-token/$(PREVIEW)
 
-## preview-own-data: move the branch's preview to the preview namespaces
-preview-own-data: $(INSTALLED)
-	@test -n "$(PREVIEW_HOST)" || { echo 'main has no preview'; exit 1; }
+## preview-own-data: move the preview to the preview namespaces
+preview-own-data: need-preview $(INSTALLED)
 	@mkdir -p $(dir $(CRON_TOKEN_FILE))
 	@(umask 077 && openssl rand -hex 32 | tr -d '\n' > $(CRON_TOKEN_FILE))
-	$(WRANGLER) preview secret put CRON_TOKEN --name $(BRANCH_ALIAS) < $(CRON_TOKEN_FILE)
-	printf own | $(WRANGLER) preview secret put PREVIEW_DATA --name $(BRANCH_ALIAS)
+	$(WRANGLER) preview secret put CRON_TOKEN --name $(PREVIEW) < $(CRON_TOKEN_FILE)
+	printf own | $(WRANGLER) preview secret put PREVIEW_DATA --name $(PREVIEW)
 
-## preview-shared-data: move the branch's preview back to production's KV
-preview-shared-data: $(INSTALLED)
-	@test -n "$(PREVIEW_HOST)" || { echo 'main has no preview'; exit 1; }
-	$(WRANGLER) preview secret delete PREVIEW_DATA --name $(BRANCH_ALIAS)
-	$(WRANGLER) preview secret delete CRON_TOKEN --name $(BRANCH_ALIAS)
+## preview-shared-data: move the preview back to production's KV
+preview-shared-data: need-preview $(INSTALLED)
+	$(WRANGLER) preview secret delete PREVIEW_DATA --name $(PREVIEW)
+	$(WRANGLER) preview secret delete CRON_TOKEN --name $(PREVIEW)
 	rm -f $(CRON_TOKEN_FILE)
 
 ## preview-cron: run the cron's work on a preview with its own data (RUNS= for several rounds)
-preview-cron:
-	@test -n "$(PREVIEW_HOST)" || { echo 'main has no preview'; exit 1; }
+preview-cron: need-preview
 	@test -s $(CRON_TOKEN_FILE) || { echo 'no cron token here, run make preview-own-data'; exit 1; }
 	for i in $$(seq $(or $(RUNS),1)); do curl -fsS -X POST -H 'x-kisat-client: 1' -H "authorization: Bearer $$(cat $(CRON_TOKEN_FILE))" https://$(PREVIEW_HOST)/api/cron || exit 1; done
 
@@ -169,4 +169,4 @@ hotspots: $(INSTALLED)
 shims-due:
 	node dev/shims-due.mjs
 
-.PHONY: help serve dev build test test-offline test-render test-worker lint format check-format probe probes cup-diff elsewhere-due hotspots shims-due check-worker deploy-ci login tail open open-juoksut open-preview open-juoksut-preview preview-own-data preview-shared-data preview-cron
+.PHONY: help serve dev build test test-offline test-render test-worker lint format check-format probe probes cup-diff elsewhere-due hotspots shims-due check-worker deploy-ci need-preview deploy-preview login tail open open-juoksut open-preview open-juoksut-preview preview-own-data preview-shared-data preview-cron
