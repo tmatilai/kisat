@@ -6,7 +6,8 @@ follows "A deployment of your own".
 - `wrangler.jsonc`: the Worker's `name`, its custom domains under `routes`, its bindings and the
   `previews` block.
 - `deploy-ci` (`Makefile`): the deploy, which builds `dist/` first.
-- `PREVIEW_HOST` (`Makefile`): the host of the branch's preview.
+- `PREVIEW` (`Makefile`): the preview that the preview targets act on, the branch's unless set.
+  `PREVIEW_HOST` is its host.
 
 ## The live site
 
@@ -17,6 +18,7 @@ follows "A deployment of your own".
   `make login` first.
 - **A push to any other branch deploys a preview at `PREVIEW_HOST`.** The preview binds production's
   KV and the same rate limiters, so a Watch made there is a real one.
+- **`make deploy-preview` deploys the checkout to `PREVIEW` without a push.**
 - **The zone's WAF does not cover `workers.dev`.** On a preview, only the Worker's own header check
   and limiters hold.
 - **`make tail` shows no preview's requests** (2026-09). The dashboard's Logs view shows them under
