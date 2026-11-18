@@ -40,15 +40,15 @@ function ageRangeLabel(ages) {
   return `${ageChipLabel(lo)}${hi === lo ? '' : open ? '+' : `–${hi}`}`;
 }
 
-// The age chips' rows (ageChips, app/follow.js) are T/P, N/M with yleinen,
-// and the masters.
+// The age chips' rows (ageChips, app/follow.js) are T/P, the N/M classes up
+// to 22, and yleinen with the masters. So one tap picks the N/M youth alone.
 function ageChipRows(classAges) {
   const rows = [
     { label: 'T/P', ages: [] },
     { label: 'N/M', ages: [] },
     { label: 'N/M', ages: [] },
   ];
-  for (const a of classAges) rows[girlsBoysAge(a) ? 0 : a < MASTERS_MIN_AGE ? 1 : 2].ages.push(a);
+  for (const a of classAges) rows[girlsBoysAge(a) ? 0 : a > 0 && a < MASTERS_MIN_AGE ? 1 : 2].ages.push(a);
   return rows.filter((r) => r.ages.length);
 }
 
