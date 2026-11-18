@@ -264,6 +264,9 @@ function filterBar(compId, state, filter, filterActive, trackPick = null) {
 
 // The chips form the rows ageChipRows gives. A row's first chip ticks the
 // whole row. The others show only the age, so a row fits on a phone.
+// A row with a single age has no first chip, since it would do the same as
+// the age's chip. That chip shows the class's full name instead, such as
+// "N/M 35".
 function ageChips(classAges, ages, go) {
   const lead = (label, row) => {
     const all = row.every((a) => ages.includes(a));
@@ -285,7 +288,7 @@ function ageChips(classAges, ages, go) {
       el(
         'div',
         { class: 'aidat-chip-row' },
-        lead(label, row),
+        row.length > 1 ? lead(label, row) : null,
         row.map((a) => {
           const on = ages.includes(a);
           return el(
@@ -296,7 +299,7 @@ function ageChips(classAges, ages, go) {
               'aria-label': ageChipLabel(a),
               onclick: () => go(on ? ages.filter((x) => x !== a) : [...ages, a]),
             },
-            a === 0 ? 'yleinen' : String(a),
+            a === 0 ? 'yleinen' : row.length > 1 ? String(a) : ageChipLabel(a),
           );
         }),
       ),

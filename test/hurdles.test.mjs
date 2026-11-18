@@ -857,13 +857,15 @@ test('hurdleTableSections', () => {
     ageChipRows(tableClassAges(hurdles)).map((r) => [r.label, r.ages[0], r.ages.at(-1)]),
     [
       ['T/P', 8, 13],
-      ['N/M', 14, 0],
-      ['N/M', 35, 85],
+      ['N/M', 14, 22],
+      ['N/M', 0, 85],
     ],
   );
-  assert.deepEqual(ageChipRows([0, 17, 30]), [
-    { label: 'N/M', ages: [0, 17] },
-    { label: 'N/M', ages: [30] },
+  // The youth's N/M classes are a row of their own. (Break on purpose: put
+  // yleinen back in their row.)
+  assert.deepEqual(ageChipRows([17, 0, 30]), [
+    { label: 'N/M', ages: [17] },
+    { label: 'N/M', ages: [0, 30] },
   ]);
 });
 
