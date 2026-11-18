@@ -31,7 +31,7 @@ whose results are on another site"), and the graft fills its rounds from the sit
   `showEvent('<n>-<round>-r.html')` and the start list `-sl.html`. The time is the start's and the
   site's only clock. The round is `Alkuerät`, `Karsinta`, `Välierät` or `Loppukilpailu`, or empty
   for an event with no qualifying round and for a multi-event. A result page's `<h2>` is the index
-  row's round (2026-09).
+  row's round (2026-09). A final can also be `Finaali` (2026-11).
 - **Event names differ from Tuloslista's** in spacing, in `aj` and `ej` for aidat and esteet, in a
   relay that has no `viesti`, and in `M` and `N` for a youth class's `P` and `T` (2026-09).
 - **The pages are labelled `ISO-8859-1`, which a browser reads as windows-1252.** They send an
@@ -45,7 +45,8 @@ whose results are on another site"), and the graft fills its rounds from the sit
   `<br>` there. The third cell is the result, with a comma for the decimal and a jump's wind after a
   `<br>`. A row with no result has an empty place and a word such as `DNF`. A relay team's row has
   the team where a person's name is, and the next row has an empty first cell and the team's runners
-  separated by commas (2026-09).
+  separated by commas (2026-09). A page can have a `Maa` column between the name and the result,
+  which makes the result the fourth cell (2026-11).
 - **The cells between the result and the attempts have empty headers.** They hold, in an order that
   differs between pages, the record mark, a reaction time, `Q` or `q` alone for a row that went
   through, and a multi-event leg's points as the one cell of digits alone (2026-09).
@@ -172,7 +173,7 @@ month from year to year, so check the calendar. A row has one of these shapes, a
 {comp: <meet id>, t4r: "<year>/<directory>"}
 {comp: <meet id>, ol: "<event>", classes: {"<event name>": <class id>}}
 {id: "<word>-<year>", was?: <meet id>, name, location, date, start: "<hh:mm:ss±hh:mm>", ol, classes}
-{id: "<word>-<year>", name, location, date, last, start, t4r}
+{id: "<word>-<year>", sm?: false, name, location, date, last, start, t4r}
 ```
 
 Rules:
@@ -185,6 +186,8 @@ Rules:
 - **A race's class starts at its own time.** `olSchedule` reads each class's `MassStartStr` from the
   race's event file, and falls back to the row's `start` where the file has none, as the page does
   while the Worker cannot answer. A cross-country meet's classes started apart (2026-10).
+- **A row with `sm: false` is no championship** (`elsewhereListsSm`). A notable meet's row has it
+  (`docs/notable.md`). A row with `comp` has no `sm`.
 - **`name` is the championship's name, not the race's.** It is the meet's title, and `defaultScopes`
   reads its words to narrow the classes that the national scope covers.
 - **`location` is the venue's town.** The front page prints it, since no listing gives it.

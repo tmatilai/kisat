@@ -351,7 +351,7 @@ test("t4rGraft: an SM meet's results from another site on its entries", async ()
   // under the final's name. (Break on purpose: keep the meet's own name.)
   assert.deepEqual(
     graft.schedule['8.8.2026'].filter((r) => r.EventId === 's3').map((r) => [r.Name, r.BeginDateTimeWithTZ]),
-    [['Loppukilpailu', DEMO_SM_STARTS[2].ts]],
+    [['Finaali', DEMO_SM_STARTS[2].ts]],
     'a round the site has no page for leaves its name and its time to the one it has',
   );
   // (Break on purpose: drop t4rHeats' QRank and QResult.)
@@ -864,11 +864,17 @@ test('elsewhere.json: the championships whose results are on another site', () =
     `elsewhere.json: ${elsewhereProblems(elsewhere, districts).join('; ')}`,
   );
   const row = elsewhere.meets[0];
-  assert.deepEqual(elsewhereProblems({ meets: [row, { ...row, t4r: '../x' }, { comp: '7', t4r: row.t4r }] }), [
-    `row 2: ${row.comp} is listed twice`,
-    'row 2: t4r is not "<year>/<directory>"',
-    'row 3: comp is not a meet id',
-  ]);
+  assert.deepEqual(
+    elsewhereProblems({
+      meets: [row, { ...row, t4r: '../x' }, { comp: '7', t4r: row.t4r }, { ...row, comp: 8, sm: false }],
+    }),
+    [
+      `row 2: ${row.comp} is listed twice`,
+      'row 2: t4r is not "<year>/<directory>"',
+      'row 3: comp is not a meet id',
+      'row 4: sm is on a row with comp',
+    ],
+  );
   assert.deepEqual(elsewhereProblems({}), ['meets: not a list']);
   // (Break on purpose: drop a test from elsewhereProblems' standalone half.)
   const road = { ...DEMO_ROAD_ROW };
@@ -887,6 +893,7 @@ test('elsewhere.json: the championships whose results are on another site', () =
           start: '11.00',
           ol: '../x',
           classes: { Maraton: 5 },
+          sm: true,
         },
         { ...road, id: 'kavely-2026', last: road.date, classes: { 'M Maraton': '5' } },
       ],
@@ -894,6 +901,7 @@ test('elsewhere.json: the championships whose results are on another site', () =
     [
       'row 2: maraton-2026 is listed twice',
       'row 3: id is not "<word>-<year>"',
+      'row 3: sm is not false',
       'row 3: no name',
       'row 3: no location',
       'row 3: was is not a meet id',

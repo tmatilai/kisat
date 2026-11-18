@@ -140,6 +140,8 @@ const MEET_INDEX = {
     ['testi-s2', 'Eteläisen alueen aluemestaruuskilpailut', STALE_DAY, '', 'Malliseura'],
     ['testi-s3', 'Helsy:n pm-maastot', `${SEASON_YEAR}-01-01`, '', 'Demon Urheilijat'],
     ['testi-s4', 'Nuorten SM-testikisat', `${SEASON_YEAR}-07-01`, '', 'Malliseura'],
+    ['18978', 'Testihallikisat', `${SEASON_YEAR}-03-06`, '', 'Malliseura'],
+    ['19614', 'Testinuorten kisat', `${SEASON_YEAR}-06-11`, '', 'Malliseura'],
     ['testi-c1', 'Helsy:n Seuracup 9v lajit', `${SEASON_YEAR}-06-10`, '', 'Demon Urheilijat'],
     ['testi-c2', 'Seuracup I - Helsy, UudY', `${SEASON_YEAR}-06-02`, '', 'Demon Urheilijat'],
     ['democup', 'Helsy:n Seuracup II', `${SEASON_YEAR}-06-20`, '', 'Demon Urheilijat'],
@@ -256,6 +258,25 @@ seedKv('medalseason:v4:testi-s3', {
   lastDay: `${SEASON_YEAR}-01-01`,
   starts: [],
   names: [],
+  unknown: [],
+});
+// Two notable meets of notable.json, for a club's years (/api/medalclub). The
+// first took club 1 gold, and the second's record predates the meet's own
+// medals.
+seedKv('medalseason:v4:18978', {
+  builtAt: Date.now(),
+  lastDay: `${SEASON_YEAR}-03-08`,
+  starts: [{ start: { EventName: 'T13 60m', Age: '13' }, medals: [['1', 1, 'a1']], scoped: [] }],
+  names: [['1', 'Demon Urheilijat']],
+  athletes: [['a1', 'Aino Esimerkki', '111']],
+  unknown: [],
+});
+seedKv('medalseason:v4:19614', {
+  builtAt: Date.now(),
+  lastDay: `${SEASON_YEAR}-06-11`,
+  starts: [{ start: { EventName: 'N17 100m', Age: '17' }, scoped: [] }],
+  names: [],
+  athletes: [],
   unknown: [],
 });
 // An SM where club 1 took silver, for its years (/api/medalclub).
@@ -1001,7 +1022,7 @@ try {
   {
     const r = await api('/api/meets');
     assert.equal(r.status, 200);
-    assert.equal(r.headers.get('x-meets'), '11');
+    assert.equal(r.headers.get('x-meets'), '13');
     assert.equal(r.headers.get('x-meets-crawl'), '18000');
     assert.deepEqual(
       (await r.json()).meets.find((m) => m.id === '16500'),
@@ -1350,9 +1371,13 @@ try {
     assert.deepEqual(body.club, { id: '1', name: 'Demon Urheilijat' });
     // (Break on purpose: answer every scope.)
     assert.deepEqual(
-      body.scopes.map((s) => s.id),
-      ['sm'],
-      'a club no piiri lists has the country alone',
+      body.scopes.map((s) => [s.id, s.kind]),
+      [
+        ['sm', 'maa'],
+        ['tjig', 'notable'],
+        ['yag', 'notable'],
+      ],
+      'a club no piiri lists has the country alone, then the notable meets',
     );
     assert.deepEqual(
       body.years.map((y) => y.year),
@@ -1379,6 +1404,15 @@ try {
       sm.meets.filter((m) => m.starts == null).map((m) => m.id),
       'a meet with no record is pending',
     );
+    // A notable meet counts its own medals, and an older record is pending.
+    // (Break on purpose: project a notable meet to its id as a scope, or take
+    // an older record as built.)
+    const notableOf = (id) => body.years[0].scopes.find((s) => s.id === id);
+    assert.deepEqual(
+      notableOf('tjig').meets.map((m) => [m.id, m.starts]),
+      [['18978', [{ start: { EventName: 'T13 60m', Age: '13' }, medals: [['1', 1, 'a1']] }]]],
+    );
+    assert.deepEqual(notableOf('yag').pending, ['19614']);
     assert.equal((await api('/api/medalclub/999')).status, 404, 'a club the index lacks');
     assert.equal((await api('/api/medalclub/a%20b')).status, 400);
     assert.equal((await api('/api/medalclub/1', { method: 'POST' })).status, 405);

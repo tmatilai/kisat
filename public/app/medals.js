@@ -1,3 +1,4 @@
+import { ageOrder, ageRangeLabel } from '../lib/ages.js';
 import { dateRange, dateSortKey, isoToFiDay } from '../lib/dates.js';
 import { coverWords, coversStart, medalScope, meetScopes, scopeTree, tickedScopes } from '../lib/districts.js';
 import { medalYearOk, medalYears } from '../lib/indexes.js';
@@ -816,19 +817,48 @@ async function renderMedalClub({ club, ages }) {
       'div',
       {},
       chipAges.length ? ageChips(chipAges, shown, go) : null,
-      clubYearTable(data, cover).flatMap(({ scope, years }) => [
-        el(
-          'h2',
-          {},
-          scope.kind === 'maa' ? SCOPE_CHAMPIONSHIP.maa : `${SCOPE_CHAMPIONSHIP[scope.kind]} · ${scope.short}`,
-        ),
-        clubYearsTableEl(years, (year) => `${MEDAL_SEASON_PAGE_PATH}${seasonHash(scope.id, year, ages, club)}`),
-      ]),
+      clubYearTable(data, cover).flatMap(({ scope, years }) =>
+        scope.kind === 'notable'
+          ? notableYearsEls(scope, years, ages, club)
+          : [
+              el(
+                'h2',
+                {},
+                scope.kind === 'maa' ? SCOPE_CHAMPIONSHIP.maa : `${SCOPE_CHAMPIONSHIP[scope.kind]} · ${scope.short}`,
+              ),
+              clubYearsTableEl(years, (y) =>
+                el(
+                  'a',
+                  { class: 'year-link', href: `${MEDAL_SEASON_PAGE_PATH}${seasonHash(scope.id, y.year, ages, club)}` },
+                  String(y.year),
+                ),
+              ),
+            ],
+      ),
     ),
   );
 }
 
-function clubYearsTableEl(years, yearHref) {
+// A notable meet's table (docs/views.md, "The years").
+function notableYearsEls(scope, years, ages, club) {
+  const link = (m, label) => el('a', { class: 'year-link', href: medalsPath(m.id, ages, club) }, label);
+  // An unbuilt meet has no ages yet, so its first day stands in.
+  const label = (m) => ageRangeLabel(m.ages) || `${Number(m.date.slice(8, 10))}.${Number(m.date.slice(5, 7))}.`;
+  const youngest = (m) => (m.ages?.length ? ageOrder(m.ages[0]) : Infinity);
+  const youngestFirst = (a, b) => youngest(a) - youngest(b);
+  const shown = years.filter((y) => y.meets.length);
+  if (!shown.length) return [];
+  return [
+    el('h2', {}, scope.name),
+    clubYearsTableEl(shown, (y) =>
+      y.meets.length === 1
+        ? link(y.meets[0], String(y.year))
+        : [String(y.year), ...[...y.meets].sort(youngestFirst).flatMap((m) => [' · ', link(m, label(m))])],
+    ),
+  ];
+}
+
+function clubYearsTableEl(years, yearCell) {
   return wrap(
     el(
       'table',
@@ -854,7 +884,7 @@ function clubYearsTableEl(years, yearHref) {
             el(
               'td',
               {},
-              el('a', { class: 'year-link', href: yearHref(y.year) }, String(y.year)),
+              yearCell(y),
               y.pending ? el('span', { class: 'medalist-sub' }, ` · ${y.pending} hakematta`) : null,
             ),
             y.medals.map((n) => el('td', { class: 'num' }, n ? String(n) : '')),

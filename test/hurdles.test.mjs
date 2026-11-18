@@ -1,7 +1,7 @@
 // Tests the hurdle and steeplechase setups (docs/hurdles.md).
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { ageChipLabel, ageChipRows } from '../public/lib/ages.js';
+import { ageChipLabel, ageChipRows, ageRangeLabel } from '../public/lib/ages.js';
 import {
   hurdleDistance,
   hurdleMark,
@@ -842,6 +842,17 @@ test('hurdleTableSections', () => {
   // where the class names and the masters do. (Break on purpose: end the
   // T/P classes at 14.)
   assert.deepEqual([0, 13, 14, 50].map(ageChipLabel), ['N/M', 'T/P 13', 'N/M 14', 'N/M 50']);
+  // A meet's range takes its youngest class's letters, and a range into
+  // yleinen or the masters stays open. (Break on purpose: end every range at
+  // its last age.)
+  assert.deepEqual([[15, 8, 13], [19, 17], [17], [0, 11, 17], [35, 0, 19], []].map(ageRangeLabel), [
+    'T/P 8–15',
+    'N/M 17–19',
+    'N/M 17',
+    'T/P 11+',
+    'N/M 19+',
+    '',
+  ]);
   assert.deepEqual(
     ageChipRows(tableClassAges(hurdles)).map((r) => [r.label, r.ages[0], r.ages.at(-1)]),
     [

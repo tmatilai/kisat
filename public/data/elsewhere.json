@@ -138,6 +138,7 @@
         "T13 Maantiejuoksu": 35, "P13 Maantiejuoksu": 33
       }
     },
+    { "id": "yag-2025", "sm": false, "name": "Youth Athletics Games", "location": "Lappeenranta", "date": "2025-06-12", "last": "2025-06-15", "start": "16:00:00+03:00", "t4r": "2025/yag" },
     { "id": "viestit-2025", "name": "SM-viestit", "location": "Lahti", "date": "2025-09-06", "last": "2025-09-07", "start": "10:00:00+03:00", "t4r": "2025/smviestit" },
     { "id": "viestit-2026", "name": "SM-viestit", "location": "Lappeenranta", "date": "2026-09-05", "last": "2026-09-06", "start": "10:00:00+03:00", "t4r": "2026/smviestit" },
     {
