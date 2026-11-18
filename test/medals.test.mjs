@@ -50,6 +50,7 @@ import {
   meetChampionships,
   meetMedals,
   meetMedalsBody,
+  notableDue,
   notableYear,
   recordLacksOwn,
   recordSettled,
@@ -1437,6 +1438,32 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
     })[0].meets,
     [{ id: 'demo-2025', name: 'Demon kisat', date: '2025-06-12' }],
   );
+  // What notable.json lacks (docs/notable.md, "Keeping notable.json"). (Break
+  // on purpose: drop the year's floor, or the month's grace.)
+  const dueFile = {
+    meets: [
+      { id: 'avoimet', name: 'Avoimet kisat', comps: ['1'] },
+      { id: 'tyhja', name: 'Tyhjät kisat', comps: ['9'] },
+    ],
+  };
+  const dueRows = [
+    { id: '0', name: 'Avoimet kisat', date: '2025-06-03' },
+    { id: '1', name: 'Avoimet kisat', date: '2026-06-02' },
+    { id: '2', name: 'Avoimet kisat - nuoret', date: '2026-06-01' },
+    { id: '3', name: 'AVOIMET  kisat 2027', date: '2027-06-05' },
+    { id: '4', name: 'Seuran kisat', date: '2027-06-01' },
+  ];
+  const dueLines = (rows, today) => notableDue(dueFile, rows, today).map((d) => [d.entry.id, d.meet?.id ?? d.year]);
+  assert.deepEqual(dueLines(dueRows, '2026-11-18'), [
+    ['avoimet', '2'],
+    ['avoimet', '3'],
+  ]);
+  const noEdition = dueRows.filter((m) => m.id !== '3');
+  assert.deepEqual(dueLines(noEdition, '2027-07-02'), [['avoimet', '2']]);
+  assert.deepEqual(dueLines(noEdition, '2027-07-03'), [
+    ['avoimet', '2'],
+    ['avoimet', 2027],
+  ]);
   assert.deepEqual(
     indexRows.map((m) => isNotableMeet(notableFile, m.id)),
     [false, false, true, false, false, false],
