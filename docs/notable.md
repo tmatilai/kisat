@@ -23,3 +23,15 @@ Rules:
 - **A meet counts its own places 1 to 3, over every club.**
 - **An entry's `id` is neither a scope's id nor `seura`.** Tested in `test/medals.test.mjs`,
   "notable.json".
+
+## Keeping notable.json
+
+Each year's meets go in by hand. Every Wednesday `.github/workflows/notable.yml` opens an issue
+labelled `notable` for what the file lacks (`dev/notable-due.mjs`, `make notable-due`):
+
+- **A meet whose name holds an entry's `name`**, from the year of the entry's latest meet on. A meet
+  that is no part of the edition gets its issue closed.
+- **A year with no such meet a month past the day of last year's meet.** That meet may have run
+  under another name or on another site.
+
+`notableDue` (`lib/medals.js`) finds them. Tested in `test/medals.test.mjs`.

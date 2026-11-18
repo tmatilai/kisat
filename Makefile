@@ -161,6 +161,10 @@ cup-diff:
 elsewhere-due:
 	node dev/elsewhere-due.mjs $(or $(PREVIEW_HOST),kisat.matilainen.fi)
 
+## notable-due: list the meets that notable.json lacks, off the branch's deploy
+notable-due:
+	node dev/notable-due.mjs $(or $(PREVIEW_HOST),kisat.matilainen.fi)
+
 ## hotspots: list the code's size per area and its N most complex functions (N=)
 hotspots: $(INSTALLED)
 	node dev/hotspots.mjs $(N)
@@ -169,4 +173,4 @@ hotspots: $(INSTALLED)
 shims-due:
 	node dev/shims-due.mjs
 
-.PHONY: help serve dev build test test-offline test-render test-worker lint format check-format probe probes cup-diff elsewhere-due hotspots shims-due check-worker deploy-ci need-preview deploy-preview login tail open open-juoksut open-preview open-juoksut-preview preview-own-data preview-shared-data preview-cron
+.PHONY: help serve dev build test test-offline test-render test-worker lint format check-format probe probes cup-diff elsewhere-due notable-due hotspots shims-due check-worker deploy-ci need-preview deploy-preview login tail open open-juoksut open-preview open-juoksut-preview preview-own-data preview-shared-data preview-cron

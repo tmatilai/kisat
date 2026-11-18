@@ -978,6 +978,35 @@ function notableYear(notable, meets, year, elsewhere = null) {
   }));
 }
 
+// Returns what notable.json lacks, as {entry, meet} and {entry, year}
+// (docs/notable.md, "Keeping notable.json").
+function notableDue(notable, meets, today, elsewhere = null) {
+  const alone = (elsewhere?.meets || []).filter((m) => m.id != null);
+  const rows = new Map([...(meets || []), ...alone].map((m) => [String(m.id), m]));
+  const words = (s) =>
+    String(s ?? '')
+      .toLowerCase()
+      .replace(/\s+/gu, ' ')
+      .trim();
+  return (notable?.meets || []).flatMap((entry) => {
+    const last = entry.comps
+      .map((c) => rows.get(String(c))?.date)
+      .filter(Boolean)
+      .sort()
+      .at(-1);
+    if (!last) return [];
+    const listed = new Set(entry.comps.map(String));
+    const found = (meets || []).filter(
+      (m) => !listed.has(String(m.id)) && m.date >= last.slice(0, 4) && words(m.name).includes(words(entry.name)),
+    );
+    const year = Number(last.slice(0, 4)) + 1;
+    // Date.UTC counts months from 0, so the listed month lands a month on.
+    const due = new Date(Date.UTC(year, Number(last.slice(5, 7)), Number(last.slice(8, 10)))).toISOString();
+    const missing = today > due.slice(0, 10) && !found.some((m) => m.date.startsWith(`${year}-`));
+    return [...found.map((meet) => ({ entry, meet })), ...(missing ? [{ entry, year }] : [])];
+  });
+}
+
 // Says whether the meet index keeps a row for good as a notable meet's.
 function isNotableMeet(notable, id) {
   return (notable?.meets || []).some((n) => n.comps.some((c) => String(c) === String(id)));
@@ -1020,6 +1049,7 @@ export {
   meetChampionships,
   meetMedals,
   meetMedalsBody,
+  notableDue,
   notableYear,
   ownMedalStarts,
   recordLacksOwn,
