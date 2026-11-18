@@ -22,5 +22,21 @@
       matchPackageNames: ['pnpm'],
       allowedVersions: '<12',
     },
+    {
+      matchManagers: ['github-actions'],
+      matchUpdateTypes: ['minor', 'patch', 'digest', 'pinDigest'],
+      groupName: 'GitHub Actions',
+    },
+    {
+      matchManagers: ['npm'],
+      matchUpdateTypes: ['minor', 'patch'],
+      groupName: 'npm packages',
+    },
+    {
+      description: "Don't group 0.x minor versions.",
+      matchCurrentVersion: '/^v?0\\./',
+      matchUpdateTypes: ['minor'],
+      groupName: null,
+    },
   ],
 }
