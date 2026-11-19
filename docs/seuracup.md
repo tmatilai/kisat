@@ -1,26 +1,25 @@
 # Seuracupin sarjat
 
-The cup's clubs play in three series, A, B and C, by the size of their municipality. Nearly every
-club keeps its series from year to year (2026-09).
-
-The API says nothing about a club's series, so `seuracup.json` holds the three lists as the series'
-own site publishes them. The cup's season page shows a club's series in its `Sarja` column.
+The cup's clubs compete in three series, A, B and C, by the size of their municipality. Nearly every
+club stays in the same series from year to year (2026-09). The API has no data about a club's
+series, so `seuracup.json` holds the three lists as the series' own site publishes them.
 
 ## The file
 
-- **`source` is where the lists were read, and `checked` is the day.**
-- **`series` is `{A, B, C}`, a sorted list of club names each.** A name is the club's
-  `Organization.Name` as Tuloslista spells it, even where the site spells it another way.
-  `cupSeries` (`lib/cup.js`) compares names by `clubNameKey` (`docs/districts.md`).
-- **The lists are the union of every year's.** A club in two series is listed under its later one,
-  and every year's page reads the one file.
-- **A club in no list is named on the season page's `Ei sarjatietoa` line.**
-
-`test/medals.test.mjs` proof-reads the file in the offline suite.
+- **`source` is the address the lists were read from, and `checked` is the date they were read.**
+- **`series` is `{A, B, C}`, where each value is a sorted list of club names.** A name is the club's
+  `Organization.Name` as Tuloslista spells it, even where the site spells it differently. Names
+  match by `clubNameKey`.
+- **The lists combine the lists of every year.** A club that has played in two series is listed only
+  under the later one, and the season page of every year reads this one file.
+- **The season page's `Ei sarjatietoa` line names each club that is in no list.**
 
 ## Updating the file
 
-The file is refreshed once a year, when the new year's lists appear. The clubs new to them are added
-to their series, a club whose series changed moves to its new one, and `source` and `checked` are
-updated. A club that `districts.json` lacks is added to a piiri's `names` there too. Then run
-`make test-offline`.
+Update the file once a year, when the new year's lists are published:
+
+1. Add each club that is new to the lists to its series.
+2. Move each club whose series changed to its new series.
+3. Update `source` and `checked`.
+4. Add each club that `districts.json` lacks to a piiri's `names` in `districts.json`.
+5. Run `make test-offline`.
