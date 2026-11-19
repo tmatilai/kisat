@@ -72,8 +72,7 @@ export default async function probe({ frame, W, log, ok, groupKey, appJs, libJs,
   );
 
   // The meet's track sits at the right-hand end of the toggle's row, so it
-  // costs a phone no row of screen (docs/venues.md, "The locality heads an
-  // option group").
+  // costs a phone no row of screen (docs/venues.md, "The files").
   // (Break on purpose: put the picker in a row of its own. It lands about
   // 47 px lower with the day list under it, and the row check fails.)
   const pick = () => app().querySelector('.track-pick');
