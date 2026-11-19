@@ -810,6 +810,12 @@ async function renderMedalClub({ club, ages }) {
     appEl.replaceChildren(bar, el('div', { class: 'notice error' }, 'Seuran mitalien haku epäonnistui.'));
     return;
   }
+  // A duplicate record's id gets its canonical club (docs/backend.md, "The
+  // club index").
+  if (data.club.id !== club) {
+    club = data.club.id;
+    replaceAddress(`${MEDAL_SEASON_PAGE_PATH}${clubYearsHash(club, ages)}`);
+  }
   clubNames.set(club, data.club.name);
   titleEl.textContent = data.club.name;
   // A chosen age with no chip stays in the address, as on the year page.

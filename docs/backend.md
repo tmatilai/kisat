@@ -320,6 +320,9 @@ read it.
 
 - `mergeOrgIndex` (`lib/indexes.js`): the rows.
 - `cacheOrgs` (`worker.js`): the write after a roster build or a scan's build.
+- `duplicateClubs` (`lib/districts.js`): a club's duplicate records (`docs/tuloslista-api.md`,
+  "Categories, names and identity"). Search and `/api/medalclub` merge them. Watches and a meet's
+  medal table do not.
 
 ## The athlete index
 

@@ -1106,6 +1106,16 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
     new Set(['1']),
   );
   assert.deepEqual(clubOnly[0].names, [['1', 'Demon Urheilijat']]);
+  // A duplicate record's medals count under the canonical id. Testilän Kisa
+  // (3) plays the duplicate. (Break on purpose: keep each record's own id.)
+  const folded = clubSeasonMeets(seasonOf('demy', [[DEMO_ID, record]]), '1', ['1', '3']);
+  const pair = medalSeasonTable(folded);
+  const apart = medalSeasonTable(seasonOf('demy', [[DEMO_ID, record]]));
+  assert.deepEqual(
+    pair.map((c) => [c.id, c.total]),
+    [['1', apart.filter((c) => ['1', '3'].includes(String(c.id))).reduce((n, c) => n + c.total, 0)]],
+  );
+  assert.deepEqual(folded[0].names, [['1', 'Demon Urheilijat']], "the canonical club's name");
   assert.equal(clubBody.years[1].scopes[0].meets[1].starts, null, 'an unbuilt meet stays unbuilt');
   const clubAges = clubYearAges(clubBody);
   assert.ok(

@@ -10,6 +10,7 @@ import {
   coversStart,
   defaultScopes,
   districtProblems,
+  duplicateClubs,
   meetScopes,
   scopeTree,
 } from '../public/lib/districts.js';
@@ -613,4 +614,33 @@ test("districts.json: the piiris' clubs, proof-reading itself", () => {
       `${name}, listed`,
     );
   }
+});
+
+test('duplicateClubs', () => {
+  const clubs = [
+    { id: '7', name: 'Testilän Kisa ry', nameShort: 'Falken' },
+    { id: '40', name: 'Testilän Kisa', nameShort: 'TeKi' },
+    { id: '12', name: 'Demon-Urheilijat', nameShort: 'DemU' },
+    { id: '3', name: 'Demon Urheilijat', nameShort: 'DemU' },
+    { id: '9', name: 'Mallilan koulu', nameShort: 'Mallila' },
+    { id: '5', name: 'Mallilan Koulu', nameShort: 'MK' },
+    { id: '20', name: 'Kisalan Veikot', nameShort: 'KisVe' },
+    { id: '30', name: '-', nameShort: '-' },
+    { id: '31', name: '--', nameShort: '--' },
+  ];
+  const duplicates = duplicateClubs(DEMO_DISTRICTS, clubs);
+  const groups = Object.fromEntries([...duplicates].map(([id, g]) => [id, [g.canonical.id, ...g.ids]]));
+  // (Break on purpose: drop the piiri's list, compare the ids as strings, or
+  // compare the names as written.)
+  assert.deepEqual(groups, {
+    7: ['40', '40', '7'],
+    40: ['40', '40', '7'],
+    3: ['3', '3', '12'],
+    12: ['3', '3', '12'],
+    5: ['5', '5', '9'],
+    9: ['5', '5', '9'],
+  });
+  // (Break on purpose: drop the check for an empty key.)
+  assert.equal(duplicates.has('30'), false, 'a name of punctuation alone');
+  assert.equal(duplicates.has('20'), false, 'a club with one record');
 });
