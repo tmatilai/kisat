@@ -160,8 +160,7 @@ async function renderGroup(compId, groupKey) {
 
   const state = viewStateFor(compId);
   // The meet body says whether this is a cup meet, which rows scored cup points
-  // and how the meet confirms entries (docs/backend.md,
-  // "What a competition's own settings say").
+  // and how the meet confirms entries (docs/backend.md, "Meet settings").
   const [loaded, targets, cupMeet, scopeChoice, listed] = await Promise.all([
     loadGroup(compId, groupKey),
     followTargets(compId, state),

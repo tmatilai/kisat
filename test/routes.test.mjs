@@ -833,7 +833,7 @@ test('siteAssetPath', () => {
 });
 
 // --- siteMeta: the title and preview tags a crawler reads in the served
-// document (docs/backend.md, "The document, and what a preview says") ---
+// document (docs/backend.md, "Link previews") ---
 test('siteMeta', () => {
   assert.equal(siteMeta('kisat'), null, "index.html ships Kisat's own strings untouched");
   assert.equal(siteMeta('juoksut').title, 'Juoksut');

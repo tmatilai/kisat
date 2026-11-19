@@ -79,8 +79,8 @@ with its own data runs the cron's work on request.
    "The name in your wrangler.jsonc file must match the name of your Worker", even with the right
    name (2026-09).
 6. **The WAF rules**, in the zone's dashboard under Security. One is a Rate Limiting rule on
-   `/api/*` of both hosts, and `docs/backend.md`, "Abuse protection, layered", has its measured
-   rate. The other is a Custom Rule with action Block and this expression, with the fork's hosts:
+   `/api/*` of both hosts, and `docs/backend.md`, "Abuse protection", has its measured rate. The
+   other is a Custom Rule with action Block and this expression, with the fork's hosts:
 
    ```
    (http.host in {"kisat.example.com" "juoksut.example.com"}) and

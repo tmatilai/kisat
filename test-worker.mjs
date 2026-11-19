@@ -889,8 +889,8 @@ try {
     assert.equal(badDay.status, 200, 'an unparseable day falls back to today rather than erroring');
 
     // The window derives from the day alone and ignores from/to, or a client
-    // would set how many digests a scan reads (docs/backend.md, "The scan, and
-    // its three layers"). (Break on purpose: honour from/to and this fails.)
+    // would set how many digests a scan reads (docs/backend.md, "The scan").
+    // (Break on purpose: honour from/to and this fails.)
     const widened = await api(`/api/scan/${scanId}?day=${SCAN_DAY}&from=2020-01-01&to=2030-01-01`);
     const widenedBody = await widened.json();
     assert.deepEqual(

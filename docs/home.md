@@ -99,7 +99,7 @@ Rules:
   run it too.
 - `scanSection` (`app/home.js`): the `Vanhentunut` chip on a stale meet, and the empty notice that
   waits for the pending meets.
-- `docs/backend.md`, "The scan, and its three layers": what the Worker builds, and when.
+- `docs/backend.md`, "The scan": what the Worker builds, and when.
 - `dev/probe-home.js`: the loop over a stubbed scan.
 
 Rule:

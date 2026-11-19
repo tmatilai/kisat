@@ -39,7 +39,7 @@
     },
   ],
   // Each binding caps one IP's requests at a guessed figure. docs/backend.md
-  // ("Abuse protection, layered") says what each counts. A namespace_id is a
+  // ("Abuse protection") says what each counts. A namespace_id is a
   // number chosen here, not a resource to create.
   "ratelimits": [
     {

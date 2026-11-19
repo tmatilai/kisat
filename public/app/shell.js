@@ -547,7 +547,7 @@ function scanTodayIso() {
 // Fills in pending or stale rows for home's scan and the championship and cup
 // year pages (docs/home.md, "Filling the scan in"). While left(data) is above
 // zero it builds a round at a time and hands each answer to onUpdate. One loop
-// runs per key.
+// runs per key. A cold summer window took about 26 rounds (2026-08).
 const MAX_BUILD_ROUNDS = 30;
 // A round the limiter refuses (429) waits out the limiter's window and goes
 // on. Any other failure retries after a short wait. A loop that stops with

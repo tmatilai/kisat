@@ -50,7 +50,7 @@ Rules:
 
 - **A view is a path, and a link that carries a Watch id, an edit token or a followed person is a
   fragment.** A browser sends no fragment to a server, and a path lets a link preview name the meet
-  (`docs/backend.md`, "The document, and what a preview says").
+  (`docs/backend.md`, "Link previews").
 - **A retired URL shape keeps working until its date in `docs/shims.md`.** When its shim goes, its
   test becomes one that the shape falls through to home.
 - **A view changes the address only through `navigate`, or through `replaceAddress` for a choice the
@@ -137,7 +137,7 @@ One Worker serves both hosts, and the host picks the mode.
 - `routeMode` (`lib/routes.js`): the views of one mode. On the other mode's host such a route leaves
   for its own host, and on a dev host it falls to home.
 - `SITE_ASSETS`, `siteMeta` (`lib/routes.js`): the files and the document's identity per host
-  (`docs/backend.md`, "The document, and what a preview says").
+  (`docs/backend.md`, "Link previews").
 - `docs/juoksut.md`, "What the counter requires of the rest": why nothing on the way to the counter
   needs `/api`, and why Juoksut mode asks for no meet body.
 

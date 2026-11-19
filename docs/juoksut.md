@@ -35,9 +35,9 @@ The counter's own rules are in `docs/lap-counter.md`. These hold for the code ar
 - **Nothing on the way to the counter needs `/api`.** The counter reads Tuloslista directly and runs
   from its stored snapshot, so a rate limit cannot lock an official out mid-meet. A start's page
   renders when its `/api` reads fail, and the Juoksut host answers only `GET /api/medals/:compId`
-  (`docs/backend.md`, "Abuse protection, layered"). For the same reason the mode has no
-  follow-lists, as `viewStateFor` returns no Watch in Juoksut mode (`docs/architecture.md`, "The two
-  modes"), and `fetchMeetBody` asks for no meet body (`dev/probe-hurdles.js`).
+  (`docs/backend.md`, "Abuse protection"). For the same reason the mode has no follow-lists, as
+  `viewStateFor` returns no Watch in Juoksut mode (`docs/architecture.md`, "The two modes"), and
+  `fetchMeetBody` asks for no meet body (`dev/probe-hurdles.js`).
 - **The counter lives on the Juoksut origin alone.** `localStorage` is per origin, so a race counted
   on one host is not on the other. Kisat mode links to the counter nowhere. In Juoksut mode the
   button on a start, `Kierroslaskuri` or `Maaliintulot`, is the only way in besides the URL.

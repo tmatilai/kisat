@@ -578,10 +578,10 @@ async function mapWithConcurrency(items, limit, fn) {
   return results;
 }
 
-// --- What a competition's own settings say ----------------------
+// --- Meet settings -----------------------------------------------
 //
 // GET /api/meet/:compId answers the meet body (cupBody, lib/cup.js). Its
-// shapes are in docs/backend.md, "What a competition's own settings say".
+// shapes are in docs/backend.md, "Meet settings".
 
 function meetKey(compId) {
   return `meet:${compId}`;
@@ -1046,9 +1046,8 @@ async function cacheMeet(env, compId, built, propsRead) {
 // --- Cross-meet front page ------------------------------------
 //
 // GET /api/scan/:watchId?day=YYYY-MM-DD[&build=1] answers which meets around
-// `day` have somebody of this follow-list entered. Its three cached layers,
-// L1 to L3, and its fixed window are in docs/backend.md, "The scan, and its
-// three layers".
+// `day` have somebody of this follow-list entered. Its three cached layers
+// and its fixed window are in docs/backend.md, "The scan".
 const CAL_WINDOW_PAST_DAYS = RECENT_DAYS;
 const CAL_WINDOW_FUTURE_DAYS = 60;
 const CAL_KEY = 'cal:v1';
@@ -1060,13 +1059,13 @@ const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const CAL_CACHE_TTL_S = 900;
 const CAL_DAYS_REFRESH_S = 43_200;
 const CAL_EMPTY_RETRY_S = 3600;
-// Caps a cold rebuild at about one roster build's upstream traffic, as
-// estimated in docs/backend.md, "L1 is the calendar index".
+// Caps a cold rebuild at about one roster build's upstream traffic, at about
+// 27 KB a schedule (2026-08).
 const CAL_SCHEDULE_FETCH_LIMIT = 60;
 
 // Caps the digests built per build=1 request, and the rest come back pending
 // for app/home.js to ask again. A cold window at its busiest takes a few
-// minutes under SCAN_LIMITER's 10 a minute (docs/backend.md).
+// minutes under SCAN_LIMITER's 10 a minute (2026-08).
 const SCAN_BUILD_LIMIT = 3;
 // Sets when a digest turns stale, and a stale one is served and queued for a
 // rebuild. A past meet's digest has stopped changing. Both figures are
@@ -1319,9 +1318,9 @@ function needsSchedule(comp, now) {
   return ageS > (comp.days.length ? CAL_DAYS_REFRESH_S : CAL_EMPTY_RETRY_S);
 }
 
-// Builds L1, returning { comps, cache } with every listed competition and the
-// real days of each whose schedule was fetched. Returns null if the listing
-// fails and no calendar is cached.
+// Builds the calendar index (layer 1 of the scan), returning { comps, cache }
+// with every listed competition and the real days of each whose schedule was
+// fetched. Returns null if the listing fails and no calendar is cached.
 async function loadCalendar(env, dayIso, fromIso, toIso) {
   const cached = await env.ROSTER.get(CAL_KEY, 'json');
   const now = Date.now();
@@ -1356,8 +1355,7 @@ async function loadCalendar(env, dayIso, fromIso, toIso) {
   });
 
   // Only candidates need a schedule, nearest `day` first, so the fetch limit
-  // drops the meets furthest from it (docs/backend.md, "The scan, and its
-  // three layers").
+  // drops the meets furthest from it (docs/backend.md, "The scan").
   const centre = Date.parse(`${dayIso}T00:00:00Z`);
   const byId = new Map(comps.map((c) => [String(c.id), c]));
   const need = calendarCandidates(listing, fromIso, toIso)
@@ -1585,8 +1583,8 @@ function medalSeasonKey(compId) {
   return `medalseason:v4:${compId}${elsewhereTag(elsewhere, compId)}`;
 }
 
-// Bounds a build=1 round. Filling a cold year one meet per request would
-// outrun SCAN_LIMITER (docs/backend.md, "A scope's year").
+// Bounds a build=1 round. A cold year had 9 to 15 meets, each built in 3 to
+// 8 s (2026-09), so one meet per request would outrun SCAN_LIMITER.
 const SEASON_ROUND = { limit: 4, budgetMs: 12_000 };
 
 async function handleMedalSeason(scopeId, yearParam, env, request, url) {

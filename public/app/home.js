@@ -339,7 +339,7 @@ async function renderHome() {
 
 // Asks which meets around today have somebody followed entered. The default
 // request leaves out build=1 because home re-renders on every
-// visibilitychange (docs/backend.md, "The Worker builds only when asked").
+// visibilitychange (docs/backend.md, "The scan").
 async function fetchScan(watchId, build) {
   if (!watchId) return null;
   return fetchJson(`/api/scan/${watchId}?day=${scanTodayIso()}${build ? '&build=1' : ''}`).catch(() => null);
