@@ -41,7 +41,7 @@ the Worker, each with its query. Every probe's header says what it covers and it
   `probe-refresh.js` does, and check that the visible case does happen within the wait.
 - **Log the values, then assert on them**, so that a failing probe shows what it read.
 - **A `(Break on purpose: …)` comment beside a check names the break that makes it fail**
-  (`AGENTS.md`, "Prove a guard is not vacuous").
+  (`AGENTS.md`, "Check that each new test or probe check can fail").
 - **Stub `W.Date.now` for a check that a deadline decides**, as `probe-varmistus.js` does.
   Unstubbed, the check passes in the morning and fails in the afternoon.
 - **Read every table of the view**, since each heat is a `.tbl` of its own.

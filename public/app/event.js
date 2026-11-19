@@ -923,8 +923,8 @@ const FIELD_ORDER = { ...PLAIN_ORDER, label: 'Järj.' };
 const SHUTTLE_ORDER = { label: 'Radat', text: shuttleLaneText };
 
 // Gives what the tables of one class share, over the defaults. A row's own data
-// is read off the row, as the name cell's is (AGENTS.md, "The name cell is
-// one function for every table"). Whether bib numbers show is asked over
+// is read off the row, as the name cell's is (AGENTS.md, "Every table uses
+// the same name cell"). Whether bib numbers show is asked over
 // allocs.
 function tableContext(allocs, t = {}) {
   return {
