@@ -5,7 +5,7 @@ import { confirmSetting } from './public/lib/confirmation.js';
 import { cupBody, cupDetail, cupMode, cupSeasonMeets, cupSeasonRecord, cupSeasonRows } from './public/lib/cup.js';
 import { fiToIsoDay, isoDay, scheduleDays, shiftIsoDay } from './public/lib/dates.js';
 import { demoApiBody, demoSearchScope } from './public/lib/demo-api.js';
-import { clubScopes, meetScopes } from './public/lib/districts.js';
+import { clubScopes, duplicateClubs, meetScopes } from './public/lib/districts.js';
 import {
   T4R_BASE,
   aloneEntries,
@@ -1218,7 +1218,14 @@ async function handleSearch(env, request, url) {
     env.ROSTER.get(ORGS_KEY, 'json'),
     env.ROSTER.get(ATHLETES_KEY, 'json'),
   ]);
-  const { clubs, athletes } = searchBody(scoped, orgIndexClubs(orgs), athleteIndex, query);
+  const indexClubs = orgIndexClubs(orgs);
+  const { clubs, athletes } = searchBody(
+    scoped,
+    indexClubs,
+    athleteIndex,
+    query,
+    duplicateClubs(districts, indexClubs),
+  );
   return searchResponse(clubs, athletes);
 }
 
@@ -1658,8 +1665,13 @@ const CLUB_ID_RE = /^[\p{L}\p{N}_-]{1,64}$/u;
 async function handleMedalClub(orgId, env) {
   if (!CLUB_ID_RE.test(orgId)) return new Response('Virheellinen seura.', { status: 400 });
   const [orgs, index] = await Promise.all([env.ROSTER.get(ORGS_KEY, 'json'), env.ROSTER.get(MEETS_KEY, 'json')]);
-  const club = orgIndexClubs(orgs).find((c) => String(c.id) === orgId);
-  if (!club) return new Response('Seuraa ei löytynyt.', { status: 404 });
+  const clubs = orgIndexClubs(orgs);
+  const row = clubs.find((c) => String(c.id) === orgId);
+  if (!row) return new Response('Seuraa ei löytynyt.', { status: 404 });
+  const { canonical: club, ids: clubIds } = duplicateClubs(districts, clubs).get(orgId) || {
+    canonical: row,
+    ids: [orgId],
+  };
   const scopes = clubScopes(districts, { Name: club.name, NameShort: club.nameShort });
   const meets = meetIndexMeets(index);
   const today = todayIso();
@@ -1689,7 +1701,8 @@ async function handleMedalClub(orgId, env) {
         id,
         meets: clubSeasonMeets(
           kept.map((m) => seasonMeetBody(m, recordOf(m), own ? null : id, stale(recordOf(m)))),
-          orgId,
+          String(club.id),
+          clubIds,
         ),
         pending: kept.filter((m) => !recordOf(m)).map((m) => m.id),
       };

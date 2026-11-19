@@ -610,6 +610,17 @@ test('the picker’s search', () => {
     { licenseId: '3', organizationId: '2', name: 'Aada Mallinen', club: 'Demon Urheilijat' },
   ]);
   assert.deepEqual(searchBody({ clubs: [clubs[0]], people: [] }, [clubs[1]], null, 'kisa').clubs, [clubs[0]]);
+  // A duplicate record is listed as its canonical club, once. (Break on
+  // purpose: drop the map to the canonical club.)
+  const second = { id: '8', name: 'Testilän-Kisa', nameShort: 'TKisa' };
+  const group = { canonical: clubs[0], ids: ['1', '8'] };
+  const duplicates = new Map([
+    ['1', group],
+    ['8', group],
+  ]);
+  const none = { clubs: [], people: [] };
+  assert.deepEqual(searchBody(none, [clubs[0], second], null, 'kisa', duplicates).clubs, [clubs[0]]);
+  assert.deepEqual(searchBody(none, [clubs[0], second], null, 'tkisa', duplicates).clubs, [clubs[0]]);
   assert.deepEqual(
     searchBody({ clubs: [], people: [] }, [], null, 'a'),
     { clubs: [], athletes: [] },

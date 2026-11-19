@@ -311,8 +311,9 @@ Traps:
 - **A club keeps its `Organization.Id` across meets.** Each club name has one id and each id one
   name, except that a few clubs outside SUL athletics, and some schools, exist under two ids, so a
   year keyed on the id shows them twice (2026-10).
-- **A club entered by hand is a second `Organization`**, with a `NameShort` of its own and the same
-  `Name` (2026-09).
+- **A club entered by hand at a meet gets a duplicate `Organization`.** Its `Name` differs from the
+  club's only in case, spacing, punctuation or a trailing "ry". Its `NameShort` usually differs
+  (2026-11).
 
 ## Field events
 

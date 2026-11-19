@@ -84,10 +84,10 @@ function mergeSearchRows(scoped, indexed, idOf, limit) {
 // Builds GET /api/search's body, the open meet's own `scoped` {clubs, people}
 // ahead of the indexes'. A person's row names the club, since the picker has
 // no club list of its own.
-function searchBody(scoped, indexClubs, athleteIndex, query) {
+function searchBody(scoped, indexClubs, athleteIndex, query, duplicates = new Map()) {
   const clubs = mergeSearchRows(
     searchClubs(scoped.clubs, query),
-    searchClubs(indexClubs, query),
+    searchClubs(indexClubs, query).map((c) => duplicates.get(String(c.id))?.canonical || c),
     (c) => c.id,
     SEARCH_CLUB_LIMIT,
   );

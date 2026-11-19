@@ -30,6 +30,31 @@ function inScope(scope, org) {
   return key !== '' && scopeNameKeys.get(scope).has(key);
 }
 
+// Maps the id of each duplicate club record (docs/backend.md, "The club
+// index") to {canonical, ids}, with the canonical id first in `ids`.
+function duplicateClubs(districts, clubs) {
+  const listed = new Set((districts?.piirit || []).flatMap((p) => p.clubs || []));
+  const byKey = new Map();
+  for (const c of clubs || []) {
+    const key = clubNameKey(c.name);
+    if (!key) continue;
+    if (!byKey.has(key)) byKey.set(key, []);
+    byKey.get(key).push(c);
+  }
+  const out = new Map();
+  for (const rows of byKey.values()) {
+    if (rows.length < 2) continue;
+    // The record a piiri lists is the federation's own.
+    const unlisted = (c) => (listed.has(c.nameShort) ? 0 : 1);
+    rows.sort(
+      (a, b) => unlisted(a) - unlisted(b) || Number(a.id) - Number(b.id) || String(a.id).localeCompare(String(b.id)),
+    );
+    const group = { canonical: rows[0], ids: rows.map((c) => String(c.id)) };
+    for (const id of group.ids) out.set(id, group);
+  }
+  return out;
+}
+
 // Proof-reads districts.json. It returns a line per problem, or [] if none.
 function districtProblems(d) {
   if (!Array.isArray(d?.alueet) || !d.alueet.length) return ['alueet: not a list'];
@@ -574,6 +599,7 @@ export {
   coversStart,
   defaultScopes,
   districtProblems,
+  duplicateClubs,
   foldEvent,
   inScope,
   medalScope,

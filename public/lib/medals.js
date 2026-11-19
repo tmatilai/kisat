@@ -918,19 +918,25 @@ function medalSeasonMeets(meets, scopeId, year, districts, elsewhere = null) {
 // --- A club's years ---
 
 // Returns a year's meets (seasonMeetBody's) with only the club's medals, name
-// and medalists. An unbuilt meet stays unbuilt.
-function clubSeasonMeets(meets, clubId) {
+// and medalists, counting the medals of all the club's record `ids` under
+// clubId. An unbuilt meet stays unbuilt.
+function clubSeasonMeets(meets, clubId, ids = [clubId]) {
   const id = String(clubId);
+  const own = new Set(ids.map(String));
   return (meets || []).map((m) => {
     if (m.starts == null) return { ...m, names: [], athletes: [], unknown: [] };
     const starts = m.starts
-      .map((s) => ({ ...s, medals: s.medals.filter(([c]) => c === id) }))
+      .map((s) => ({
+        ...s,
+        medals: s.medals.filter(([c]) => own.has(c)).map(([, medal, key]) => [id, medal, key]),
+      }))
       .filter((s) => s.medals.length);
     const keys = new Set(starts.flatMap((s) => s.medals.map(([, , key]) => key)));
+    const name = m.names.find(([c]) => c === id) || m.names.find(([c]) => own.has(c));
     return {
       ...m,
       starts,
-      names: m.names.filter(([c]) => c === id),
+      names: name ? [[id, name[1]]] : [],
       athletes: m.athletes.filter(([key]) => keys.has(key)),
       unknown: [],
     };
