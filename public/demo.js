@@ -3774,7 +3774,7 @@ for (const event of Object.values(DEMO_CUP_FINAL_EVENTS)) {
 
 // The fixture for t4rGraft (lib/elsewhere.js) is an adults' SM meet as
 // Tuloslista has it, with entries and nothing drawn. Beside it are the same
-// meet's result pages from the other site, already parsed (docs/elsewhere.md).
+// meet's result pages from the other site, already parsed.
 const DEMO_SM_PEOPLE = {
   m1: ['Aarne Demoinen', DEMO_ORG_DEMU],
   m2: ['Eino Mallinen', DEMO_ORG_MALV],
@@ -3891,7 +3891,7 @@ DEMO_SM_EVENTS.s20 = {
 // multi-event leg's points. A relay's row adds " | " and its runners. A
 // vertical jump's heads are its bars, and a head of two is a column the page
 // wrapped. DEMO_SM_CLUBS gives each row its club, and the page spells one club
-// its own way (docs/elsewhere.md).
+// its own way (2026-09).
 const DEMO_SM_CLUBS = new Map(
   [
     ...Object.values(DEMO_SM_PEOPLE),
@@ -3962,7 +3962,7 @@ const DEMO_SM_PAGES = [
   ],
   ['Esiurheilija M Pituus', '', 'la/12:20', '1 2 3', ['1 Urho Esimerkki 5,12~+0,2 / 5,12~+0,2 X~+0,3 4,98~+0,1']],
   // A final can be named Finaali, and its page can have a Maa column before
-  // the result (docs/elsewhere.md).
+  // the result (2026-11).
   [
     'N 100 m aj',
     'Finaali',
@@ -4073,18 +4073,17 @@ const DEMO_SM_PAGES = [
 ].map(demoSmPage);
 
 // The same pages as the other site serves them, keyed by the path under the
-// meet's directory (docs/elsewhere.md).
+// meet's directory.
 const demoSmCellHtml = (lines) => `<td class="drr">${lines.join('<br>')}</td>`;
 // A long relay's page writes each leg's split after the runner, in seconds or
 // in minutes, and a split's comma cuts its fraction into the next item
-// (docs/elsewhere.md). The demo's relay has both forms, which t4rResultPage
+// (2026-09). The demo's relay has both forms, which t4rResultPage
 // has to drop to give DEMO_SM_PAGES' runners back.
 const DEMO_SM_SPLITS = ['22,40', '1.02,10', '23,90', '1.03,44'];
 const demoSmSplit = (runner, i) => `${runner} ${DEMO_SM_SPLITS[i % DEMO_SM_SPLITS.length]}`;
 // A multi-event leg's points sit in an unheaded column before the attempt
 // columns, or last where there are none. A page without them has another
-// unheaded cell of digits and a comma, and only a cell of digits alone scores
-// (docs/elsewhere.md).
+// unheaded cell of digits and a comma, and only a cell of digits alone scores.
 const demoSmHeatHtml = ({ wind, heads, rows }, i, country) => {
   const scored = rows.some((r) => r.points != null);
   const blank = '<th width="46px"></th>';
@@ -4134,8 +4133,7 @@ ${pages
 </TR>`,
   )
   .join('\n')}</table>`;
-// A start list's row over each heat gives the round's rule for going through
-// (docs/elsewhere.md).
+// A start list's row over each heat gives the round's rule for going through.
 const demoSmStartHtml = ({ heats, time }, rule) =>
   heats
     .map(
@@ -4152,7 +4150,7 @@ const DEMO_SM_SITE = {
 };
 
 // The fixture for olAloneMeet (lib/elsewhere.js) is a road championship's row of
-// elsewhere.json and the mass race's files, as docs/elsewhere.md measures them.
+// elsewhere.json and the mass race's files, as measured (2026-09).
 const DEMO_ROAD_ROW = {
   id: 'maraton-2026',
   name: 'SM-maraton',

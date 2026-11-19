@@ -33,7 +33,7 @@ const personNameKey = (s) =>
   );
 const T4R_FINAL_RE = /^(?:loppukilpailu|finaali)?$/iu;
 // A wheelchair race is in the meet but is not a championship event
-// (docs/elsewhere.md), so it gets no results and no medals.
+// (2026-09), so it gets no results and no medals.
 const T4R_NOT_SM_RE = /kelaus/iu;
 
 // Maps a name and club to a licence from the athlete index, as no result page
@@ -59,7 +59,7 @@ const madeName = (name) => ({
 });
 
 // Makes an entry under `org`, the row's club, for a page row nobody entered
-// (docs/elsewhere.md, "Matching a row to an entry"). The id keys the club and
+// (docs/elsewhere.md). The id keys the club and
 // the compared name, so two spellings are one person. A relay's row is a team,
 // so it is nobody's medal.
 function t4rMadeEntry(row, org, relay, licences) {
@@ -85,7 +85,7 @@ function t4rMadeEntry(row, org, relay, licences) {
   return { Id: made(name), Name: name, TeamName: name, Athletes: [], AthleteOrders: legs, Organization: org };
 }
 
-// Turns a page's attempts into the API's shape (docs/elsewhere.md). A throw
+// Turns a page's attempts into the API's shape. A throw
 // or a horizontal jump has a column an attempt, with a jump's wind on line two.
 // A vertical jump's cell has a line per header bar, and a pass is left out.
 function t4rAttempts(cells, heads, subCategory) {
@@ -105,7 +105,7 @@ function t4rAttempts(cells, heads, subCategory) {
 }
 
 // Reads one result page as the round's heats. A row finds its entry by name, or
-// by its club and first name where a surname changed (docs/elsewhere.md). A
+// by its club and first name where a surname changed (2026-09). A
 // page numbers places within a heat, so a round of several is ranked by result.
 function t4rHeats(page, data, clubOf, licences) {
   const entries = new Map((data.Enrollments || []).map((e) => [personNameKey(e.Name), e]));
@@ -166,8 +166,8 @@ function t4rHeats(page, data, clubOf, licences) {
 }
 
 // Maps each page directory to the day it stands for. A directory names its
-// weekday in two letters, and the front page is the last day none names
-// (docs/elsewhere.md). A page of any other day gets no start of its own.
+// weekday in two letters, and the front page is the last day none names.
+// A page of any other day gets no start of its own.
 const T4R_WEEKDAYS = ['su', 'ma', 'ti', 'ke', 'to', 'pe', 'la'];
 function t4rDays(schedule, pages) {
   const dirs = new Set((pages || []).map((p) => p.dir).filter(Boolean));
@@ -248,7 +248,7 @@ function t4rEventGraft(data, round, row, pages, clubOf, licences) {
 }
 
 // Returns {schedule, events} with each event's rounds filled from its pages on
-// the other site (docs/elsewhere.md). A filled round is marked Official twice,
+// the other site. A filled round is marked Official twice,
 // as a medal reads the event's copy and a multi-event's status the schedule's.
 function t4rGraft(schedule, eventResults, pages, licences) {
   const days = t4rDays(schedule, pages);
@@ -312,7 +312,7 @@ function t4rGraft(schedule, eventResults, pages, licences) {
 
 // Maps each page directory of a championship with no meet here to its day. A
 // weekday's directory stands for its day in the week up to `lastDay`, and the
-// front page or any other directory for `lastDay` (docs/elsewhere.md).
+// front page or any other directory for `lastDay`.
 function t4rAloneDays(lastDay, pages) {
   const last = Date.parse(`${lastDay}T12:00:00Z`);
   const days = new Map([['', isoToFiDay(lastDay)]]);
@@ -326,7 +326,7 @@ function t4rAloneDays(lastDay, pages) {
 }
 
 // Such a meet has no event document to say it is a relay, so the name's leg
-// count does (docs/elsewhere.md).
+// count does (2026-09).
 const T4R_ALONE_RELAY_RE = /(\d)\s*x\s*\d/iu;
 
 // Returns {schedule, events} for meetMedalsBody from a row that stands alone
@@ -438,7 +438,7 @@ function t4rWanted(rows, eventResults) {
 }
 
 // Converts a start list's rule (t4rQualRule) to the round's. The site writes a
-// bar in centimetres (docs/elsewhere.md), and the event's kind says which mark
+// bar in centimetres, and the event's kind says which mark
 // is a bar. Deciding by the number alone would shrink a throw's mark of metres.
 const t4rRoundQualRule = (qualRule, subCategory) =>
   subCategory === 'VerticalJump' && /^\d+$/.test(qualRule?.QRank ?? '')
@@ -555,7 +555,7 @@ function olRace(files, orgs, file, districts, licences) {
 }
 
 // Returns a finisher's place, which the race's files do not give. It counts the
-// faster finishes, as no two in a class share a time (docs/elsewhere.md).
+// faster finishes, as no two in a class share a time (2026-09).
 const olRank = (finished, time) => 1 + finished.filter((o) => o.time < time).length;
 
 // Returns {schedule, events} for meetMedalsBody from a row that stands alone
