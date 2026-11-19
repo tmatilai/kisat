@@ -60,6 +60,8 @@ import {
 import {
   appEl,
   el,
+  keepData,
+  keptData,
   navigate,
   renderFillStatus,
   renderSeq,
@@ -92,12 +94,12 @@ async function renderMedals(compId, ages = [], club = null) {
 
   const state = viewStateFor(compId);
   const [props, schedule, filter, medalBody, districts, listed] = await Promise.all([
-    fetchCompProps(compId),
-    fetchSchedule(compId),
-    resolveFilter(compId, state),
+    keptData(`props:${compId}`, () => fetchCompProps(compId)),
+    keptData(`schedule:${compId}`, () => fetchSchedule(compId)),
+    keptData(`filter:${compId}`, () => resolveFilter(compId, state)),
     // The meet's medal table and one per scope (docs/backend.md,
     // "The medal table").
-    fetchJson(`/api/medals/${compId}`).catch(() => null),
+    keptData(`/api/medals/${compId}`, () => fetchJson(`/api/medals/${compId}`).catch(() => null)),
     loadDistricts(compId),
     listedRow(compId),
   ]);
@@ -605,8 +607,8 @@ async function renderMedalSeason({ scopeId, year: wantedYear, ages, club }, isRe
   }
   const url = `/api/medalseason/${scope.id}/${year}`;
   const [data, watch] = await Promise.all([
-    fetchJson(url).catch(() => null),
-    state.watchId ? loadActiveWatch(state.watchId) : null,
+    keptData(url, () => fetchJson(url).catch(() => null)),
+    state.watchId ? keptData(`watch:${state.watchId}`, () => loadActiveWatch(state.watchId)) : null,
   ]);
   if (seq !== renderSeq) return;
   if (!data) {
@@ -779,7 +781,10 @@ async function renderMedalSeason({ scopeId, year: wantedYear, ages, club }, isRe
         (d) => ({ data: d }),
         (e) => ({ status: e.status }),
       ),
-    onUpdate: paint,
+    onUpdate: (next) => {
+      keepData(url, next);
+      paint(next);
+    },
   });
 }
 
@@ -798,7 +803,8 @@ async function renderMedalClub({ club, ages }) {
   titleEl.textContent = clubNames.get(club) || MEDAL_SEASON_PAGE_TITLE;
   const state = viewStateFor(HOME_VIEW_KEY);
   const bar = filterBar(HOME_VIEW_KEY, state, { label: watchLabel(state.watchId) }, false);
-  const data = await fetchJson(`/api/medalclub/${encodeURIComponent(club)}`).catch(() => null);
+  const url = `/api/medalclub/${encodeURIComponent(club)}`;
+  const data = await keptData(url, () => fetchJson(url).catch(() => null));
   if (seq !== renderSeq) return;
   if (!data) {
     appEl.replaceChildren(bar, el('div', { class: 'notice error' }, 'Seuran mitalien haku epäonnistui.'));

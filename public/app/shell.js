@@ -452,8 +452,29 @@ function setRouter(hooks) {
 // view is on screen (dev/AGENTS.md, "Writing a probe").
 let rendering = Promise.resolve();
 function render(isRefresh = false) {
+  if (!redrawing) kept.clear();
   rendering = router.render(isRefresh);
   return rendering;
+}
+
+// The data a view fetched, by key. A redraw (navigate) reuses it, so an age
+// chip changes the page at once. Any other render fetches again.
+const kept = new Map();
+let redrawing = false;
+function keptData(key, fetch) {
+  if (!kept.has(key)) {
+    const promise = fetch();
+    kept.set(key, promise);
+    // A failed fetch is not kept, so a redraw tries again.
+    const drop = () => kept.get(key) === promise && kept.delete(key);
+    promise.then((v) => v == null && drop(), drop);
+  }
+  return kept.get(key);
+}
+// Newer data the view fetched itself, such as a build round's, replaces the
+// kept data.
+function keepData(key, value) {
+  kept.set(key, Promise.resolve(value));
 }
 
 // Holds what each module drops when the route changes. A module registers it
@@ -492,12 +513,15 @@ function leaveView() {
 // The way to another view; replaceAddress writes a choice the view already
 // shows. pushState fires no event, so this renders itself.
 // `replace` reuses the current entry (openFocusFilter). `redraw` swaps the
-// view in place as a refresh does, with no loading placeholder.
+// view in place as a refresh does, with no loading placeholder, and from the
+// data it has (keptData).
 function navigate(href, { replace = false, redraw = false } = {}) {
   history[replace ? 'replaceState' : 'pushState'](null, '', addressUrl(href));
   if (!redraw) leaveView();
   else {
+    redrawing = true;
     render(true);
+    redrawing = false;
     router.scheduleRefresh();
   }
 }
@@ -607,6 +631,8 @@ export {
   helpEl,
   helpTopics,
   hideBack,
+  keepData,
+  keptData,
   keptOpen,
   layers,
   menuRow,
