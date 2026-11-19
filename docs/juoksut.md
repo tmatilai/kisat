@@ -1,47 +1,36 @@
 # Juoksut mode
 
-Juoksut mode is the app for the official at the finish line. It puts track and relay first, and it
-has the lap counter (`docs/lap-counter.md`). `docs/architecture.md`, "The two modes", says how the
-host picks the mode and which routes each mode owns.
+Juoksut mode is the app for the official at the finish line, with the lap counter
+(`docs/lap-counter.md`). `docs/architecture.md`, "The two modes", describes how the host selects the
+mode.
 
 ## What each mode has
 
-Kisat mode is the audience's. Juoksut mode is for the official who holds the phone at the line, so
-whatever says what to put on the track is Juoksut's alone. Whatever shows the race the audience
-watched is in both, such as the combined heat view and the combined result (`docs/views.md`).
+Anything that tells the official what to set up on the track belongs to Juoksut mode alone, such as
+the lap counter, the meet's track, the hurdle setups and the `Ratalajit / Kaikki` toggle on the
+schedule. Anything that shows the race the audience watched is in both modes. Follow-lists exist
+only in Kisat mode. Both modes have the hurdle and implement tables (`/mitat`), and the
+championships sheet with a final's `Mitalit`, because an official hands out the medals from a
+start's page.
 
-- **Kisat alone:** follow-lists and the picker's search, and a home listing annotated by the active
-  follow-list. Juoksut's home is a plain listing.
-- **Juoksut alone:** the lap counter, the meet's track, the hurdle setups (on a start, on
-  `Ratalajit`'s rows and in the day sheet), and the schedule's `Ratalajit / Kaikki` toggle
-  (`docs/architecture.md`, "The two modes"). Kisat's schedule shows every category, with no category
-  toggle.
-- **Both:** the hurdle and implement tables (`/mitat`), and the championships sheet with a final's
-  `Mitalit`, since an official hands the medals out from a start's page.
-
-**A mode changes framing and reach, never logic.** Everything below the view layer is one
-implementation. A difference in the data goes in `public/lib/` for both modes.
+**A mode changes framing and reach, never logic.** Everything below the view layer has one
+implementation for both modes.
 
 ## What the counter requires of the rest
 
-The counter's own rules are in `docs/lap-counter.md`. These hold for the code around it.
-
 - **`scheduleRefresh` arms no timer on the `laps` route, and the `visibilitychange` handler
-  re-renders every view but the counter.** A refresh would rebuild the tiles under the official's
-  finger. `dev/probe-laps.js` checks that no refresh timer is armed and that no tile is rebuilt in
-  30 s.
-- **The counter takes neither `main.list` nor `main.wide`.** Its density follows the size of the
+  re-renders every view except the counter.** A refresh would rebuild the tiles under the official's
+  finger.
+- **The counter uses neither `main.list` nor `main.wide`.** Its density depends on the size of the
   field (`docs/lap-counter.md`, "Reading the screen").
-- **Nothing on the way to the counter needs `/api`.** The counter reads Tuloslista directly and runs
-  from its stored snapshot, so a rate limit cannot lock an official out mid-meet. A start's page
-  renders when its `/api` reads fail, and the Juoksut host answers only `GET /api/medals/:compId`
-  (`docs/backend.md`, "Abuse protection"). For the same reason the mode has no follow-lists, as
-  `viewStateFor` returns no Watch in Juoksut mode (`docs/architecture.md`, "The two modes"), and
-  `fetchMeetBody` asks for no meet body (`dev/probe-hurdles.js`).
-- **The counter lives on the Juoksut origin alone.** `localStorage` is per origin, so a race counted
-  on one host is not on the other. Kisat mode links to the counter nowhere. In Juoksut mode the
-  button on a start, `Kierroslaskuri` or `Maaliintulot`, is the only way in besides the URL.
+- **Nothing on the way to the counter needs `/api`.** The counter fetches from Tuloslista directly
+  and runs from its stored snapshot, so a rate limit cannot lock an official out during a meet. A
+  start's page renders when its `/api` requests fail, and the Juoksut host serves only
+  `GET /api/medals/:compId` (`docs/backend.md`, "Abuse protection"). For the same reason, Juoksut
+  mode has no follow-lists and fetches no meet body.
+- **The counter lives on the Juoksut origin only.** `localStorage` is per origin, so a race counted
+  on one host is not stored on the other. Kisat mode has no link to the counter. In Juoksut mode,
+  the start's button is the only way into the counter other than its URL.
 - **`laps:<compId>:<groupKey>` and `track:<compId>` keep their exact format.** A count in progress
-  is stored under them, and a renamed key orphans it. A chosen kenttä is `venue:<compId>`, a key of
-  its own, and it writes its length through to `track:` (`docs/venues.md`). `docs/lap-counter.md`
-  ("Storage") has how long they are kept.
+  is stored under these keys, and renaming a key orphans the count. So a chosen kenttä has its own
+  key, `venue:<compId>` (`docs/venues.md`).
