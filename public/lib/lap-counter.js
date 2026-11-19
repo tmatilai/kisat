@@ -81,7 +81,7 @@ function isTrackLength(n) {
 
 // Says whether a fetch replaces the counter's stored roster. Over a stored
 // one it takes every category and a heat with someone in it, or competitors
-// leave the grid mid-race (docs/lap-counter.md, "Storage").
+// leave the grid mid-race.
 function refreshesSnapshot(detailed, heats, stored) {
   if (!detailed?.some((d) => d.data)) return false;
   if (!stored?.heats?.length) return true;
