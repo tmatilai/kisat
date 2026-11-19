@@ -25,7 +25,7 @@ function parseTs(ts) {
 }
 
 // Returns a timestamp's instant for sorting, as one meet's rows can carry two
-// UTC offsets (docs/tuloslista-api.md). An unparseable one sorts last.
+// UTC offsets (2026-09). An unparseable one sorts last.
 function tsKey(ts) {
   const t = parseTs(ts).getTime();
   return Number.isFinite(t) ? t : Infinity;
@@ -40,7 +40,7 @@ function dayDiff(a, b) {
 }
 
 // Returns the day as written, YYYY-MM-DD, whatever the offset. The API writes
-// one instant under two offsets (docs/tuloslista-api.md).
+// one instant under two offsets (2026-09).
 function isoDay(ts) {
   const m = /^(\d{4}-\d{2}-\d{2})/.exec(String(ts ?? ''));
   return m ? m[1] : '';

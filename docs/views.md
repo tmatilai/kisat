@@ -12,8 +12,8 @@
 
 - **Code that shows an undrawn round's field checks `!roundAllocated`, then tries
   `previousRoundField`.** `Enrollments[]` lists everyone entered in the event, not in one round
-  (`docs/tuloslista-api.md`), so it is the real field only if the event has no earlier round.
-  `groupLines`, `startCounts` and the event view all follow this rule.
+  (2026-08), so it is the real field only if the event has no earlier round. `groupLines`,
+  `startCounts` and the event view all follow this rule.
 
 ## Varmistus
 
@@ -56,7 +56,7 @@
 ## Multi-events
 
 The ottelu standings show on each leg's page and on the multi-event's own page. A day's schedule
-lists only the legs (`docs/tuloslista-api.md`, "Combined events (moniottelu)").
+lists only the legs (2026-08).
 
 ## Results on another site
 
@@ -74,9 +74,8 @@ side is in `docs/tuloslista-api.md`, "Club-cup points (Seuracup)".
 The championships sheet stores the chosen scopes per meet in the view state's `scopes`.
 
 - **`defaultScopes` guesses the scopes from the meet's name and organiser, and picks fewer when
-  unsure.** Nothing in Tuloslista marks a meet as a championship (`docs/tuloslista-api.md`). The
-  cases are in `test/districts.test.mjs`, most named by their meet's id. To change the rules, change
-  those cases.
+  unsure.** Nothing in Tuloslista marks a meet as a championship (2026-09). The cases are in
+  `test/districts.test.mjs`, most named by their meet's id. To change the rules, change those cases.
 
 ## The years
 

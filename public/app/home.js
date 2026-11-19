@@ -178,7 +178,7 @@ async function renderHome() {
   }
 
   // Rows outside the listing take their venue byline from here. Only the
-  // listing and a row that stands alone carry a venue (docs/tuloslista-api.md).
+  // listing and a row that stands alone carry a venue (2026-08).
   // A recent meet missing from both shows its date range alone.
   const knownPlaces = new Map(comps.map((c) => [String(c.Id), meetPlace(c.Location, c.OrganizationName)]));
 
@@ -249,8 +249,7 @@ async function renderHome() {
     const pool = f ? [...comps, ...(archived || [])] : showOlder ? comps : comps.filter((c) => meetIsRecent(whenOf(c)));
     // A search matches the byline the row prints (meetPlace). The raw Location
     // often holds a placeholder word, which would match meets that never show
-    // it (docs/tuloslista-api.md, "`Location` defaults to the placeholder
-    // `Kilpailupaikka`").
+    // it (2026-08).
     listEl.replaceChildren(
       ...pool
         .filter((c) => !f || `${c.Name} ${meetPlace(c.Location, c.OrganizationName)}`.toLowerCase().includes(f))

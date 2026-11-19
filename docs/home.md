@@ -8,8 +8,8 @@ The sections are `Seuratut`, `Viimeksi katsotut` and `Kilpailut`, in that order.
   changes neither the rows of `Kilpailut` nor their order, so the meets in `Seuratut` also appear in
   `Kilpailut`.
 - **Home has no quick-filter.** The quick-filter stores `Athletes[].Id`, which identifies an entry
-  in one meet only (`docs/tuloslista-api.md`, "`Athletes[].Id` identifies an entry"). To follow a
-  club or an athlete across meets, add them to a follow-list.
+  in one meet only (2026-09). To follow a club or an athlete across meets, add them to a
+  follow-list.
 
 ## The search
 

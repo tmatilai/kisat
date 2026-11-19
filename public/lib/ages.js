@@ -1,7 +1,7 @@
 // --- A class's age ---
 
 // Yleinen, the adult class at Age 0, sorts after the youth classes and before
-// every masters' row, also one filed at Age 30 (docs/tuloslista-api.md).
+// every masters' row, also one filed at Age 30 (2026-08).
 const ageOrder = (a) => (a === 0 ? 29.5 : a);
 // Returns a start's class age, 0 for yleinen, or null for a non-numeric `Age`.
 const startAge = (start) => (/^\d+$/.test(String(start?.Age ?? '')) ? Number(start.Age) : null);
@@ -18,8 +18,8 @@ const parseAges = (s) =>
   ].sort((a, b) => ageOrder(a) - ageOrder(b));
 const agesSegment = (ages) => parseAges((ages || []).join(',')).join(',');
 
-// An age of 30 splits youth from masters, as no class has an age near it
-// (docs/tuloslista-api.md, "Categories, names and identity").
+// An age of 30 splits youth from masters, as no class has an age near
+// it (2026-08).
 const MASTERS_MIN_AGE = 30;
 
 // --- The age chips ---

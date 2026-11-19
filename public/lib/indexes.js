@@ -7,8 +7,8 @@ import { digestPeople } from './digest.js';
 // be made with no meet open (docs/backend.md, "The club index").
 const ORG_INDEX_VERSION = 1;
 
-// Organization.Id 0 is "no club" for every unaffiliated entry
-// (docs/tuloslista-api.md). It is never a follow target, but it can show.
+// Organization.Id 0 is "no club" for every unaffiliated entry (2026-08). It is
+// never a follow target, but it can show.
 const isFollowableOrgId = (id) => id != null && String(id) !== '' && String(id) !== '0';
 
 // Returns {index, changed}. changed is false if nothing differs, and then
@@ -90,7 +90,7 @@ function sortMeetRows(rows) {
   return rows.sort((a, b) => (b[2] || '').localeCompare(a[2] || '') || Number(b[0]) - Number(a[0]));
 }
 
-// /properties has no venue and no last day (docs/tuloslista-api.md).
+// /properties has no venue and no last day (2026-08).
 function propertiesMeetRow(props) {
   const c = props?.Competition;
   if (!c?.Name) return null;

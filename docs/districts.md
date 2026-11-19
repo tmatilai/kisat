@@ -1,8 +1,7 @@
 # Piirit
 
-The API has no data about piiris (`docs/tuloslista-api.md`, "Categories, names and identity"), so
-`districts.json` lists the federation's piiris and their member clubs. The medal rule is in
-`docs/views.md`, "Medals".
+The API has no data about piiris (2026-09), so `districts.json` lists the federation's piiris and
+their member clubs. The medal rule is in `docs/views.md`, "Medals".
 
 ## The file
 

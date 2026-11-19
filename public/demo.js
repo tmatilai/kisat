@@ -24,7 +24,7 @@ function demoTs(h, m) {
 }
 
 // Returns demoTs' instant under another offset than demoTs', as one class of a
-// start can carry it (docs/tuloslista-api.md): +00:00, or +03:00 where the
+// start can carry it: +00:00, or +03:00 where the
 // local zone is UTC.
 function demoOtherTs(h, m) {
   const t = Date.parse(demoTs(h, m).replace(/\.\d+/, ''));
@@ -35,17 +35,16 @@ function demoOtherTs(h, m) {
 
 // Derives a stable 8-digit licence from the athlete id, the shape of a real
 // one. A follow-list stores the licence, because Athletes[].Id identifies an
-// entry and not a person (docs/tuloslista-api.md, "Categories, names and
-// identity").
+// entry and not a person.
 function demoLicense(athleteId) {
   let n = 0;
   for (const ch of String(athleteId)) n = (n * 31 + ch.charCodeAt(0)) % 10000000;
   return String(60000000 + n);
 }
 
-// Every allocation of every meet carries SeuraCUPPoints
-// (docs/tuloslista-api.md), and a row with no mark scores 0. The demo derives
-// them from the rank. opts.cup sets them where a case needs an exact number.
+// Every allocation of every meet carries SeuraCUPPoints, and a row with no mark
+// scores 0. The demo derives them from the rank. opts.cup sets them where a
+// case needs an exact number.
 const DEMO_CUP_NO_MARK = /^(DNS|DNF|DQ|NM|NH)$/i;
 
 function demoCupPoints(opts = {}) {
@@ -56,7 +55,7 @@ function demoCupPoints(opts = {}) {
 
 // Builds one athlete's track allocation. opts.rank is ResultRank, ranked over
 // the whole round, and opts.heatRank is the placing in the heat, which defaults
-// to it, as in a single-heat round (docs/tuloslista-api.md). opts.ku marks a
+// to it, as in a single-heat round. opts.ku marks a
 // guest.
 function demoRunner(id, lane, bib, name, club, short, opts = {}) {
   return {
@@ -81,7 +80,7 @@ function demoRunner(id, lane, bib, name, club, short, opts = {}) {
     QRank: opts.QRank || false,
     QResult: opts.QResult || false,
     // Every allocation carries CEPoints, 0 outside a multi-event, so only the
-    // event's IsCombinedEvent says to show it (docs/tuloslista-api.md).
+    // event's IsCombinedEvent says to show it.
     CEPoints: opts.ce ?? 0,
     SeuraCUPPoints: demoCupPoints(opts),
     SB: opts.sb || '',
@@ -91,7 +90,7 @@ function demoRunner(id, lane, bib, name, club, short, opts = {}) {
 
 // Builds one athlete's field allocation from attempts [[mark, wind?]], where a
 // mark is a distance or height, "x" a foul and "-" a pass. opts.wind is the
-// Result's own reading (docs/tuloslista-api.md). Other opts are demoRunner's.
+// Result's own reading. Other opts are demoRunner's.
 function demoFieldAlloc(id, draw, bib, name, club, short, attempts, opts = {}) {
   return {
     Id: id,
@@ -126,7 +125,7 @@ function demoFieldAlloc(id, draw, bib, name, club, short, attempts, opts = {}) {
 }
 
 // Builds one entered name of a relay team. org is the athlete's own club, which
-// may not be the team's (docs/tuloslista-api.md). `licence` joins a runner to
+// may not be the team's. `licence` joins a runner to
 // their individual entry, since a relay entry has its own Id.
 function demoTeamAthlete({ id, name: [Firstname, Surname], licence }, index, org) {
   return {
@@ -157,8 +156,7 @@ function demoTeam(t, lane, bib, legs, opts = {}) {
     Result: opts.result || null,
     ResultRank: opts.rank ?? null,
     NotInCompetition: false,
-    // A team carries CEPoints 0, and its own row scores the club in the cup
-    // (docs/tuloslista-api.md).
+    // A team carries CEPoints 0, and its own row scores the club in the cup.
     CEPoints: 0,
     SeuraCUPPoints: demoCupPoints(opts),
     SB: '',
@@ -167,12 +165,11 @@ function demoTeam(t, lane, bib, legs, opts = {}) {
 }
 
 // Builds the team's Enrollment with every entered name, the pool included,
-// and no AthleteOrders, which an enrollment never carries
-// (docs/tuloslista-api.md).
+// and no AthleteOrders, which an enrollment never carries.
 function demoTeamEnrollment(t) {
   return {
     // The enrollment shares the allocation's Id, as an individual's two halves
-    // do. A drawn row's confirmation is a join on it (docs/tuloslista-api.md),
+    // do. A drawn row's confirmation is a join on it,
     // and test/home.test.mjs checks the join.
     Id: t.id,
     TeamId: t.id,
@@ -190,7 +187,7 @@ function demoTeamEnrollment(t) {
 }
 
 // Holds the fixture's clubs. An allocation carries its enrollment's club id
-// (demoOrg), as in the live API (docs/tuloslista-api.md). A club followed off a
+// (demoOrg), as in the live API. A club followed off a
 // row's link (clubNameLink, app/follow.js) would otherwise cover nobody in the
 // roster.
 const DEMO_ORG_DEMU = { id: 1, name: 'Demon Urheilijat', short: 'DemU' };
@@ -240,8 +237,7 @@ const DEMO_DISTRICTS = {
 };
 
 // Builds an allocation's Organization from the row's club name and short name.
-// A club missing from DEMO_ORGS gets id 0, which is the API's "no club"
-// (docs/tuloslista-api.md).
+// A club missing from DEMO_ORGS gets id 0, which is the API's "no club".
 function demoOrg(club, short) {
   const o = DEMO_ORGS.find((x) => x.short === short || x.name === club);
   return { Name: club, NameShort: short, Id: o ? o.id : 0 };
@@ -268,7 +264,7 @@ function demoEnrollment(id, bib, name, org, opts = {}) {
     Organization: { Name: org.name, NameShort: org.short, Id: org.id },
     NotInCompetition: opts.ku || false,
     // Only an entry carries a confirmation, per entry and not per athlete, and
-    // a drawn row's is a join on Id (docs/tuloslista-api.md). An entry confirms
+    // a drawn row's is a join on Id. An entry confirms
     // unless opts.unconfirmed is set. The cup meets clear the flag afterwards.
     Confirmed: !opts.unconfirmed,
     SB: opts.sb || '',
@@ -292,13 +288,13 @@ function demoRound(id, name, index, beginTs, heats, qual = {}, status = 'Officia
     QResult: qual.QResult ?? '',
     // Only a Final round scores in the cup (cupStandings, lib/cup.js). The
     // fixture sets it from the round's name. App code picks a round by Id, since
-    // a round's name is no guide to which round it is (docs/tuloslista-api.md).
+    // a round's name is no guide to which round it is.
     RoundTypeCategory: name === 'Loppukilpailu' ? 'Final' : 'Qualify',
   };
 }
 
 // Builds a heat and copies its wind onto each allocation with none, since a
-// track row's Wind equals its heat's (docs/tuloslista-api.md). resultWind
+// track row's Wind equals its heat's. resultWind
 // (lib/results.js) reads that copy on a row the merged list took out of its heat.
 function demoHeat(index, allocations, wind = null) {
   return {
@@ -332,7 +328,7 @@ const DEMO_STARTS = [
     ts: demoTs(12, 30),
   },
   // The Pituus Karsinta shares e3 with its final, and each round is a schedule
-  // row of its own (docs/tuloslista-api.md). Its two heats are 3 and 2 attempts
+  // row of its own. Its two heats are 3 and 2 attempts
   // wide, and it carries a Q and a q rule.
   {
     eventId: 'e3',
@@ -411,8 +407,7 @@ const DEMO_STARTS = [
   },
   // P13 sorts first by class and last by entrants, so the start renders M,
   // P13, N (compareCategories in lib/schedule.js, renderGroup in
-  // app/event.js), since class labels do not sort as text
-  // (docs/tuloslista-api.md).
+  // app/event.js), since class labels do not sort as text.
   {
     eventId: 'e11',
     roundId: 'r11',
@@ -485,7 +480,7 @@ const DEMO_STARTS = [
     ts: demoTs(16, 0),
   },
   // A shuttle hurdle relay's 240 m would be two crossings in a hall, but the
-  // team passes the line once (docs/tuloslista-api.md).
+  // team passes the line once.
   {
     eventId: 'e13',
     roundId: 'r13',
@@ -495,8 +490,8 @@ const DEMO_STARTS = [
     status: 'Allocated',
     ts: demoTs(16, 30),
   },
-  // A 3x400 m is filed under the 4x400 m EventType, as a race can be
-  // (docs/tuloslista-api.md). The name's three legs are the ones that match the
+  // A 3x400 m is filed under the 4x400 m EventType, as a race can be. The
+  // name's three legs are the ones that match the
   // teams.
   {
     eventId: 'e14',
@@ -600,8 +595,8 @@ const DEMO_STARTS = [
     ts: demoTs(18, 0),
   },
   // Two field classes in one start do not share a heat. Each draws its own
-  // order from 1, as a field event always does (laneDrawn in lib/results.js,
-  // docs/tuloslista-api.md). M15's row writes the start's time under another
+  // order from 1, as a field event always does (laneDrawn in lib/results.js).
+  // M15's row writes the start's time under another
   // offset, and the start is still one (roundGroupKey).
   {
     eventId: 'e24',
@@ -623,8 +618,7 @@ const DEMO_STARTS = [
   },
   // Four classes share two heats down one draw. P13 is in heat 1, P11 in heat
   // 2, and T11 and T13 in both, so a class's own heat count can differ from
-  // the start's. Real starts do both (docs/tuloslista-api.md, "Heats and
-  // allocations").
+  // the start's. Real starts do both.
   {
     eventId: 'e26',
     roundId: 'r26',
@@ -663,7 +657,7 @@ const DEMO_STARTS = [
   },
   // Two track classes do not share their heat 1. Each drew its own lanes, so
   // the numbers collide (lanesAreOneDraw, lib/results.js), as a shared track
-  // heat often does (docs/tuloslista-api.md).
+  // heat often does.
   {
     eventId: 'e30',
     roundId: 'r30',
@@ -705,7 +699,7 @@ const DEMO_STARTS = [
     ts: demoTs(16, 15),
   },
   // A T9 3-ottelu's legs are tied by their names alone, and its root is on no
-  // schedule (combinedEventStarts in lib/combined.js, docs/tuloslista-api.md).
+  // schedule (combinedEventStarts in lib/combined.js).
   // The 40m is run, the Pituus half jumped and the Kuula drawn.
   {
     eventId: 'e34',
@@ -775,7 +769,7 @@ const DEMO_STARTS = [
     ts: demoTs(14, 30),
   },
   // Nobody has confirmed in this undrawn start yet. A gate reading its own
-  // data goes silent on it (docs/tuloslista-api.md).
+  // data goes silent on it.
   {
     eventId: 'e46',
     roundId: 'r46',
@@ -787,8 +781,7 @@ const DEMO_STARTS = [
   },
   // Three hurdle classes run one 60 m race on settings in different places,
   // as a measured start does (2026-01, docs/hurdles.md, "What the meets do"),
-  // drawn here and not run. M65 is filed at its group's Age
-  // (docs/tuloslista-api.md).
+  // drawn here and not run. M65 is filed at its group's Age.
   {
     eventId: 'e47',
     roundId: 'r47',
@@ -819,7 +812,7 @@ const DEMO_STARTS = [
     age: '30',
   },
   // The sekaviesti's class token is "M/N", and its round is filed under one
-  // gender (docs/tuloslista-api.md), so gender and age carry the filing the
+  // gender, so gender and age carry the filing the
   // name cannot give.
   {
     eventId: 'e50',
@@ -1049,7 +1042,7 @@ DEMO_EVENTS.e3 = {
   ],
   Rounds: [
     // QRank is the automatic mark and QResult the field size after fill-ins,
-    // as a field event's rule has them (docs/tuloslista-api.md). Heat 2 takes
+    // as a field event's rule has them. Heat 2 takes
     // heat 1's three attempt columns, or its rows would not line up.
     demoRound(
       'r3q',
@@ -1176,7 +1169,7 @@ DEMO_EVENTS.e4 = {
     demoEnrollment('d5', 45, 'Aatu Vierainen', DEMO_ORG_ULKV),
   ],
   // The bests are in metres and the Results in centimetres, as a vertical
-  // jump's can be (docs/tuloslista-api.md). d2's 190 passes its 1.88 and d1's
+  // jump's can be. d2's 190 passes its 1.88 and d1's
   // 195 passes neither best. A wrong unit lights both or neither.
   Rounds: [
     demoRound(
@@ -1222,7 +1215,7 @@ DEMO_EVENTS.e4 = {
             result: 'NH',
             rank: null,
           }),
-          // A guest has no rank (docs/tuloslista-api.md), so sortResults orders
+          // A guest has no rank, so sortResults orders
           // these two by their jumps. Both clear 190 and d5 does it at the first
           // try, so d5 leads although drawn after d4.
           demoFieldAlloc(
@@ -1264,7 +1257,7 @@ DEMO_EVENTS.e4 = {
 };
 
 // f1 enters five names for four legs and two are from another club, as a real
-// team can (docs/tuloslista-api.md). A follow-list entry for the Mallikylän
+// team can. A follow-list entry for the Mallikylän
 // Vire club must match neither of those two, and one for Tuomas must match f1.
 const DEMO_RELAY_TEAMS = [
   {
@@ -1273,7 +1266,7 @@ const DEMO_RELAY_TEAMS = [
     org: DEMO_ORG_DEMU,
     names: [
       // Ville is e1's a1 too. This row mints its own Id and shares his licence,
-      // so buildDigest names him once (docs/tuloslista-api.md).
+      // so buildDigest names him once.
       { id: 'f1-0', name: ['Ville', 'Mallinen'], licence: demoLicense('a1-a') },
       { id: 'f1-1', name: ['Joonas', 'Testinen'] },
       { id: 'f1-2', name: ['Tuomas', 'Kokeinen'], org: DEMO_ORG_MALV },
@@ -1338,7 +1331,7 @@ DEMO_EVENTS.e7 = {
     demoEnrollment('h2', 32, 'Roope Esimerkkinen', DEMO_ORG_MALV),
   ],
   // The heat carries a wind the page must not print, since a reading governs
-  // only 200 m or less (heatWind, lib/results.js, docs/tuloslista-api.md).
+  // only 200 m or less (heatWind, lib/results.js).
   Rounds: [
     demoRound('r7', 'Loppukilpailu', 0, demoTs(15, 30), [
       demoHeat(
@@ -1397,7 +1390,7 @@ DEMO_EVENTS.e9 = {
   ],
   Rounds: [
     // The heats come as 1, 3, 4, 2, out of order as the API sends them, for
-    // heatsInOrder to sort (docs/tuloslista-api.md). Ranks are round-wide,
+    // heatsInOrder to sort. Ranks are round-wide,
     // which Kokonaistulokset merges by (totalResults). Four Q and two q fill
     // Välierät's six.
     demoRound(
@@ -1511,7 +1504,7 @@ DEMO_EVENTS.e9 = {
           ],
           '+0,3',
         ),
-        // 'NM' is the API's "not measured" (docs/tuloslista-api.md) and must
+        // 'NM' is the API's "not measured" and must
         // not print as a wind. A 200 m passes the distance gate, so only the
         // sentinel check keeps it off the page.
         demoHeat(
@@ -1613,7 +1606,7 @@ DEMO_EVENTS.e16 = {
     demoEnrollment('k7', 307, 'Roosa Simulainen', DEMO_ORG_TEKI, { sb: '4.27,12', pb: '4.24,08' }),
     demoEnrollment('k8', 308, 'Kerttu Mittainen', DEMO_ORG_NAVA, { pb: '4.28,12' }),
     // She is unconfirmed and in no heat, as a meet that draws only the
-    // confirmed leaves her (docs/tuloslista-api.md). She renders the
+    // confirmed leaves her. She renders the
     // "Ei erissä" section (docs/views.md).
     demoEnrollment('k9', 309, 'Iida Vauhtinen', DEMO_ORG_HARJ, { sb: '4.30,00', pb: '4.29,15', unconfirmed: true }),
   ],
@@ -1799,7 +1792,7 @@ DEMO_EVENTS.e50 = {
 };
 
 // The race carries the 4x400 m EventType and runs 3x400 m, as a race can be
-// filed (docs/tuloslista-api.md). The event's name decides, since trusting the
+// filed. The event's name decides, since trusting the
 // type gives 1600 m, two hall laps too many.
 const DEMO_MISTYPED_TEAMS = [
   lapTeam('w1', 'Testilän Kisa', DEMO_ORG_TEKI, 1, 75, [
@@ -1919,7 +1912,7 @@ DEMO_EVENTS.e15 = {
 // e17-e23 and e26-e29 draw several classes into one heat down one set of
 // lanes. mergeHeats and heatPlaces (lib/results.js) read such a heat as one race
 // (docs/views.md). e24/e25 and e30/e31 are two draws under one heat number
-// and must stay apart (docs/tuloslista-api.md, "Heats and allocations").
+// and must stay apart.
 
 // M and M19 3000m share two heats, interleaved by lane. M has heat 1's odd
 // lanes and heat 2's even ones. The race is on, so no row has a result.
@@ -1936,8 +1929,8 @@ DEMO_EVENTS.e17 = {
     demoEnrollment('m5', 405, 'Aatu Merkkinen', DEMO_ORG_DEMU),
     demoEnrollment('m6', 406, 'Miska Harjoitinen', DEMO_ORG_TEKI, { sb: '9.10,77', pb: '9.06,20' }),
   ],
-  // Both heats carry a Wind that governs no 3000 m, as every track heat does
-  // (docs/tuloslista-api.md). The merged heat must print none (heatWind).
+  // Both heats carry a Wind that governs no 3000 m, as every track heat does.
+  // The merged heat must print none (heatWind).
   Rounds: [
     demoRound(
       'r17',
@@ -2094,7 +2087,7 @@ DEMO_EVENTS.e21 = {
 
 // N15 and Mixed 15 4x400m share one heat, three teams and two.
 const DEMO_4X400_N15_TEAMS = [
-  // Six are entered for four legs, as a team can be (docs/tuloslista-api.md).
+  // Six are entered for four legs, as a team can be.
   // Only the first four reach the roster (relayLineup, lib/results.js).
   lapTeam('t1', 'Testilän Kisa', DEMO_ORG_TEKI, 3, 901, [
     ['Aino', 'Testinen'],
@@ -2171,7 +2164,7 @@ DEMO_EVENTS.e23 = {
 };
 
 // N15 and M15 Kolmiloikka each drew its own order under heat 1, as a field
-// event's classes do (docs/tuloslista-api.md). laneDrawn (lib/results.js)
+// event's classes do. laneDrawn (lib/results.js)
 // keeps a field start out of the combined heat. heatPlaces cannot rank its
 // marks.
 DEMO_EVENTS.e24 = {
@@ -2334,8 +2327,8 @@ function demo60mEvent(label) {
     );
   return {
     Name: `${label} 60m`,
-    // Group is the class alone, as the results endpoint sends it
-    // (docs/tuloslista-api.md). Only cupEventKey (lib/cup.js) reads it, for a
+    // Group is the class alone, as the results endpoint sends it. Only
+    // cupEventKey (lib/cup.js) reads it, for a
     // walk.
     Group: label,
     EventCategory: 'Track',
@@ -2352,7 +2345,7 @@ DEMO_EVENTS.e28 = demo60mEvent('T13');
 DEMO_EVENTS.e29 = demo60mEvent('P13');
 
 // M and M17 400m share the heat number 1 and are two draws, as a shared
-// track heat often is (docs/tuloslista-api.md). M's lanes 4-6 collide with
+// track heat often is. M's lanes 4-6 collide with
 // M17's 3-5, so lanesAreOneDraw (lib/results.js) keeps each class in its own
 // table.
 DEMO_EVENTS.e30 = {
@@ -2400,8 +2393,8 @@ DEMO_EVENTS.e31 = {
   ],
 };
 
-// N 100m Alkuerät is caught half-run. Its cut is on time alone with QRank ''
-// (docs/tuloslista-api.md), so the note reads "6 nopeinta aikaa (q)"
+// N 100m Alkuerät is caught half-run. Its cut is on time alone with QRank '',
+// so the note reads "6 nopeinta aikaa (q)"
 // (qualificationNote, lib/results.js).
 DEMO_EVENTS.e32 = {
   Name: 'N 100m',
@@ -2514,7 +2507,7 @@ DEMO_EVENTS.e32 = {
               pb: '12,15',
             }),
             // A dead heat at the cut shares both ranks with the next row, and
-            // the API gives the q to only one (docs/tuloslista-api.md).
+            // the API gives the q to only one.
             // qualBadge (lib/results.js) puts this row's q back.
             demoRunner('w8', 2, 508, 'Alisa Mittainen', 'Mallikylän Vire', 'MalV', {
               result: '12,61',
@@ -2559,8 +2552,8 @@ DEMO_EVENTS.e32 = {
   ],
 };
 
-// N Kiekko is drawn and not yet thrown, so Attempts[] is empty on every row
-// (docs/tuloslista-api.md), and the start renders as startListTable
+// N Kiekko is drawn and not yet thrown, so Attempts[] is empty on every row,
+// and the start renders as startListTable
 // (app/event.js) with the throwers' bests.
 DEMO_EVENTS.e33 = {
   Name: 'N Kiekko',
@@ -2610,7 +2603,7 @@ DEMO_EVENTS.e33 = {
 
 // --- The multi-event: three legs and the root they belong to ---
 // This T9 3-ottelu is caught half-run. Its legs, their order and the shape of
-// the marks and CEPoints are a real multi-event's (docs/tuloslista-api.md),
+// the marks and CEPoints are a real multi-event's,
 // with six athletes and a guest.
 const DEMO_CE_FACTORS = { UseYouthFormulas: true, A: 5.2632, B: 5.36, C: 0 };
 
@@ -2621,12 +2614,12 @@ const DEMO_OTTELU = [
   { id: 'o3', bib: 703, name: 'Minea Mallinen', org: DEMO_ORG_MALV, m40: ['7,51', 161], pituus: ['3.22', 155] },
   { id: 'o4', bib: 704, name: 'Fanni Kokeinen', org: DEMO_ORG_NAVA, m40: ['7,59', 151], pituus: ['3.19', 151] },
   // The two still to jump have a 40m score alone. `out` marks one withdrawn.
-  // Her root total is DNF, as a withdrawal's reads (docs/tuloslista-api.md),
+  // Her root total is DNF, as a withdrawal's reads,
   // and the Kuula does not draw her.
   { id: 'o5', bib: 705, name: 'Pihla Harjoitinen', org: DEMO_ORG_HARJ, m40: ['7,64', 146], pituus: null, out: 'DNF' },
   { id: 'o6', bib: 706, name: 'Vieno Näytteinen', org: DEMO_ORG_NAVA, m40: ['7,76', 134], pituus: null },
   // A guest outscores the leader and is ranked nowhere, in the standings or a
-  // leg (docs/tuloslista-api.md). A gap read off the biggest total would
+  // leg. A gap read off the biggest total would
   // measure every row against her (combinedLeaderPoints).
   {
     id: 'o7',
@@ -2643,7 +2636,7 @@ const demoOtteluEnrollments = () => DEMO_OTTELU.map((a) => demoEnrollment(a.id, 
 
 // Each root row totals the athlete's CEPoints in the legs. The legs repeat the
 // figures by hand, and test/combined.test.mjs checks the sums. A withdrawal is
-// ranked nowhere and leaves no gap (docs/tuloslista-api.md).
+// ranked nowhere and leaves no gap.
 const demoOtteluTotals = () => {
   let rank = 0;
   return DEMO_OTTELU.map((a) =>
@@ -2655,8 +2648,8 @@ const demoOtteluTotals = () => {
   );
 };
 
-// The 40m runs in two heats, as a leg runs in as many as it needs
-// (docs/tuloslista-api.md). A leg read out of Heats[0] loses its second heat.
+// The 40m runs in two heats, as a leg runs in as many as it needs. A leg read
+// out of Heats[0] loses its second heat.
 DEMO_EVENTS.e34 = {
   Id: 'e34',
   Name: 'T9 3-ottelu  40m',
@@ -2724,7 +2717,7 @@ DEMO_EVENTS.e34 = {
             ce: 134,
           }),
           // The guest runs the fastest time with points and null in both rank
-          // fields, as the API publishes a guest (docs/tuloslista-api.md).
+          // fields, as the API publishes a guest.
           demoRunner('o7', 4, 707, 'Ilona Vierainen', 'Ulkomaalainen Vieras', 'UlkV', {
             result: '7,18',
             ce: 206,
@@ -2850,11 +2843,11 @@ DEMO_EVENTS.e37 = {
   Index: 0,
   Enrollments: demoOtteluEnrollments(),
   // The SubEvents are listed out of contest order on purpose, since only Index
-  // gives the order (docs/tuloslista-api.md). The standings sort by Index
+  // gives the order. The standings sort by Index
   // (combinedLegColumns, lib/combined.js).
   SubEvents: [DEMO_EVENTS.e35, DEMO_EVENTS.e36, DEMO_EVENTS.e34],
   // The root's one heat is a container. Its Index and every Position are 0,
-  // and HeatRank copies ResultRank (docs/tuloslista-api.md).
+  // and HeatRank copies ResultRank.
   Rounds: [demoRound('r37', 'Loppukilpailu', 0, demoTs(8, 45), [demoHeat(0, demoOtteluTotals())], {}, 'Unallocated')],
 };
 
@@ -3009,7 +3002,7 @@ DEMO_EVENTS.e59 = {
 };
 
 // One of four has confirmed in this undrawn field final. No round is in
-// Rounds[], as before a draw (docs/tuloslista-api.md), so Enrollments is the
+// Rounds[], as before a draw, so Enrollments is the
 // start list.
 DEMO_EVENTS.e45 = {
   Name: 'T13 Korkeus',
@@ -3058,7 +3051,7 @@ DEMO_EVENTS.e55 = {
 // The box gives each setting its lanes (hurdleStartSetups, lib/hurdles.js).
 // Lanes 2 and 4 stay empty where that meet filled them, since a change of
 // setting needs a free lane beside it (observed, 2026-09). The wind is 'NM',
-// as on a heat without a reading (docs/tuloslista-api.md).
+// as on a heat without a reading.
 DEMO_EVENTS.e47 = {
   Name: 'M17 60m aidat',
   EventCategory: 'Track',
@@ -3195,7 +3188,7 @@ DEMO_EVENTS.e52 = {
 // (docs/tuloslista-api.md, "An osakilpailu").
 
 const DEMO_CUP_STARTS = [
-  // One start of two classes down one set of lanes (docs/tuloslista-api.md)
+  // One start of two classes down one set of lanes
   // is two cup events that agree on their digits and do not merge. A club's
   // better runner scores, and the guest scores nobody.
   {
@@ -3274,7 +3267,7 @@ const DEMO_CUP_EVENTS = {};
 // Both classes run in both heats, each heat one draw of lanes
 // (lanesAreOneDraw, lib/results.js). Demon Urheilijat's two T11 runners score
 // 820 alone. The guest's 860 tops the winner's, as a guest's rows carry real
-// points (docs/tuloslista-api.md). (Break on purpose: add where cupStandings
+// points. (Break on purpose: add where cupStandings
 // replaces, and the club gains 680.)
 const DEMO_CUP_60M = [
   // [id, lane, bib, name, club, class, result, rank, heatRank, heat]
@@ -3347,10 +3340,9 @@ function demoCup60mEvent(label, eventId, roundId) {
 DEMO_CUP_EVENTS.c1 = demoCup60mEvent('T11', 'c1', 'cr1');
 DEMO_CUP_EVENTS.c2 = demoCup60mEvent('P11', 'c2', 'cr2');
 
-// A club scores its best walker across both races (docs/tuloslista-api.md,
-// "The walk is one event for both genders"). Demon Urheilijat scores 610 of 500
-// and 610, and Mallikylän Vire 430 of 380 and 430. (Break on purpose: drop the
-// Walk branch from cupEventKey, and the two gain their 500 and 380.)
+// A club scores its best walker across both races. Demon Urheilijat scores 610
+// of 500 and 610, and Mallikylän Vire 430 of 380 and 430. (Break on purpose:
+// drop the Walk branch from cupEventKey, and the two gain their 500 and 380.)
 const DEMO_WALK_EVENT_TYPE = {
   Length: 1000,
   Category: 'Track',
@@ -3427,7 +3419,7 @@ DEMO_CUP_EVENTS.c4 = {
   ],
 };
 
-// The round is heats alone, with no final (docs/tuloslista-api.md).
+// The round is heats alone, with no final.
 // (Break on purpose: drop the RoundTypeCategory test from cupStandings, and
 // three clubs gain 800, 720 and 640.)
 DEMO_CUP_EVENTS.c5 = {
@@ -3655,8 +3647,8 @@ DEMO_CUP_FINAL_EVENTS.f1 = {
   ],
 };
 
-// T13 60m aidat lists its second heat first, as the API may
-// (docs/tuloslista-api.md). One club fields a single runner, and her DNF is a
+// T13 60m aidat lists its second heat first, as the API may. One club fields a
+// single runner, and her DNF is a
 // row with no place.
 // [id, lane, bib, name, org, result, rank, heatRank, heat, pb]
 const DEMO_CUP_FINAL_HURDLES = [
@@ -3708,7 +3700,7 @@ DEMO_CUP_FINAL_EVENTS.f2 = {
 
 // Each club fields two teams of sixteen legs. Testilän Kisa and Demon
 // Urheilijat tie on points, and the relay puts the first ahead where a sort by
-// name would not (docs/tuloslista-api.md, "The finals").
+// name would not.
 // [org, team, lane, bib, result, rank, heatRank, heat]
 const DEMO_CUP_FINAL_SHUTTLE = [
   [DEMO_ORG_PIPY, 1, 1, 13, '2.19,3h', 12, 8, 2],
@@ -4331,11 +4323,11 @@ const DEMO_MEETS = {
     starts: DEMO_STARTS,
     events: DEMO_EVENTS,
     // The demo carries SeuraCUPPoints and shows none, as a meet with no Type-3
-    // setting does (docs/tuloslista-api.md).
+    // setting does.
     settings: [
       // The meet runs varmistus. Its Type-1 entry carries 60 minutes and
       // reads "off", as a meet that confirms can, since the entry's presence
-      // is read and its value is not (docs/tuloslista-api.md). A gate that
+      // is read and its value is not. A gate that
       // reads the value fails e46's check in dev/probe-varmistus.js.
       { Type: 1, Index: 1, IntValue: 60, StringValue: 'off' },
     ],
@@ -4373,8 +4365,7 @@ const DEMO_CLASS_RE = /^(Mixed|[MNPT])\s*(\d+)?(?=\s|$)/;
 
 // Returns a schedule row's Gender and Age off the class its event name starts
 // with, as every triple measured in test/hurdles.test.mjs agrees. An adult
-// class is Age '0', and a mixed one takes one of two genders
-// (docs/tuloslista-api.md, "Relays").
+// class is Age '0', and a mixed one takes one of two genders.
 function demoClassFields(event) {
   const [, cls, age] = DEMO_CLASS_RE.exec(event) || [];
   if (!cls) return {};

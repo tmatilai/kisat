@@ -48,7 +48,7 @@ import { DEMO_EVENTS, DEMO_ID, demoResponse, demoSchedule } from '../public/demo
 
 // --- heatsInOrder: a round's Heats[] does not arrive in heat order ---
 test('heatsInOrder', () => {
-  // r9a carries an out-of-order Heats[] (docs/tuloslista-api.md).
+  // r9a carries an out-of-order Heats[].
   const alkuerat = DEMO_EVENTS.e9.Rounds.find((r) => r.Id === 'r9a');
   assert.deepEqual(
     alkuerat.Heats.map((h) => h.Index),
@@ -110,13 +110,11 @@ test('heatWind', () => {
   // The gate includes 200 m.
   assert.equal(heatWind({ Wind: '+1,0' }, { Category: 'Track', Length: 200 }), '+1,0');
   assert.equal(heatWind({ Wind: '+1,0' }, { Category: 'Track', Length: 201 }), null);
-  // A relay's Length is one leg, so Category keeps a 4x100 out
-  // (docs/tuloslista-api.md).
+  // A relay's Length is one leg, so Category keeps a 4x100 out.
   const relay = DEMO_EVENTS.e5.EventType;
   assert.equal(relay.Length, 100);
   assert.equal(heatWind({ Wind: '+1,0' }, relay), null);
-  // A field heat reads no wind, since a jump's wind is per attempt
-  // (docs/tuloslista-api.md).
+  // A field heat reads no wind, since a jump's wind is per attempt.
   assert.equal(heatWind({ Wind: '+1,0' }, DEMO_EVENTS.e3.EventType), null);
   assert.equal(heatWind({ Wind: '+1,0' }, undefined), null);
   assert.equal(heatWind({ Wind: '+1,0' }, { Category: 'Track' }), null);
@@ -142,8 +140,7 @@ test('resultWind', () => {
   assert.equal(windAided(null), false);
   assert.equal(windAided('NM'), false);
 
-  // A track row carries its heat's reading, which a merged list reads
-  // (docs/tuloslista-api.md).
+  // A track row carries its heat's reading, which a merged list reads.
   const sprint = DEMO_EVENTS.e32;
   const heat3 = heatsInOrder(sprint.Rounds[0])[2];
   assert.equal(heat3.Allocations[0].Wind, heat3.Wind, "every allocation carries its heat's reading");
@@ -246,7 +243,7 @@ test('totalResults', () => {
   const alkuerat = DEMO_EVENTS.e9.Rounds.find((r) => r.Id === 'r9a');
   const rows = totalResults(alkuerat);
   assert.equal(rows.length, 8, "every heat's allocations, not just one heat's");
-  // ResultRank is round-wide (docs/tuloslista-api.md), so the merged list
+  // ResultRank is round-wide, so the merged list
   // follows it.
   assert.deepEqual(
     rows.map((a) => a.ResultRank),
@@ -307,7 +304,7 @@ test('displayRank', () => {
   );
   // A merged row (heatIndex set) prints the round-wide place instead.
   assert.deepEqual(totalResults(alkuerat).map(displayRank), [1, 2, 3, 4, 5, 6, 7, 8]);
-  // A single-heat round's two ranks agree (docs/tuloslista-api.md).
+  // A single-heat round's two ranks agree.
   const final = DEMO_EVENTS.e1.Rounds[0].Heats[0].Allocations;
   assert.deepEqual(
     final.map(displayRank),
@@ -370,12 +367,11 @@ test('relays', () => {
       'P9 3x400m viesti',
     ),
     3,
-    'the round name wins over a wrong TeamSize (docs/tuloslista-api.md, "Relays")',
+    'the round name wins over a wrong TeamSize',
   );
 
   // relayLineup is who a team fields, and a follow-list matches on it
-  // (allocMatches). A team can enter more names than it has legs
-  // (docs/tuloslista-api.md).
+  // (allocMatches). A team can enter more names than it has legs.
   const entered = {
     Athletes: [
       { Index: 3, Id: 'c' },
@@ -430,7 +426,7 @@ test('relays', () => {
 });
 
 // --- attemptColumns: rows of one heat differ in length, and the widest
-// counts (docs/tuloslista-api.md) ---
+// counts ---
 test('attemptColumns', () => {
   // The 3-attempt row comes first, so reading the first row alone fails.
   const allocs = [
@@ -497,8 +493,7 @@ test('verticalMarkText', () => {
   assert.equal(verticalMarkText(''), '');
 });
 
-// --- qualificationNote/qualBadge: a round's cut reads by category
-// (docs/tuloslista-api.md) ---
+// --- qualificationNote/qualBadge: a round's cut reads by category ---
 test('qualificationNote/qualBadge', () => {
   assert.equal(
     qualificationNote({ QRank: '5.25', QResult: '12' }, true),
@@ -516,8 +511,8 @@ test('qualificationNote/qualBadge', () => {
   assert.equal(qualBadge({ QRank: false, QResult: false }), '');
 });
 
-// --- qualBadge with the round: a tie at the cut shares the badge
-// (docs/tuloslista-api.md). A "q" follows ResultRank and a "Q" HeatRank. ---
+// --- qualBadge with the round: a tie at the cut shares the badge. A "q"
+// follows ResultRank and a "Q" HeatRank. ---
 test('qualBadge tied qualifiers', () => {
   const alloc = (o) => ({ QRank: false, QResult: false, ...o });
   // tied and deadHeat share ResultRank 6 across two heats, and only tied is
@@ -929,7 +924,7 @@ test('shared heats', () => {
   }
 
   // The field start looks like a shared heat and is not. Each class draws its
-  // own order from 1 and calls it heat 1 (laneDrawn, docs/tuloslista-api.md).
+  // own order from 1 and calls it heat 1 (laneDrawn).
   {
     const det = load('Kolmiloikka');
     assert.deepEqual(
@@ -951,7 +946,7 @@ test('shared heats', () => {
     assert.equal(heat.lanes, false);
     assert.equal(heatsAreShared([heat]), false);
     // Nor could the rows be ranked. A field mark is dot-separated and bigger
-    // is better, so none parses as a time (docs/tuloslista-api.md).
+    // is better, so none parses as a time.
     assert.equal(heatPlaces(heat.rows).size, 0);
     assert.equal(
       heat.rows.every((r) => r.alloc.Result),
@@ -982,7 +977,7 @@ test('shared heats', () => {
 
   // The 400m makes the same mistake on the track, where the category gate
   // cannot see it. Two classes each drew their own lanes under heat 1, as many
-  // real starts do (docs/tuloslista-api.md).
+  // real starts do.
   {
     const det = load('400m');
     assert.deepEqual(
@@ -1119,7 +1114,7 @@ test('name-cell asides', () => {
   assert.equal(earlierMarks([alku, vali, final], alku).size, 0, 'the first round has nothing behind it');
   assert.equal(earlierMarks([alku], null).size, 0, 'no round being rendered: nothing to compare Index against');
   assert.equal(earlierMarks(null, final).size, 0, 'no Rounds at all');
-  // An undrawn round's heat shell is no earlier round (docs/tuloslista-api.md).
+  // An undrawn round's heat shell is no earlier round.
   const shell = { Id: 'r0', Index: 0, Name: 'Alkuerät', Heats: [{ Index: 1, Allocations: [] }] };
   assert.equal(earlierMarks([shell, final], final).size, 0, 'an empty heat shell is not an earlier round with marks');
 
@@ -1187,8 +1182,7 @@ test('name-cell asides', () => {
     'a vertical jump is whole centimetres on both sides — measured, its bests are not the metres a horizontal jump uses',
   );
 
-  // A field mark's decimal point is its unit, on either side
-  // (docs/tuloslista-api.md).
+  // A field mark's decimal point is its unit, on either side.
   assert.equal(
     beatsMark('123', '1.40', 'Field'),
     false,

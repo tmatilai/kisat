@@ -57,26 +57,25 @@ function heatPlaces(rows) {
 
 // --- A round's heats ---
 
-// Sorts Heats[] by Index, as they arrive unordered (docs/tuloslista-api.md).
+// Sorts Heats[] by Index, as they arrive unordered (2026-08).
 function heatsInOrder(round) {
   return [...(round?.Heats || [])].sort((a, b) => (a.Index ?? 0) - (b.Index ?? 0));
 }
 
 // Says whether the field is drawn. An undrawn round can carry a heat shell with
-// empty Allocations (docs/tuloslista-api.md), so Heats.length is no test.
+// empty Allocations (2026-08), so Heats.length is no test.
 function roundAllocated(round) {
   return (round?.Heats || []).some((h) => h.Allocations?.length);
 }
 
 // Says whether Position can be a lane in one race. A field event's restarts at
-// 1 per class, so two field classes collide (docs/tuloslista-api.md).
+// 1 per class, so two field classes collide (2026-08).
 function laneDrawn(eventType) {
   return eventType?.Category === 'Track' || eventType?.Category === 'Relay';
 }
 
 // Says whether the lanes were one draw, each lane used once. A shared track
-// heat of several classes is one only about half the time
-// (docs/tuloslista-api.md).
+// heat of several classes is one only about half the time (2026-08).
 function lanesAreOneDraw(rows) {
   const lanes = (rows || []).map((r) => r.lane);
   return lanes.length > 0 && lanes.every((l) => l) && new Set(lanes).size === lanes.length;
@@ -109,7 +108,7 @@ function mergeHeats(entries) {
 
 // Says whether heats were drawn across classes (docs/views.md). Some heat holds
 // two classes and every such heat is one draw, or a merged table spans two
-// races (docs/tuloslista-api.md).
+// races (2026-08).
 function heatsAreShared(heats) {
   const multi = (heats || []).filter((h) => new Set((h.rows || []).map((r) => r.label)).size > 1);
   return multi.length > 0 && multi.every((h) => h.lanes);
@@ -121,8 +120,7 @@ function roundFieldSize(round) {
 }
 
 // Says whether a round is its event's final, a Final round or an only round
-// whatever its flag, as an only round can be filed Qualify
-// (docs/tuloslista-api.md).
+// whatever its flag, as an only round can be filed Qualify (2026-09).
 function isFinalRound(rounds, round) {
   if (!round) return false;
   return round.RoundTypeCategory === 'Final' || (rounds || []).length === 1;
@@ -131,11 +129,11 @@ function isFinalRound(rounds, round) {
 // --- Winds ---
 
 // The longest race that wind governs (World Athletics). Tuloslista publishes a
-// reading for every track heat anyway (docs/tuloslista-api.md).
+// reading for every track heat anyway (2026-08).
 const WIND_MAX_LENGTH_M = 200;
 
 // Says whether wind governs an event. It reads Category too, as a relay's
-// Length is one leg and a 4x100 would pass (docs/tuloslista-api.md).
+// Length is one leg and a 4x100 would pass (2026-08).
 function windLegalEvent(eventType) {
   if (eventType?.Category !== 'Track') return false;
   const length = Number(eventType?.Length);
@@ -154,16 +152,15 @@ function heatWind(heat, eventType) {
 }
 
 // Returns a row's own reading, as a horizontal jump's is on the attempt and a
-// merged row has left its heat. A track row's Wind equals its heat's
-// (docs/tuloslista-api.md).
+// merged row has left its heat. A track row's Wind equals its heat's (2026-08).
 function resultWind(alloc, eventType) {
   const affected =
     windLegalEvent(eventType) || (eventType?.Category === 'Field' && eventType?.SubCategory === 'HorizontalJump');
   return affected ? windValue(alloc?.Wind) : null;
 }
 
-// Parses "+2,1" as 2.1, as a reading is signed with a decimal comma
-// (docs/tuloslista-api.md). An unsigned calm and a typographic minus parse too.
+// Parses "+2,1" as 2.1, as a reading is signed with a decimal comma (2026-08).
+// An unsigned calm and a typographic minus parse too.
 function parseWind(wind) {
   const m = /^([+\-−]?)(\d+(?:[.,]\d+)?)$/.exec(String(wind ?? '').trim());
   if (!m) return null;
@@ -184,7 +181,7 @@ function windAided(wind) {
 
 // Returns a result's sort key, best first, so a time ascends and a field mark
 // is negated. The separator alone tells the two apart, as a time carries a
-// comma (docs/tuloslista-api.md). "DNS" or "NH" gives null.
+// comma (2026-08). "DNS" or "NH" gives null.
 function resultOrderKey(result) {
   const time = parseResult(result);
   if (time != null) return time;
@@ -230,7 +227,7 @@ function sortResults(allocations) {
 }
 
 // Lists a round's whole field as one ranked list of copies, as ResultRank is
-// round-wide (docs/tuloslista-api.md). The app's own camelCase heatIndex says
+// round-wide (2026-08). The app's own camelCase heatIndex says
 // the heat.
 function totalResults(round) {
   return sortResults(
@@ -273,7 +270,7 @@ function markFormat(data) {
 
 // Reads a field mark into millimetres, as metres with a decimal point or whole
 // centimetres without, since a Result and its best can differ in unit
-// (docs/tuloslista-api.md). Millimetres compare exactly.
+// (2026-08). Millimetres compare exactly.
 function fieldMark(s) {
   const t = String(s || '').trim();
   if (!/^\d+(\.\d+)?$/.test(t)) return null;
@@ -283,8 +280,7 @@ function fieldMark(s) {
 // --- Who a row is ---
 
 // Returns a competitor's identity in one event, which is TeamId, a relay's too,
-// or a sole Athletes[].Id, and never the licence (docs/tuloslista-api.md,
-// "Categories, names and identity").
+// or a sole Athletes[].Id, and never the licence (2026-08).
 function allocKey(a) {
   if (a?.TeamId != null) return `t${a.TeamId}`;
   return a?.Athletes?.length === 1 ? `a${a.Athletes[0].Id}` : null;
@@ -304,7 +300,7 @@ function followedKey(alloc) {
 
 // Returns a relay's runners in leg order, from AthleteOrders once drawn and
 // Athletes[] by Index before. Only the first `legs` count and the rest are a
-// pool, and Enrollments carry no AthleteOrders (docs/tuloslista-api.md).
+// pool, and Enrollments carry no AthleteOrders (2026-08).
 function relayLineup(alloc, legs = 0) {
   const orders = alloc?.AthleteOrders;
   const byIndex = (a, b) => (a.Index ?? 0) - (b.Index ?? 0);
@@ -331,7 +327,7 @@ function relayLegParts(alloc, legs = 0, named = null) {
 }
 
 // Counts a relay's legs from the event's name first, since TeamSize is wrong
-// where a race is filed under the wrong EventType (docs/tuloslista-api.md).
+// where a race is filed under the wrong EventType (2026-08).
 function relayLegCount(eventType, eventName = '') {
   if (!isRelayEventType(eventType)) return 1;
   const pattern = /(\d+)\s*x\s*(\d+)/i;
@@ -347,7 +343,7 @@ function isRelayEventType(eventType) {
 }
 
 // Says whether a /results payload's entries are teams, and how many athletes a
-// team fields. A team is its club's, not its members' (docs/tuloslista-api.md).
+// team fields. A team is its club's, not its members' (2026-08).
 function relayInfo(data) {
   const legCount = relayLegCount(data?.EventType, data?.Name);
   return { relay: legCount > 1 || data?.EventCategory === 'Relay' || isRelayEventType(data?.EventType), legCount };
@@ -400,9 +396,9 @@ function verticalMarkText(mark) {
 
 // --- Qualification and pending places ---
 
-// Writes the advancement note for a round with a cut (docs/tuloslista-api.md).
-// A field event's QRank is the mark and QResult the field with fill-ins, and a
-// track event's are per heat and on time. A final gets null.
+// Writes the advancement note for a round with a cut. A field event's QRank is
+// the mark and QResult the field with fill-ins, and a track event's are per
+// heat and on time (2026-08). A final gets null.
 function qualificationNote(round, isField) {
   const rank = round?.QRank || '';
   const result = round?.QResult || '';
@@ -421,7 +417,7 @@ function qualBadge(alloc, round) {
 }
 
 // Returns the badge a tied row earns, as the API gives a tie equal ranks and
-// qualifies one (docs/tuloslista-api.md). A "q" follows ResultRank across heats
+// qualifies one (2026-08). A "q" follows ResultRank across heats
 // and a "Q" HeatRank in its heat, never the marks, which lose the thousandths.
 function tiedQualBadge(alloc, round) {
   const heats = round?.Heats || [];
@@ -483,8 +479,8 @@ function roundAbbrev(name) {
 }
 
 // Maps each allocKey to its marks in earlier drawn rounds, nearest first, for
-// rows with a Result. An event runs at most three rounds
-// (docs/tuloslista-api.md, "Schedule and rounds"), so the tail is one.
+// rows with a Result. An event runs at most three rounds (2026-08), so the tail
+// is one.
 function earlierMarks(rounds, round) {
   const out = new Map();
   if (round?.Index == null) return out;

@@ -4,7 +4,7 @@ import { followedKey } from './results.js';
 import { classlessStart, filedStart, parseEventName, rowClassAge } from './schedule.js';
 
 // --- Piirit: a club's district, from districts.json ---
-// The API says nothing about piiris (docs/tuloslista-api.md), so the file
+// The API says nothing about piiris (2026-09), so the file
 // lists the piiris' clubs by NameShort, and by Name where known
 // (docs/districts.md).
 

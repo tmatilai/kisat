@@ -15,7 +15,7 @@ function hurdleDistance(eventName) {
 }
 
 // Keys on the class in the event name, and on Gender and Age only where the
-// name carries none. Age can be the group's (docs/tuloslista-api.md), and the
+// name carries none. Age can be the group's (2026-08), and the
 // results endpoint carries neither field.
 function hurdleKey(round) {
   const parts = categoryParts(parseEventName(round?.EventName || '').sex);
@@ -274,7 +274,7 @@ function hurdleRelaySpec(round, table) {
   if (distance == null) return null;
   const relays = table?.relays || [];
   // The sekaviesti's token spells either order, "M/N" or "N/M", and the round
-  // is filed under one gender (docs/tuloslista-api.md). Only adults match, as
+  // is filed under one gender (2026-09). Only adults match, as
   // a mixed class with an age has no sheet row.
   const p = parseEventName(name);
   const mn = /^[MN]\/[NM](\d*)$/.exec(p.sex);
@@ -445,8 +445,8 @@ function laneRange(lanes) {
 }
 
 // Returns one start's setups down the track: a table per heat, since the
-// classes in a heat can change from heat to heat (docs/tuloslista-api.md,
-// "Heats and allocations"), and a row per setting with its lanes. The lanes
+// classes in a heat can change from heat to heat (2026-08), and a row per
+// setting with its lanes. The lanes
 // say whether settings stand side by side or in turn (docs/hurdles.md, "What
 // the meets do"), and an undrawn class trails.
 function hurdleStartSetups(detailed, table) {

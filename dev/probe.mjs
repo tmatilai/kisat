@@ -63,7 +63,7 @@ const [host, which, query = ''] = process.argv.slice(2);
 // Meets dated from today. The scan finds the demo club in the first two, the
 // third has nobody in it, and the fourth is past RECENT_DAYS (lib/home.js), so
 // it stands behind "Näytä vanhemmat kilpailut" with no days from the feed. Its
-// venue is Tuloslista's placeholder (docs/tuloslista-api.md, "The listing").
+// venue is Tuloslista's placeholder.
 const MEETS = [
   {
     id: 99001,

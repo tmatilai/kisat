@@ -408,9 +408,8 @@ function t4rAloneMeet(row, pages, orgs, file, districts, licences) {
   };
 }
 
-// Writes a page's mark as the API does (docs/tuloslista-api.md, "Field
-// events"), with a dot for the page's comma (docs/elsewhere.md) and lower case
-// for a foul and a jump's pattern.
+// Writes a page's mark as the API does (2026-08), with a dot for the page's
+// comma and lower case for a foul and a jump's pattern.
 const t4rMark = (mark) =>
   String(mark ?? '')
     .replace(',', '.')
@@ -586,7 +585,7 @@ function olAloneMeet(row, files, orgs, file, districts, licences) {
 // Grafts the same files onto a meet that has its entries here. `row.classes`
 // gives each event's class in the race, matched by eventNameKey, since the
 // row's names are written by hand and a meet can name an event two ways
-// (docs/tuloslista-api.md, "A meet can name an event one way"). A finisher is the event's entry of that name, or else a
+// (2026-09). A finisher is the event's entry of that name, or else a
 // made one.
 function olGraft(schedule, eventResults, row, files, orgs, file, districts, licences, official = true) {
   const race = olRace(files, orgs, file, districts, licences);

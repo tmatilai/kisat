@@ -63,7 +63,7 @@ assert.deepEqual(parseEventName('N 200m Avoin').event, '200m');
 // A field event's name has no classification token, so the tail is the event.
 assert.deepEqual(parseEventName('M16 Moukari'), { sex: 'M16', event: 'Moukari', cls: '', label: 'M16' });
 assert.deepEqual(parseEventName('N Pituus'), { sex: 'N', event: 'Pituus', cls: '', label: 'N' });
-// A relay's formula first names no class (docs/tuloslista-api.md).
+// A relay's formula first names no class.
 // (Break on purpose: take the formula as the class, and the event is "viesti".)
 assert.deepEqual(parseEventName('6x200m viesti'), { sex: '', event: '6x200m viesti', cls: '', label: '' });
 assert.deepEqual(parseEventName('8x50m viesti mixed').event, '8x50m viesti mixed', '20485');
@@ -113,7 +113,7 @@ test('A start whose name names no class', () => {
     spaced[0],
     "18913's key before 16.9.2026",
   );
-  // A classless relay is filed as the adult men (docs/tuloslista-api.md), so
+  // A classless relay is filed as the adult men, so
   // filedStart files it under the meet's oldest named youth class.
   // (Break on purpose: file it at its own Age, and the chips gain yleinen.)
   const youth = {
@@ -202,7 +202,7 @@ test('groupRounds: Track, Field and Relay together', () => {
   assert.equal(groupRounds(rounds, ['Track', 'Relay']).length, 2);
 });
 // A competition's rows do not all carry one UTC offset, so a start's place in
-// the day comes from the instant (docs/tuloslista-api.md). (Break on purpose:
+// the day comes from the instant. (Break on purpose:
 // compare a.ts to b.ts as strings, and the 80m aidat lands after the Keihäs.)
 test('groupRounds', () => {
   const at = (ts, name) => ({
@@ -239,7 +239,7 @@ test('groupRounds', () => {
 // --- compareCategories: a start's categories in programme order ---
 test('compareCategories', () => {
   const order = (labels) => [...labels].sort(compareCategories);
-  // Class labels do not sort as text (docs/tuloslista-api.md). A real start's
+  // Class labels do not sort as text. A real start's
   // schedule lists T9, P9, T11, P11, T13, P13, M15, N17, M17, N19. It differs
   // from this order only in putting girls before boys within an age.
   assert.deepEqual(order(['M15', 'M17', 'N17', 'N19', 'P11', 'P13', 'P9', 'T11', 'T13', 'T9']), [
@@ -309,7 +309,7 @@ test('hasEntrants', () => {
     false,
     'a drawn-but-empty heat is nobody, not somebody',
   );
-  // An undrawn round can carry an empty heat shell (docs/tuloslista-api.md).
+  // An undrawn round can carry an empty heat shell.
   // Its entrants are the Enrollments.
   assert.equal(
     hasEntrants({ Heats: [{ Index: 1, Allocations: [] }] }, DEMO_EVENTS.e6.Enrollments),
@@ -521,7 +521,7 @@ test('eventStore', async () => {
     assert.equal(loads, 3, 'and the second pass over the same start fetches nothing');
   }
 
-  // A category nobody entered can answer 404 (docs/tuloslista-api.md). The
+  // A category nobody entered can answer 404. The
   // 404 stays on its own entry and is cached, and a timeout is no 404.
   {
     let tries = 0;
@@ -595,7 +595,7 @@ test('startCounts', async () => {
   }
 
   // A class whose document answers 404 says so, and claims nobody entered
-  // only where its document says it (docs/tuloslista-api.md). (Break on
+  // only where its document says it. (Break on
   // purpose: drop the `missing` row from startCounts, and the line is empty.)
   {
     const g = groups.find((x) => x.event === '400m aidat');
@@ -694,7 +694,7 @@ test('demo fixture', () => {
   assert.equal(attemptColumns(finaali.Heats[0].Allocations), 6, 'one 6-attempt row (top 8) beside one 3-attempt row');
 
   // Every heat of the Karsinta takes the round's widest row as its column
-  // count (docs/tuloslista-api.md).
+  // count.
   const allKarsintaAllocs = karsinta.Heats.flatMap((h) => h.Allocations);
   assert.equal(attemptColumns(allKarsintaAllocs), 3);
   assert.equal(attemptColumns(karsinta.Heats[1].Allocations), 2, 'heat 2 alone maxes out at 2 attempts');
@@ -717,13 +717,13 @@ test('demo fixture', () => {
     'heats',
     'a round still being run opens on its heats, where the chips are',
   );
-  // Its cut is on time alone, with QRank empty (docs/tuloslista-api.md).
+  // Its cut is on time alone, with QRank empty.
   assert.equal(qualificationNote(alkuerat100, false), 'Jatkoonpääsy: 6 nopeinta aikaa (q)');
   const badges100 = heatsInOrder(alkuerat100).flatMap((h) => h.Allocations.map(qualBadge));
   assert.equal(badges100.filter((b) => b === 'q').length, 6, 'six standing fill-ins, and no Q anywhere');
   assert.equal(badges100.filter((b) => b === 'Q').length, 0);
   // The sixth place is a dead heat with the flag on one of the two, as the API
-  // can leave it (docs/tuloslista-api.md). A third row with the same time is
+  // can leave it. A third row with the same time is
   // ranked apart and misses the cut.
   const withRound = heatsInOrder(alkuerat100).flatMap((h) => h.Allocations.map((a) => qualBadge(a, alkuerat100)));
   assert.equal(withRound.filter((b) => b === 'q').length, 7, 'the dead heat at the cut advances both');
@@ -751,8 +751,7 @@ test('demo fixture', () => {
   );
 
   // e33 is a field start drawn and not yet thrown, so it has no attempt
-  // columns (startListTable, app/event.js), as no attempt is taken yet
-  // (docs/tuloslista-api.md).
+  // columns (startListTable, app/event.js), as no attempt is taken yet.
   const kiekko = DEMO_EVENTS.e33.Rounds[0];
   const kiekkoAllocs = kiekko.Heats[0].Allocations;
   assert.equal(kiekko.Status, 'Allocated');
@@ -866,7 +865,7 @@ test('roundGroupKey', () => {
 });
 
 // --- roundGroupKey: one start's rows under two offsets are one start ---
-// (docs/tuloslista-api.md). (Break on purpose: key on the raw
+// (Break on purpose: key on the raw
 // BeginDateTimeWithTZ, and the demo's Kolmiloikka splits in two.)
 test('roundGroupKey: one start under two offsets', () => {
   const schedule = demoSchedule();
@@ -972,7 +971,7 @@ test('previousRoundField', () => {
   );
 
   // A dead heat at the cut sends both halves through, since the narrowing
-  // asks qualBadge (docs/tuloslista-api.md).
+  // asks qualBadge.
   const withDeadHeat = {
     Id: 'p6',
     Index: 0,
@@ -1015,7 +1014,7 @@ test('previousRound', () => {
   assert.equal(previousRound(rounds, alkuerat), null, 'nothing before the first round');
   assert.equal(previousRound(rounds, null), null);
 
-  // A heat shell in between is skipped too (docs/tuloslista-api.md).
+  // A heat shell in between is skipped too.
   const shellValierat = { Id: 's2', Index: 1, Status: 'Unallocated', Heats: [{ Index: 1, Allocations: [] }] };
   const shellRounds = [alkuerat, shellValierat, loppukilpailu];
   assert.equal(
@@ -1171,8 +1170,7 @@ test('meetPhase', () => {
     'proves the filter is what changes the answer, not the aggregate',
   );
 
-  // A category whose results are a 404 is an empty leftover
-  // (docs/tuloslista-api.md).
+  // A category whose results are a 404 is an empty leftover.
   assert.equal(
     meetPhase(
       schedule,

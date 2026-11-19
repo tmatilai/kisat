@@ -10,7 +10,7 @@ import { matchedEntries } from './watch.js';
 
 // The Settings[].Type of the confirmation switch, whose IntValue is the
 // deadline in minutes before the start (observed at the track). The setting's
-// presence decides, and its "on" or "off" does not (docs/tuloslista-api.md).
+// presence decides, and its "on" or "off" does not (2026-08).
 const CONFIRM_SETTING_TYPE = 1;
 
 function confirmSetting(properties) {

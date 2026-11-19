@@ -4,7 +4,7 @@ import { tsKey } from './dates.js';
 // Nothing upstream is keyed on a person, so a meet's roster finds who is in it.
 
 // Returns the EventIds in running order by first start, as a qualifying round
-// and its final share one EventId (docs/tuloslista-api.md).
+// and its final share one EventId (2026-08).
 function scheduleEventOrder(schedule) {
   const firstStart = new Map();
   for (const rounds of Object.values(schedule || {})) {

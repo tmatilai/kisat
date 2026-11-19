@@ -41,7 +41,7 @@ test('day helpers', () => {
 });
 
 // --- meetPlace: the venue and the organiser, without the listing's
-// placeholder venue (docs/tuloslista-api.md) ---
+// placeholder venue ---
 test('meetPlace', () => {
   assert.equal(meetPlace('Demola', 'Demon Urheilijat'), 'Demola · Demon Urheilijat');
   assert.equal(meetPlace('Kilpailupaikka', 'Demon Urheilijat'), 'Demon Urheilijat', 'placeholder venue is dropped');
@@ -120,7 +120,7 @@ test('meetWhen', () => {
   assert.equal(
     when(['4.8.2026'], '2026-08-06').endedDaysAgo,
     7,
-    'the real day wins over a listing Date that falls after it (docs/tuloslista-api.md, "`Date` is one day")',
+    'the real day wins over a listing Date that falls after it',
   );
   assert.equal(when([], null), null, 'nothing to go on is not the same as long ago');
 
@@ -232,7 +232,7 @@ test('scheduleEventIds/buildRoster', () => {
   assert.equal(roster.athletes.length, 246);
 
   // Every allocation joins an enrollment on its Id, the only way to read its
-  // confirmation (docs/tuloslista-api.md). (Break on purpose: give
+  // confirmation. (Break on purpose: give
   // demoTeamEnrollment a suffixed id of its own and every relay fails.)
   for (const [eventId, data] of Object.entries(DEMO_EVENTS)) {
     const entered = new Set((data.Enrollments || []).map((e) => e.Id));
@@ -590,7 +590,7 @@ test('scheduleDays/scheduleEventOrder', () => {
 });
 
 // --- calendarCandidates: which meets get a schedule fetch. The listing's
-// Date can fall after the meet's first day (docs/tuloslista-api.md),
+// Date can fall after the meet's first day,
 // and a multi-day meet can start before the window ---
 test('calendarCandidates', () => {
   const comps = [

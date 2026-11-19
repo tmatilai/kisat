@@ -70,8 +70,8 @@ function combinedRootStart(start) {
   return { EventName: start.label, Age: start.legs[0]?.round?.Age };
 }
 
-// Counts a multi-event from the root's entry list (docs/tuloslista-api.md). Its
-// one heat is a container, so there are no erät. A root that failed to load
+// Counts a multi-event from the root's entry list. Its one heat is a container
+// (2026-08), so there are no erät. A root that failed to load
 // gives null, as a failed fetch never says nobody entered.
 function combinedCounts(root) {
   if (!root) return null;
@@ -87,7 +87,7 @@ function combinedCounts(root) {
 }
 
 // Returns the key joining a multi-event's root and legs, Athletes[0].Id, the
-// same in each (docs/tuloslista-api.md). The licence is the id across meets.
+// same in each (2026-08). The licence is the id across meets.
 function combinedAthleteKey(alloc) {
   const id = alloc?.Athletes?.[0]?.Id;
   return id == null ? '' : String(id);
@@ -102,7 +102,7 @@ function combinedTotals(root) {
 }
 
 // Returns who is out of the multi-event, by combinedAthleteKey. A total that is
-// not a number marks one, DNS and DNF alike (docs/tuloslista-api.md). The entry
+// not a number marks one, DNS and DNF alike (2026-09). The entry
 // list that combinedTotals returns before the meet yields nobody.
 function combinedWithdrawn(rows) {
   const out = new Set();
@@ -113,7 +113,7 @@ function combinedWithdrawn(rows) {
 }
 
 // Returns the total of the row placed first, as a guest has no ResultRank and
-// can out-score the winner (docs/tuloslista-api.md). In a Mitalit table the
+// can out-score the winner (2026-08). In a Mitalit table the
 // leader is the row its scope ranks first (scopeResults), and the table of the
 // rest has no leader.
 function combinedLeaderPoints(rows) {
@@ -132,7 +132,7 @@ function combinedGap(alloc, leaderPoints) {
 }
 
 // Returns a column per leg in contest order, which only SubEvents[].Index gives
-// (docs/tuloslista-api.md). Each holds a whole leg result, so the standings
+// (2026-08). Each holds a whole leg result, so the standings
 // cost two event documents, a leg's and the root's (loadCombinedRoot). `legs` (combinedEventStarts) gives the schedule's status.
 function combinedLegColumns(root, legs = []) {
   const scheduled = new Map(legs.map((l) => [String(l.eventId), l]));

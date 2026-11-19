@@ -45,10 +45,10 @@ import {
 } from '../public/demo.js';
 
 // --- isCupMeet/cupStandings: the club cup's table over democup, each rule
-// measured (docs/tuloslista-api.md) ---
+// measured ---
 test('isCupMeet/cupStandings', () => {
   assert.equal(isCupMeet(demoResponse(`${API}/competition/${DEMO_CUP_ID}/properties`)), true);
-  // The Type 3 flag decides and the points do not (docs/tuloslista-api.md).
+  // The Type 3 flag decides and the points do not.
   // (Break on purpose: return true from isCupMeet, and the demo is a cup.)
   assert.equal(isCupMeet(demoResponse(`${API}/competition/${DEMO_ID}/properties`)), false);
   assert.ok(
@@ -95,7 +95,7 @@ test('isCupMeet/cupStandings', () => {
   assert.ok(guest.SeuraCUPPoints > 0, 'a guest with 0 points would prove nothing');
   assert.ok(!standings.clubs.some((c) => c.name === 'Ulkomaalainen Vieras'));
 
-  // Only a Final round scores, and c5 is heats alone (docs/tuloslista-api.md).
+  // Only a Final round scores, and c5 is heats alone.
   // (Break on purpose: drop the RoundTypeCategory test, and three clubs gain
   // 800, 720 and 640.)
   assert.equal(DEMO_CUP_EVENTS.c5.Rounds[0].RoundTypeCategory, 'Qualify');
@@ -171,7 +171,7 @@ test('isCupMeet/cupStandings', () => {
   );
 
   // Level on points the better result scores, then the better place, across
-  // the walks' two races too (docs/tuloslista-api.md).
+  // the walks' two races too.
   // (Break on purpose: compare on points alone, and all three name the worse
   // row. Put the place first, and the walk names the boys' winner.)
   {
@@ -300,7 +300,7 @@ test('isCupMeet/cupStandings', () => {
 });
 
 // --- cupMode/cupFinalStandings: the finals, which score by place off a Type 0
-// setting (docs/tuloslista-api.md) ---
+// setting ---
 const FINAL = { Settings: [{ Type: 0, Index: 0, StringValue: 'KKFIImport', IntValue: 17 }] };
 test('cupMode/cupFinalStandings', () => {
   const OSA = { Settings: [{ Type: 3, Index: 0, StringValue: 'KKFIImport', IntValue: 1 }] };
@@ -359,7 +359,7 @@ test('cupMode/cupFinalStandings', () => {
   );
 
   // A row with no ResultRank scores nothing and takes no place from the rows
-  // after it (docs/tuloslista-api.md).
+  // after it.
   assert.deepEqual(
     [...scoresOf([alloc('a', 1, 1), alloc('dns', null, 2), alloc('c', 2, 3)])],
     [

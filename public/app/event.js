@@ -379,7 +379,7 @@ async function renderGroup(compId, groupKey) {
       ]),
     );
     // Whether bib numbers are used is asked over the whole start. It depends on
-    // the meet and the event, not the heat (docs/tuloslista-api.md).
+    // the meet and the event, not the heat (2026-08).
     const bibs = bibNumbersUsed(merged.flatMap((h) => h.rows.map((r) => r.alloc)));
     parts.push(
       el(
@@ -502,7 +502,7 @@ function categorySections(
     const st = standings.get(d.label);
     const team = relayInfo(d.data);
     const legs = team.legCount;
-    // The API's own heat order is arbitrary (docs/tuloslista-api.md).
+    // The API's own heat order is arbitrary (2026-08).
     const heats = heatsInOrder(d.round);
 
     const note = qualificationNote(d.round, isField);
@@ -525,7 +525,7 @@ function categorySections(
     const context = (allocs, t) =>
       tableContext(allocs, { legCount: legs, targets, team, compId, round: d.round, bestCols, points, order, ...t });
 
-    // An undrawn round can carry an empty heat shell (docs/tuloslista-api.md),
+    // An undrawn round can carry an empty heat shell (2026-08),
     // which has to fall through to the entry list.
     if (roundAllocated(d.round)) {
       // Column counts and bib use are decided over the whole round, so its heat

@@ -3,7 +3,7 @@ import { relayInfo, relayLineup, roundAllocated } from './results.js';
 // --- Roster aggregation: every event's own /results, fetched by worker.js ---
 
 // Returns the distinct EventIds over every day. A qualifying round and its
-// final share one (docs/tuloslista-api.md).
+// final share one (2026-08).
 function scheduleEventIds(schedule) {
   const ids = new Set();
   for (const rounds of Object.values(schedule)) {
@@ -13,7 +13,7 @@ function scheduleEventIds(schedule) {
 }
 
 // Lists every entered athlete and club from [{eventId, data}], as Enrollments
-// is complete before the draw (docs/tuloslista-api.md). Only a relay's first
+// is complete before the draw (2026-08). Only a relay's first
 // legCount names count, and each event records the enrolling club.
 function buildRoster(eventResults) {
   const athletesById = new Map();
@@ -85,8 +85,8 @@ function drawnEntries(eventResults) {
 }
 
 // Maps each multi-event leg's eventId to its root { id, name }. A non-zero
-// RootId marks a leg, as the root's own resource carries 0
-// (docs/tuloslista-api.md). A leg with no RootName is left out.
+// RootId marks a leg, as the root's own resource carries 0 (2026-08). A leg
+// with no RootName is left out.
 function combinedEventRoots(eventResults) {
   const roots = new Map();
   for (const { eventId, data } of eventResults || []) {

@@ -155,7 +155,7 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs, sett
   ok('the guest above her reads as ahead, not behind', body[5][5] === '401+9');
   ok('her own row is ranked nowhere', body[5][0] === '—');
   // A withdrawal's total is a word, so it has no gap and no rank
-  // (combinedGap, docs/tuloslista-api.md).
+  // (combinedGap).
   ok('a withdrawal carries its own word and no gap under it', body[6][5] === 'DNF');
   ok('and is ranked nowhere either', body[6][0] === '—');
   // A leg somebody has not reached yet is blank and not a zero.
@@ -293,8 +293,8 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs, sett
 
   // --- The multi-event that has not started ---
   //
-  // Its root's round is an empty heat shell, as an undrawn round's can be
-  // (docs/tuloslista-api.md), so the entry list stands in for the field
+  // Its root's round is an empty heat shell, as an undrawn round's can be, so
+  // the entry list stands in for the field
   // until a leg is scored (combinedTotals). (Break on purpose: drop the
   // Enrollments fallback in combinedTotals and the table gives way to
   // "Ottelun kokonaispisteitä ei ole julkaistu.")

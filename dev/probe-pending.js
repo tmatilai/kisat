@@ -318,7 +318,7 @@ export default async function probe({ W, D, log, ok, wait, groupKey, appJs, demo
 
   // --- The unit, which decides the same on a field mark ---
   // Korkeus is the fixture's wrong-unit start, centimetre results against
-  // metre bests (docs/tuloslista-api.md, "Field events"). A vertical jump has
+  // metre bests. A vertical jump has
   // no wind, so these rows test the unit alone. 190 passed 1,88 m, and 195
   // passed neither 1,98 m nor its 1,95 m SB.
   await openStart(13, 30, 'Korkeus');

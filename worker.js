@@ -98,7 +98,7 @@ const PAST_CACHE_TTL_S = 7 * 24 * 60 * 60;
 const CACHE_TTLS = { live: ROSTER_CACHE_TTL_S, past: PAST_CACHE_TTL_S };
 
 // A cup's standings move with every final, and the official reader sums them
-// again on a short timer (docs/tuloslista-api.md, "An osakilpailu").
+// again every 30 s (2026-08).
 const CUP_CACHE_TTL_S = 60;
 
 // A body with no standings holds the settings, which can change on the meet
@@ -490,7 +490,7 @@ async function aloneRoster(env, row) {
   };
 }
 
-// Tuloslista publishes no rate limit (docs/tuloslista-api.md), so a miss runs
+// Tuloslista publishes no rate limit (2026-09), so a miss runs
 // its subrequests through a small pool. The pool's size is a guess.
 const ROSTER_FETCH_CONCURRENCY = 8;
 

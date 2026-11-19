@@ -19,9 +19,9 @@ import { combinedEventStatus, leastStatus, roundGroupKey } from '../public/lib/s
 import { DEMO_EVENTS, demoSchedule } from '../public/demo.js';
 
 // --- combined events (moniottelu): the legs found by name and the standings
-// read off the root, in the shapes docs/tuloslista-api.md describes ---
+// read off the root ---
 test('combined events', () => {
-  // A leg is found by its name alone (docs/tuloslista-api.md).
+  // A leg is found by its name alone.
   assert.deepEqual(multiEventLeg('N17 7-ottelu  Korkeus'), {
     label: 'N17 7-ottelu',
     kind: '7-ottelu',
@@ -43,7 +43,7 @@ test('combined events', () => {
   );
   assert.equal(leastStatus([]), 'Unallocated');
 
-  // A multi-event can span two days and is still one (docs/tuloslista-api.md).
+  // A multi-event can span two days and is still one.
   // (Break on purpose: put the date in combinedEventStarts' grouping key and
   // this splits in two.)
   const row = (eventId, name, status, ts) => ({
@@ -129,8 +129,7 @@ test('combined events', () => {
     'and the third is still undrawn',
   );
 
-  // The standings come off the root, whose SubEvents[] carries each leg whole
-  // (docs/tuloslista-api.md).
+  // The standings come off the root, whose SubEvents[] carries each leg whole.
   const root = DEMO_EVENTS.e37;
   const rows = combinedTotals(root);
   assert.deepEqual(
@@ -139,13 +138,13 @@ test('combined events', () => {
     "the root's own round: the points total as Result, placed by ResultRank",
   );
   // The guest and the withdrawal are ranked nowhere, so both sort after the
-  // placed rows (docs/tuloslista-api.md).
+  // placed rows.
   assert.equal(rows[5].Name, 'Ilona Vierainen');
   assert.equal(rows[5].ResultRank, null);
   assert.ok(rows[5].NotInCompetition);
   assert.equal(rows[6].Name, 'Pihla Harjoitinen');
   assert.equal(rows[6].ResultRank, null);
-  // A withdrawal leaves no gap behind it (docs/tuloslista-api.md).
+  // A withdrawal leaves no gap behind it.
   assert.deepEqual(
     rows.map((a) => a.ResultRank).filter((r) => r != null),
     [1, 2, 3, 4, 5],
@@ -171,7 +170,7 @@ test('combined events', () => {
     'no heat to have left behind',
   );
   const legs = combinedLegColumns(root, t9.legs);
-  // SubEvents[].Index is the contest order (docs/tuloslista-api.md).
+  // SubEvents[].Index is the contest order.
   // (Break on purpose: drop the Index sort in combinedLegColumns and the
   // columns come out in the array's order.)
   assert.deepEqual(
@@ -217,8 +216,8 @@ test('combined events', () => {
     ['Progress', 'Progress', 'Allocated'],
   );
 
-  // Root and legs join on the per-competition athlete id
-  // (docs/tuloslista-api.md). A numeric total is the sum of the legs' points.
+  // Root and legs join on the per-competition athlete id. A numeric total is
+  // the sum of the legs' points.
   // A withdrawal's total is not a number, so it is left out.
   const scored = rows.filter((a) => Number.isFinite(Number(a.Result)));
   assert.equal(scored.length, rows.length - 1);
@@ -237,7 +236,7 @@ test('combined events', () => {
   assert.deepEqual(combinedTotals({}), []);
 
   // The gap is measured from the row ranked first, not the biggest total,
-  // since a guest can out-score the leader (docs/tuloslista-api.md).
+  // since a guest can out-score the leader.
   // (Break on purpose: take the leader from Math.max of the totals and every
   // other row reports a deficit to the guest.)
   const leader = combinedLeaderPoints(rows);
@@ -248,7 +247,7 @@ test('combined events', () => {
   );
   assert.equal(combinedLeaderPoints([]), null, 'nothing ranked first is nothing to measure against');
   assert.equal(combinedGap({ Result: '3000' }, null), null);
-  // A withdrawal's total is DNF or DNS (docs/tuloslista-api.md), and a
+  // A withdrawal's total is DNF or DNS, and a
   // subtraction against it would print "NaN".
   assert.equal(combinedGap({ Result: 'DNF' }, leader), null);
   assert.equal(combinedGap({ Result: 'DNS' }, leader), null);
@@ -257,8 +256,8 @@ test('combined events', () => {
   assert.equal(combinedLeaderPoints([{ ResultRank: 1, Result: 'DNF' }]), null);
 
   // The unstarted multi-event's root is a heat shell, so the entry list is
-  // its only field (docs/tuloslista-api.md). (Break on purpose: drop
-  // the Enrollments fallback in combinedTotals and this is [].)
+  // its only field. (Break on purpose: drop the Enrollments fallback in
+  // combinedTotals and this is [].)
   const empty = DEMO_EVENTS.e41;
   assert.equal(roundAllocated(empty.Rounds[0]), false, 'a heat shell is not a drawn field');
   const entered = combinedTotals(empty);
@@ -283,8 +282,8 @@ test('combined events', () => {
     'an enrolment joins to a leg on the same athlete id an allocation does',
   );
 
-  // Every allocation carries CEPoints, 0 outside a multi-event
-  // (docs/tuloslista-api.md). The fixture keeps both halves true, or nothing
+  // Every allocation carries CEPoints, 0 outside a multi-event. The fixture
+  // keeps both halves true, or nothing
   // tests the IsCombinedEvent gate.
   for (const [eventId, data] of Object.entries(DEMO_EVENTS)) {
     const allocs = (data.Rounds || []).flatMap((r) => (r.Heats || []).flatMap((h) => h.Allocations || []));
@@ -300,7 +299,7 @@ test('combined events', () => {
 });
 
 // --- combinedEventRoots: a multi-event's legs are one entry on the front
-// page, named after the root (docs/tuloslista-api.md) ---
+// page, named after the root ---
 test('combinedEventRoots', () => {
   const club = { Id: 1, Name: 'Demon Urheilijat', NameShort: 'DemU' };
   const her = { Id: 900, LicenseId: 'L900', Firstname: 'Ilona', Surname: 'Ottelinen', Organization: club };

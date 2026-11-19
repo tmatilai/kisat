@@ -1075,7 +1075,7 @@ try {
     assert.deepEqual(
       meet,
       { cup: false, confirm: { minutes: 60 } },
-      "not a cup, however many SeuraCUPPoints its rows carry (20224's shape — docs/tuloslista-api.md)",
+      "not a cup, however many SeuraCUPPoints its rows carry (20224's shape)",
     );
 
     // A meet that is neither a cup nor a confirmer costs one KV read. This

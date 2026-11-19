@@ -92,7 +92,7 @@ The last is a cup final. `confirm` is `{minutes}`, or null if the meet doesn't t
 
 - **This route is the client's only way to know whether a meet runs the cup or varmistus.** Every
   allocation has `SeuraCUPPoints`, and an entry's `Confirmed` is per person, so neither tells
-  (`docs/tuloslista-api.md`, "Club-cup points (Seuracup)" and "Varmistus (confirmation)").
+  (2026-08).
 - **`GET /api/cup/:compId` returns the rows that scored, from the same build**, on its own route
   because of its size. Every start view fetches the meet body.
 - **A `scoring` entry is `eventId:allocId`**, because the demo reuses allocation ids across a
@@ -150,7 +150,7 @@ A Watch is stored in `WATCHES` under `watch:<id>`. A change to its shape needs a
   gets 403. The token goes in the JSON body, never in the URL. A second `DELETE` gets 404, which the
   app treats as success.
 - **An entry's `id` is a `LicenseId` for an athlete and an `Organization.Id` for a club**, because
-  both stay the same across meets (`docs/tuloslista-api.md`, "Categories, names and identity").
+  both stay the same across meets (2026-09).
 - **A `PUT` can send `ifUpdatedAt`**, the `updatedAt` it loaded, and gets 409 if the stored Watch
   has changed since.
 - **`ifUpdatedAt` only catches conflicts minutes apart.** KV has no compare-and-swap, and its reads

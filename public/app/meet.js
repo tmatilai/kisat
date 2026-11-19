@@ -668,7 +668,7 @@ async function groupLines(g, eventIds, targets, store, compId, startsAt) {
   const detailed = await roundDetails(relevant, store);
   const perCategory = await Promise.all(
     detailed.map(async (d) => {
-      // A relay is matched on the club that entered it (docs/tuloslista-api.md).
+      // A relay entry belongs to the club that entered it (2026-08).
       const team = relayInfo(d.data);
       const legCount = team.legCount;
       // An undrawn round shows the earlier round's qualifiers, as Enrollments is

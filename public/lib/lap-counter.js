@@ -5,7 +5,7 @@ import { isRelayEventType, parseResult } from './results.js';
 // real races. Only a press re-renders, and the tick rewrites text in place.
 
 // Returns the distance covered. A relay's Length is one leg, and a race can
-// be filed under the wrong EventType (docs/tuloslista-api.md). The name's
+// be filed under the wrong EventType (2026-08). The name's
 // `NxM` wins, as trusting the type there rings the bell a lap late.
 function raceDistance(eventType, roundName = '') {
   const len = eventType?.Length || 0;
