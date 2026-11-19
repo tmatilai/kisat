@@ -188,8 +188,7 @@ async function renderHome() {
   const whenOf = (c) => whens.get(String(c.Id));
 
   comps.sort((a, b) => meetSortValue(whenOf(b), todayIso) - meetSortValue(whenOf(a), todayIso));
-  // Finished meets hide behind a button (meetIsRecent, docs/home.md,
-  // "Dates and sorting").
+  // Finished meets hide behind a button.
   const older = comps.filter((c) => !meetIsRecent(whenOf(c)));
   let showOlder = false;
   // The meets the listing has dropped come from /api/meets on the first
