@@ -967,6 +967,23 @@ function clubYearTable(body, cover = null) {
   }));
 }
 
+// Returns a club's medalists of a year under the chips' `cover`, as
+// clubYearTable's rows of that year with the scope, [{scope, year, medals,
+// total, pending, meets, boxes}]. `boxes` are the scope's year page medalists
+// (medalSeasonMedalists), including relays. A scope with no medalist is left
+// out.
+function clubYearMedalists(body, year, cover = null) {
+  const season = (body?.years || []).find((y) => y.year === year);
+  if (!season) return [];
+  return clubYearTable({ ...body, years: [season] }, cover)
+    .map(({ scope, years: [row] }) => ({
+      scope,
+      ...row,
+      boxes: medalSeasonMedalists(season.scopes.find((s) => s.id === scope.id)?.meets, body.club.id, cover),
+    }))
+    .filter((r) => r.boxes.length);
+}
+
 // Returns each notable meet of notable.json with its index rows of a year, as
 // [{id, name, meets: [{id, name, date}]}]. A meet's year is its index row's,
 // or that of the row of `elsewhere` that stands alone under its id.
@@ -1178,6 +1195,7 @@ export {
   clubMedalists,
   clubSeasonMeets,
   clubYearAges,
+  clubYearMedalists,
   clubYearTable,
   followedRows,
   isNotableMeet,

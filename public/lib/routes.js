@@ -344,8 +344,10 @@ function parseSeasonHash(rawHash) {
   return { scopeId: m[1] || null, year: m[2] ? Number(m[2]) : null, ages: parseAges(m[3]), club: m[4] || null };
 }
 
-// Parses a club's years' fragment, `#/seura/<club>[/<ages>]`, or returns null.
-// parseRoute reads it before parseSeasonHash, so no scope's id may be `seura`.
+// Parses a club's years' fragment, `#/seura/<club>[/mitalistit[/<year>]][/<ages>]`,
+// or returns null. `mitalistit` opens the medalists' tab, of the latest year
+// when no year follows. parseRoute reads it before parseSeasonHash, so no
+// scope's id may be `seura`.
 function parseClubYearsHash(rawHash) {
   let hash;
   try {
@@ -353,12 +355,16 @@ function parseClubYearsHash(rawHash) {
   } catch {
     return null;
   }
-  const m = hash.match(/^\/?seura\/([\p{L}\p{N}_-]+)(?:\/([\d,]+))?\/?$/u);
-  return m ? { club: m[1], ages: parseAges(m[2]) } : null;
+  const m = hash.match(/^\/?seura\/([\p{L}\p{N}_-]+)(?:\/(mitalistit)(?:\/(\d{4}))?)?(?:\/([\d,]+))?\/?$/u);
+  if (!m) return null;
+  return { club: m[1], medalists: !!m[2], year: m[3] ? Number(m[3]) : null, ages: parseAges(m[4]) };
 }
 
-function clubYearsHash(club, ages = []) {
-  return `#/${['seura', club, agesSegment(ages)].filter(Boolean).join('/')}`;
+// `medalists` is false for the tables, true for the latest year's medalists,
+// or a year for that year's medalists.
+function clubYearsHash(club, ages = [], medalists = false) {
+  const tab = medalists === false ? [] : ['mitalistit', medalists === true ? '' : medalists];
+  return `#/${['seura', club, ...tab, agesSegment(ages)].filter(Boolean).join('/')}`;
 }
 
 // Parses an athlete's years' fragment, `#/urheilija/<licence>[/<year>]`, or

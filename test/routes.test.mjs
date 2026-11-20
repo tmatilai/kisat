@@ -200,14 +200,31 @@ test('parseRoute', () => {
     club: 'ol-mäkimallinkisa',
   });
   assert.equal(routeOf(`/mestaruudet${seasonHash('sm', 2026, [], 'ol-mäkimallinkisa')}`).club, 'ol-mäkimallinkisa');
-  // A club's years: `seura` and the club, then the ages. (Break on purpose:
-  // parse the season's fragment first, and `seura` reads as a scope.)
-  assert.deepEqual(routeOf(`/mestaruudet${clubYearsHash('ol-mäkimallinkisa', [15, 17])}`), {
+  // A club's years: `seura` and the club, then the medalists' tab with its
+  // year, and the ages. (Break on purpose: parse the season's fragment first,
+  // and `seura` reads as a scope; or drop the tab, or read the year as ages.)
+  assert.deepEqual(routeOf(`/mestaruudet${clubYearsHash('ol-mäkimallinkisa', [15, 17], 2025)}`), {
     view: 'medalClub',
     club: 'ol-mäkimallinkisa',
+    medalists: true,
+    year: 2025,
     ages: [15, 17],
   });
-  assert.deepEqual(routeOf('/mestaruudet#/seura/123'), { view: 'medalClub', club: '123', ages: [] });
+  assert.equal(clubYearsHash('1', [], true), '#/seura/1/mitalistit', 'the latest year');
+  assert.deepEqual(routeOf('/mestaruudet#/seura/123/mitalistit/13'), {
+    view: 'medalClub',
+    club: '123',
+    medalists: true,
+    year: null,
+    ages: [13],
+  });
+  assert.deepEqual(routeOf('/mestaruudet#/seura/123/13'), {
+    view: 'medalClub',
+    club: '123',
+    medalists: false,
+    year: null,
+    ages: [13],
+  });
   assert.equal(parseClubYearsHash('#/seura'), null, 'no club is the scopes');
   assert.equal(parseClubYearsHash('#/seura/1/2026/13'), null);
   // An athlete's years: `urheilija` and the licence. (Break on purpose: parse

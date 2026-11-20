@@ -26,8 +26,9 @@ Shared links depend on the URL shapes below. `parseRoute` (`lib/routes.js`) maps
   the hurdle and implement tables.
 - `/mestaruudet[#/[<scopeId>/]<year>[/<ages>][/s/<orgId>]]`: the medals of one scope over a year
   (`docs/views.md`, "The years"). Without a scope, the page lists the scopes.
-- `/mestaruudet#/seura/<orgId>[/<ages>]`: a club's medals per year in the championships of the
-  club's scopes.
+- `/mestaruudet#/seura/<orgId>[/mitalistit[/<year>]][/<ages>]`: a club's medals per year in the
+  championships of the club's scopes. `mitalistit` opens the tab of the club's medalists per scope
+  in one year, the latest when no year is given.
 - `/mestaruudet#/urheilija/<licence>[/<year>]`: an athlete's championship medals of one year, by
   level. The page has a tab per year with medals, and opens the latest when no year is given.
 - `/seuracup[#/[<osakilpailut, finaalit or piiriId>/]<year>[/s/<orgId>]]`: the club cup's season for

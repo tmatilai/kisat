@@ -8,6 +8,7 @@ import {
   clubMedalStarts,
   clubMedalists,
   clubYearAges,
+  clubYearMedalists,
   clubYearTable,
   followedRows,
   medalAges,
@@ -479,6 +480,12 @@ function medalSeasonMeetEl(meet, box, href, open, onToggle) {
 
 const SCOPE_CHAMPIONSHIP = { maa: 'Suomenmestaruus', alue: 'Aluemestaruus', piiri: 'Piirinmestaruus' };
 
+// Names a scope as its championship, or a notable meet by its own name.
+function championshipTitle(scope) {
+  if (scope.kind === 'notable') return scope.name;
+  return scope.kind === 'maa' ? SCOPE_CHAMPIONSHIP.maa : `${SCOPE_CHAMPIONSHIP[scope.kind]} · ${scope.short}`;
+}
+
 // A scope's year's back target, and whether the next render keeps it.
 let seasonBack = null;
 let keepSeasonBack = false;
@@ -742,11 +749,7 @@ async function renderMedalSeason({ scopeId, year: wantedYear, ages, club }, isRe
         'div',
         {},
         chipAges.length ? ageChips(chipAges, shown, go) : null,
-        el(
-          'h2',
-          {},
-          scope.kind === 'maa' ? SCOPE_CHAMPIONSHIP.maa : `${SCOPE_CHAMPIONSHIP[scope.kind]} · ${scope.short}`,
-        ),
+        el('h2', {}, championshipTitle(scope)),
         clubs.length
           ? medalTableEl(null, clubs, followed, { id: picked?.id, onPick })
           : el('div', { class: 'notice' }, 'Ei mitaleita.'),
@@ -823,13 +826,17 @@ async function renderMedalSeason({ scopeId, year: wantedYear, ages, club }, isRe
 // its fetch answers, and a refresh keeps it.
 const clubNames = new Map();
 
-// Draws a club's medals, a table per scope with a row per year.
-async function renderMedalClub({ club, ages }) {
+// Draws a club's medals as a table per scope with a row per year. The
+// medalists' tab instead draws one year's medalists per scope, with a tab per
+// year.
+async function renderMedalClub({ club, medalists, year: wantedYear, ages }) {
   const seq = renderSeq;
   setHelp(null);
-  setScrollKey(`medalclub:${club}`);
   setBack(MEDAL_SEASON_PAGE_PATH);
   titleEl.textContent = clubNames.get(club) || MEDAL_SEASON_PAGE_TITLE;
+  const todayIso = scanTodayIso();
+  const year = wantedYear ?? medalYears(todayIso)[0];
+  setScrollKey(`medalclub:${club}:${medalists ? year : 'vuodet'}`);
   const state = viewStateFor(HOME_VIEW_KEY);
   const bar = filterBar(HOME_VIEW_KEY, state, { label: watchLabel(state.watchId) }, false);
   const url = `/api/medalclub/${encodeURIComponent(club)}`;
@@ -839,45 +846,123 @@ async function renderMedalClub({ club, ages }) {
     appEl.replaceChildren(bar, el('div', { class: 'notice error' }, 'Seuran mitalien haku epäonnistui.'));
     return;
   }
+  // The `medalists` argument of clubYearsHash, with the year from the address.
+  const tab = medalists ? (wantedYear ?? true) : false;
   // A duplicate record's id gets its canonical club (docs/backend.md, "The
   // club index").
   if (data.club.id !== club) {
     club = data.club.id;
-    replaceAddress(`${MEDAL_SEASON_PAGE_PATH}${clubYearsHash(club, ages)}`);
+    replaceAddress(`${MEDAL_SEASON_PAGE_PATH}${clubYearsHash(club, ages, tab)}`);
   }
+  const tabLink = (label, to, current) =>
+    redrawTabEl(label, `${MEDAL_SEASON_PAGE_PATH}${clubYearsHash(club, ages, to)}`, current);
+  bar.append(segControl('Näkymä', [tabLink('Vuodet', false, !medalists), tabLink('Mitalistit', true, medalists)]));
+  if (medalists)
+    bar.append(
+      segControl(
+        'Vuosi',
+        medalYears(todayIso).map((y) => tabLink(String(y), y, y === year)),
+      ),
+    );
   clubNames.set(club, data.club.name);
   titleEl.textContent = data.club.name;
+  if (medalists && !medalYearOk(year, todayIso)) {
+    appEl.replaceChildren(bar, el('div', { class: 'notice' }, `Vuoden ${year} mitaleita ei ole saatavilla.`));
+    return;
+  }
   // A chosen age with no chip stays in the address, as on the year page.
   const chipAges = clubYearAges(data);
   const shown = ages.filter((a) => chipAges.includes(a));
   const cover = shown.length ? { ages: shown, events: null } : null;
-  const go = (next) => navigate(`${MEDAL_SEASON_PAGE_PATH}${clubYearsHash(club, next)}`, { redraw: true });
+  const go = (next) => navigate(`${MEDAL_SEASON_PAGE_PATH}${clubYearsHash(club, next, tab)}`, { redraw: true });
   appEl.replaceChildren(
     bar,
     el(
       'div',
       {},
       chipAges.length ? ageChips(chipAges, shown, go) : null,
-      clubYearTable(data, cover).flatMap(({ scope, years }) =>
-        scope.kind === 'notable'
-          ? notableYearsEls(scope, years, ages, club)
-          : [
-              el(
-                'h2',
-                {},
-                scope.kind === 'maa' ? SCOPE_CHAMPIONSHIP.maa : `${SCOPE_CHAMPIONSHIP[scope.kind]} · ${scope.short}`,
-              ),
-              clubYearsTableEl(years, (y) =>
-                el(
-                  'a',
-                  { class: 'year-link', href: `${MEDAL_SEASON_PAGE_PATH}${seasonHash(scope.id, y.year, ages, club)}` },
-                  String(y.year),
-                ),
-              ),
-            ],
-      ),
+      medalists
+        ? clubMedalistsEls(data, clubYearMedalists(data, year, cover), { year, ages, shown, chipAges, club })
+        : clubYearTable(data, cover).flatMap(({ scope, years }) =>
+            scope.kind === 'notable'
+              ? notableYearsEls(scope, years, ages, club)
+              : [
+                  el('h2', {}, championshipTitle(scope)),
+                  clubYearsTableEl(years, (y) =>
+                    el(
+                      'a',
+                      {
+                        class: 'year-link',
+                        href: `${MEDAL_SEASON_PAGE_PATH}${seasonHash(scope.id, y.year, ages, club)}`,
+                      },
+                      String(y.year),
+                    ),
+                  ),
+                ],
+          ),
     ),
   );
+}
+
+// Draws a club's medalists of one year per scope: a heading with the club's
+// medals, then the medalists' boxes as a scope's year page draws them.
+function clubMedalistsEls(data, rows, { year, ages, shown, chipAges, club }) {
+  if (!rows.length) return [el('div', { class: 'notice' }, 'Ei mitalisteja.')];
+  const meets = new Map(data.years.flatMap((y) => y.scopes.flatMap((s) => s.meets)).map((m) => [m.id, m]));
+  const meetHref = (id) => medalsPath(id, shown.length ? ages : medalSeasonMeetAges(meets.get(id), chipAges), club);
+  const lineEl = (l) =>
+    bodyMedalLineEl(
+      l,
+      meetHref(l.meet),
+      [meets.get(l.meet)?.name, dayMonth(isoToFiDay(l.date)), onlyNote(l)].filter(Boolean).join(' · '),
+    );
+  // One set of open keys covers every scope, so one button opens every box.
+  // Every box starts closed. A person has a box in each scope where they won a
+  // medal, so a key includes the scope.
+  const keyOf = (r, b) => `${r.scope.id}|${b.key}`;
+  const all = rows.flatMap((r) => r.boxes.map((b) => ({ key: keyOf(r, b) })));
+  const keys = medalistOpenKeys(`medalclub:${club}:${year}:${shown.join(',')}`, all, false);
+  const barEl = el('div', { class: 'medalist-bar medalist-bar-end' });
+  const lists = rows.map((r) => [r, el('div', { class: 'list' })]);
+  const paint = () => {
+    barEl.replaceChildren(all.length > 1 ? medalistAllEl(all, keys, paint) : '');
+    for (const [r, listEl] of lists)
+      listEl.replaceChildren(
+        ...r.boxes.map((b) =>
+          medalistRowEl(b, { after: athleteYearsEntryEl(b) }, lineEl, keys.has(keyOf(r, b)), () => {
+            toggleMedalist(keys, keyOf(r, b));
+            paint();
+          }),
+        ),
+      );
+  };
+  paint();
+  return [
+    barEl,
+    ...lists.flatMap(([r, listEl]) => [
+      el('h2', { class: 'count-head' }, el('span', {}, clubScopeTitleEl(r, year, ages, club)), medalSlotsEl(r.medals)),
+      listEl,
+    ]),
+  ];
+}
+
+// Links a scope's heading to its year page, or a notable meet's to the meet's
+// medal page (docs/views.md, "The years").
+function clubScopeTitleEl({ scope, meets }, year, ages, club) {
+  if (scope.kind !== 'notable')
+    return el(
+      'a',
+      { class: 'year-link', href: `${MEDAL_SEASON_PAGE_PATH}${seasonHash(scope.id, year, ages, club)}` },
+      championshipTitle(scope),
+    );
+  const link = (m, label) => el('a', { class: 'year-link', href: medalsPath(m.id, ages, club) }, label);
+  const built = meets.filter((m) => m.ages?.length);
+  if (built.length === 1) return link(built[0], scope.name);
+  const youngest = (m) => ageOrder(m.ages[0]);
+  return [
+    scope.name,
+    ...built.sort((a, b) => youngest(a) - youngest(b)).flatMap((m) => [' · ', link(m, ageRangeLabel(m.ages))]),
+  ];
 }
 
 // A notable meet's table (docs/views.md, "The years").
@@ -1002,12 +1087,6 @@ async function renderMedalAthlete({ licence, year: wantedYear }) {
   const clubs = new Set(
     years.flatMap((y) => y.levels.flatMap((l) => l.meets.flatMap((m) => m.lines.map((line) => line.club)))),
   );
-  const levelTitle = (scope) =>
-    scope.kind === 'notable'
-      ? scope.name
-      : scope.kind === 'maa'
-        ? SCOPE_CHAMPIONSHIP.maa
-        : `${SCOPE_CHAMPIONSHIP[scope.kind]} · ${scope.short}`;
   const meetEl = (m) =>
     el(
       'div',
@@ -1043,7 +1122,7 @@ async function renderMedalAthlete({ licence, year: wantedYear }) {
       : el(
           'a',
           { class: 'year-link', href: `${MEDAL_SEASON_PAGE_PATH}${seasonHash(scope.id, year)}` },
-          levelTitle(scope),
+          championshipTitle(scope),
         );
   appEl.replaceChildren(
     bar,

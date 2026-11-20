@@ -30,6 +30,7 @@ import {
   clubMedalStarts,
   clubSeasonMeets,
   clubYearAges,
+  clubYearMedalists,
   clubYearTable,
   followedRows,
   isNotableMeet,
@@ -1109,6 +1110,32 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
     ],
   ]);
   assert.deepEqual(clubLines({ ages: [13], events: null })[1][1][0], [2026, 2, 0, 0, 2, 0], 'under the chips');
+  // A club's year lists each scope's year page medalists, relays too. (Break on
+  // purpose: take every year's meets, or drop the relays.)
+  const boxesOf = (y, cover) =>
+    medalSeasonMedalists(clubBody.years.find((x) => x.year === y).scopes[0].meets, '1', cover).map((b) => [
+      b.key,
+      b.medals,
+    ]);
+  const medalistsOf = (y, cover) =>
+    clubYearMedalists(clubBody, y, cover).map(({ scope, medals, boxes }) => [
+      scope.id,
+      medals,
+      boxes.map((b) => [b.key, b.medals]),
+    ]);
+  const demyRow = (y) =>
+    clubLines()[1][1]
+      .find(([yy]) => yy === y)
+      .slice(1, 4);
+  for (const y of [2026, 2025])
+    assert.deepEqual(medalistsOf(y), [['demy', demyRow(y), boxesOf(y)]], `${y}, and no scope without a medalist`);
+  assert.ok(
+    boxesOf(2026).some(([key]) => key.startsWith('o')),
+    'the fixture has a relay',
+  );
+  const under13 = { ages: [13], events: null };
+  assert.deepEqual(medalistsOf(2026, under13)[0][2], boxesOf(2026, under13), 'under the chips');
+  assert.deepEqual(clubYearMedalists(clubBody, 2024), [], 'a year the body lacks');
   const clubOnly = clubBody.years[0].scopes[0].meets;
   assert.deepEqual(
     new Set(clubOnly.flatMap((m) => m.starts.flatMap((st) => st.medals.map(([c]) => c)))),
