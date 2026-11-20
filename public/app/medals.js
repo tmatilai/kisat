@@ -1081,12 +1081,11 @@ async function renderMedalAthlete({ licence, year: wantedYear }) {
         ),
       ),
     );
-  const levels = years.find((y) => y.year === year)?.levels || [];
-  // A line names its club only when the athlete's medals are for more than one
-  // club.
-  const clubs = new Set(
-    years.flatMap((y) => y.levels.flatMap((l) => l.meets.flatMap((m) => m.lines.map((line) => line.club)))),
-  );
+  const shown = years.find((y) => y.year === year);
+  const levels = shown?.levels || [];
+  // A line names its club only when the athlete's medals that year are for
+  // more than one club.
+  const clubs = shown?.clubs || [];
   const meetEl = (m) =>
     el(
       'div',
@@ -1107,7 +1106,7 @@ async function renderMedalAthlete({ licence, year: wantedYear }) {
                 'span',
                 { class: 'medalist-event' },
                 l.event,
-                clubs.size > 1 ? el('span', { class: 'medalist-sub' }, ` · ${l.club}`) : null,
+                clubs.length > 1 ? el('span', { class: 'medalist-sub' }, ` · ${l.club}`) : null,
               ),
               medalSlotEl(l.medal),
             ),
@@ -1124,8 +1123,20 @@ async function renderMedalAthlete({ licence, year: wantedYear }) {
           { class: 'year-link', href: `${MEDAL_SEASON_PAGE_PATH}${seasonHash(scope.id, year)}` },
           championshipTitle(scope),
         );
+  // The year's clubs link to their medalists of the year.
+  const clubsEl = clubs.length
+    ? el(
+        'div',
+        { class: 'athlete-clubs' },
+        clubs.flatMap((c, i) => [
+          i ? ' · ' : '',
+          el('a', { class: 'year-link', href: `${MEDAL_SEASON_PAGE_PATH}${clubYearsHash(c.id, [], year)}` }, c.name),
+        ]),
+      )
+    : null;
   appEl.replaceChildren(
     bar,
+    clubsEl || '',
     ...(levels.length
       ? levels.flatMap((l) => [
           el('h2', { class: 'count-head' }, el('span', {}, titleOf(l.scope)), medalSlotsEl(l.medals)),

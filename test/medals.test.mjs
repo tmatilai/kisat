@@ -72,6 +72,7 @@ import {
   seasonRecordKeep,
   seasonRecordUnkept,
   warmSeasonMeets,
+  yearClubs,
 } from '../public/lib/medals.js';
 import { displayRank, isFinalRound, officialRank } from '../public/lib/results.js';
 import { buildRoster } from '../public/lib/roster.js';
@@ -2272,10 +2273,9 @@ test("an athlete's years: the medalist index and the lines", () => {
     ],
   );
 
-  // Each level holds its years newest first and a year's meets by date, a line
-  // per medal, and counts each year's medals. A notable meet's medal is the
-  // meet's own. (Break on purpose: keep the other athletes' medals, or either
-  // order.)
+  // The years run newest first, a level's meets by date, with a line per medal
+  // and each level's medals counted. A notable meet's medal is the meet's own.
+  // (Break on purpose: keep the other athletes' medals, or either order.)
   const meet = { id: '30006', name: 'Demo', date: '2026-06-06', cover: null };
   const earlier = { ...meet, id: '30000', date: '2025-06-01' };
   const spring = { ...meet, id: '30007', date: '2026-05-02' };
@@ -2323,22 +2323,39 @@ test("an athlete's years: the medalist index and the lines", () => {
       [
         2026,
         [
-          ['demolainen', [0, 0, 1], [['30006', [{ event: 'M 100m', medal: 3, club: 'Näyteniemen Vauhti' }]]]],
+          [
+            'demolainen',
+            [0, 0, 1],
+            [['30006', [{ event: 'M 100m', medal: 3, clubId: '4', club: 'Näyteniemen Vauhti' }]]],
+          ],
           [
             'maly',
             [2, 0, 0],
             [
-              ['30007', [{ event: 'M 100m', medal: 1, club: 'Näyteniemen Vauhti' }]],
-              ['30006', [{ event: 'M 100m', medal: 1, club: 'Näyteniemen Vauhti' }]],
+              ['30007', [{ event: 'M 100m', medal: 1, clubId: '4', club: 'Näyteniemen Vauhti' }]],
+              ['30006', [{ event: 'M 100m', medal: 1, clubId: '4', club: 'Näyteniemen Vauhti' }]],
             ],
           ],
-          ['avoimet', [0, 0, 1], [['30006', [{ event: 'M 100m', medal: 3, club: 'Näyteniemen Vauhti' }]]]],
+          ['avoimet', [0, 0, 1], [['30006', [{ event: 'M 100m', medal: 3, clubId: '4', club: 'Näyteniemen Vauhti' }]]]],
         ],
       ],
-      [2025, [['maly', [1, 0, 0], [['30000', [{ event: 'M 100m', medal: 1, club: 'Näyteniemen Vauhti' }]]]]]],
+      [
+        2025,
+        [['maly', [1, 0, 0], [['30000', [{ event: 'M 100m', medal: 1, clubId: '4', club: 'Näyteniemen Vauhti' }]]]]],
+      ],
     ],
     'an unbuilt meet has no card',
   );
+  // A year names the clubs of its lines, the club of the last medal first.
+  // (Break on purpose: keep the first club seen.)
+  const moved = (date, clubId, club) => ({
+    scope: { id: 'maly' },
+    meets: [{ id: date, date, lines: [{ clubId, club }] }],
+  });
+  assert.deepEqual(yearClubs([moved('2026-05-01', '1', 'Old'), moved('2026-08-01', '2', 'New')]), [
+    { id: '2', name: 'New' },
+    { id: '1', name: 'Old' },
+  ]);
   assert.equal(athleteYearsName(body), record.athletes.find(([k]) => k === key)[1]);
 
   // A line links to its start by the event name alone (docs/architecture.md,
