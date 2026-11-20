@@ -1147,10 +1147,11 @@ function athleteSeasonMeets(meets, licence) {
 }
 
 // Returns an athlete's medals per year (/api/medalathlete's body), as [{year,
-// levels}], newest first. A year's levels keep the body's order of scopes,
-// each as {scope, medals, meets}, where `medals` counts the level's golds,
-// silvers and bronzes that year. A level's meets run by date, each as {id,
-// name, date, lines}, with a line per medal: {event, medal, club}.
+// levels, clubs}], newest first, with `clubs` as yearClubs returns them. A
+// year's levels keep the body's order of scopes, each as {scope, medals,
+// meets}, where `medals` counts the level's golds, silvers and bronzes that
+// year. A level's meets run by date, each as {id, name, date, lines}, with a
+// line per medal: {event, medal, clubId, club}.
 function athleteYears(body) {
   const scopes = new Map((body?.scopes || []).map((scope) => [scope.id, scope]));
   const byDate = (x, y) => String(x.date).localeCompare(String(y.date));
@@ -1164,7 +1165,12 @@ function athleteYears(body) {
           const shown = meets.flatMap((meet) => {
             const names = new Map(meet.names || []);
             const lines = medalSeasonStarts(meet).flatMap((s) =>
-              s.medals.map(([club, medal]) => ({ event: s.start.EventName, medal, club: names.get(club) || '' })),
+              s.medals.map(([club, medal]) => ({
+                event: s.start.EventName,
+                medal,
+                clubId: club,
+                club: names.get(club) || '',
+              })),
             );
             for (const l of lines) medals[l.medal - 1]++;
             return lines.length ? [{ id: meet.id, name: meet.name, date: meet.date, lines }] : [];
@@ -1174,7 +1180,18 @@ function athleteYears(body) {
         .filter((l) => l.meets.length),
     }))
     .filter((y) => y.levels.length)
+    .map((y) => ({ ...y, clubs: yearClubs(y.levels) }))
     .sort((a, b) => b.year - a.year);
+}
+
+// Returns the clubs of a year's lines as [{id, name}], the club of the year's
+// last medal first.
+function yearClubs(levels) {
+  const lines = levels
+    .flatMap((l) => l.meets.flatMap((m) => m.lines.map((line) => ({ ...line, date: m.date }))))
+    .sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  const clubs = new Map(lines.map((l) => [l.clubId, l.club]).reverse());
+  return [...new Set(lines.map((l) => l.clubId))].map((id) => ({ id, name: clubs.get(id) }));
 }
 
 // Returns the athlete's name in the latest of the body's meets.
@@ -1239,4 +1256,5 @@ export {
   seasonRecordKeep,
   seasonRecordUnkept,
   warmSeasonMeets,
+  yearClubs,
 };
