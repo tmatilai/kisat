@@ -20,17 +20,26 @@ import {
 } from '../public/lib/districts.js';
 import { SEASON_FIRST_YEAR, medalYearOk, medalYears, seasonYearOk, seasonYears } from '../public/lib/indexes.js';
 import {
+  athleteSeasonMeets,
+  athleteSeasons,
+  athleteYears,
+  athleteYearsName,
   buildRoundGoesOn,
   cacheTtlFor,
-  clubMedalStarts,
   clubMedalists,
+  clubMedalStarts,
   clubSeasonMeets,
   clubYearAges,
+  clubYearMedalists,
   clubYearTable,
   followedRows,
   isNotableMeet,
   medalAges,
   medalFor,
+  medalistBoxes,
+  medalistIndexDue,
+  medalistMeets,
+  medalistsOpenAll,
   medalPlaces,
   medalRowsOf,
   medalSeasonAges,
@@ -43,16 +52,17 @@ import {
   medalSeasonMeets,
   medalSeasonRecord,
   medalSeasonTable,
+  medalStartAt,
   medalTable,
   medalTables,
-  medalistBoxes,
-  medalistsOpenAll,
   meetChampionships,
   meetMedals,
   meetMedalsBody,
+  mergeMedalistIndex,
   notableDue,
   notableYear,
   recordLacksOwn,
+  recordMedalists,
   recordSettled,
   restMedals,
   scopeMedalStarts,
@@ -1100,6 +1110,32 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
     ],
   ]);
   assert.deepEqual(clubLines({ ages: [13], events: null })[1][1][0], [2026, 2, 0, 0, 2, 0], 'under the chips');
+  // A club's year lists each scope's year page medalists, relays too. (Break on
+  // purpose: take every year's meets, or drop the relays.)
+  const boxesOf = (y, cover) =>
+    medalSeasonMedalists(clubBody.years.find((x) => x.year === y).scopes[0].meets, '1', cover).map((b) => [
+      b.key,
+      b.medals,
+    ]);
+  const medalistsOf = (y, cover) =>
+    clubYearMedalists(clubBody, y, cover).map(({ scope, medals, boxes }) => [
+      scope.id,
+      medals,
+      boxes.map((b) => [b.key, b.medals]),
+    ]);
+  const demyRow = (y) =>
+    clubLines()[1][1]
+      .find(([yy]) => yy === y)
+      .slice(1, 4);
+  for (const y of [2026, 2025])
+    assert.deepEqual(medalistsOf(y), [['demy', demyRow(y), boxesOf(y)]], `${y}, and no scope without a medalist`);
+  assert.ok(
+    boxesOf(2026).some(([key]) => key.startsWith('o')),
+    'the fixture has a relay',
+  );
+  const under13 = { ages: [13], events: null };
+  assert.deepEqual(medalistsOf(2026, under13)[0][2], boxesOf(2026, under13), 'under the chips');
+  assert.deepEqual(clubYearMedalists(clubBody, 2024), [], 'a year the body lacks');
   const clubOnly = clubBody.years[0].scopes[0].meets;
   assert.deepEqual(
     new Set(clubOnly.flatMap((m) => m.starts.flatMap((st) => st.medals.map(([c]) => c)))),
@@ -1313,13 +1349,14 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
     medalSeasonMedalists(moved, '1').map((b) => [
       b.name,
       b.athlete,
+      b.licence,
       ...b.medals,
       b.lines.map((l) => `${l.medal}:${l.meet}`),
     ]),
     [
-      ['Aino Esimerkki', true, 2, 1, 0, ['1:m1', '1:m3', '2:m2']],
-      ['Eero Esimerkki', true, 0, 1, 0, ['2:m1']],
-      ['Demon Urheilijat', false, 0, 0, 1, ['3:m1']],
+      ['Aino Esimerkki', true, '111', 2, 1, 0, ['1:m1', '1:m3', '2:m2']],
+      ['Eero Esimerkki', true, '222', 0, 1, 0, ['2:m1']],
+      ['Demon Urheilijat', false, null, 0, 0, 1, ['3:m1']],
     ],
     "one person across meets, a row without a licence by its name; the relays the club's",
   );
@@ -2144,9 +2181,172 @@ test('notable.json: each meet once, under an id no scope takes', () => {
     "a Tuloslista meet's id, or the id of a row of elsewhere.json that stands alone with `sm: false`",
   );
   assert.equal(new Set(comps).size, comps.length);
-  const taken = new Set([...meetScopes(districts).map((s) => s.id), 'seura']);
+  const taken = new Set([...meetScopes(districts).map((s) => s.id), 'seura', 'urheilija']);
   assert.deepEqual(
     ids.filter((id) => taken.has(id)),
+    [],
+  );
+});
+
+test("an athlete's years: the medalist index and the lines", () => {
+  const everything = Object.entries(DEMO_EVENTS).map(([eventId, data]) => ({ eventId, data }));
+  const record = medalSeasonRecord(meetMedalsBody(demoSchedule(), everything, DEMO_DISTRICTS), 1, '2026-06-06');
+  // 62940230 is third in the meet's M 100m, third in the alue and first in
+  // the piiri.
+  const licence = '62940230';
+  const key = record.athletes.find(([, , l]) => l === licence)[0];
+
+  // The index names a medalist of the meet's places or a scope's, and no other
+  // athlete row. (Break on purpose: keep every row of `athletes`, or read the
+  // meet's own medals alone.)
+  const scopedOnly = {
+    starts: [{ start: {}, medals: [], scoped: [['maly', [['4', 1, key]]]] }],
+    athletes: [
+      [key, 'Scoped', licence],
+      ['a0', 'Not a medalist', '1'],
+      ['a1', 'No licence', null],
+    ],
+  };
+  assert.deepEqual(recordMedalists(scopedOnly), [licence]);
+  assert.ok(recordMedalists(record).includes(licence));
+
+  // A meet is read again when its record's builtAt moves, and a record stored
+  // without one is read once. (Break on purpose: return every id.)
+  const { index: first, changed } = mergeMedalistIndex(null, [
+    ['100', record],
+    ['101', null],
+  ]);
+  assert.equal(changed, true);
+  assert.deepEqual(medalistMeets(first, licence), ['100']);
+  assert.deepEqual(Object.keys(first.meets), ['100'], 'a meet with no record is not seen');
+  const builtAt = { 100: 1, 102: 0, 103: 0, 104: 5 };
+  assert.deepEqual(
+    medalistIndexDue(first, ['100', '101', '102', '103', '104'], (id) => builtAt[id]),
+    ['102', '103', '104'],
+  );
+  assert.deepEqual(
+    medalistIndexDue({ ...first, meets: { ...first.meets, 102: 9 } }, ['102'], (id) => builtAt[id]),
+    [],
+    'one stored without builtAt, once read',
+  );
+  assert.equal(mergeMedalistIndex(first, [['100', record]]).changed, false, 'the same record changes nothing');
+
+  // A rebuilt record replaces the meet's medalists and keeps the other meets'.
+  // (Break on purpose: add to the old ids without dropping them.)
+  const { index: second } = mergeMedalistIndex(first, [['102', record]]);
+  const rebuilt = { ...record, builtAt: 2, athletes: record.athletes.filter(([k]) => k !== key) };
+  const { index: third } = mergeMedalistIndex(second, [['100', rebuilt]]);
+  assert.deepEqual(medalistMeets(second, licence), ['100', '102']);
+  assert.deepEqual(medalistMeets(third, licence), ['102']);
+  assert.deepEqual(medalistMeets(third, '__proto__'), [], 'only a licence the index holds');
+  assert.deepEqual(medalistMeets({ v: 0, licences: { [licence]: ['100'] } }, licence), [], 'another version is empty');
+
+  // A year lists the scopes that hold one of the athlete's meets. (Break on
+  // purpose: drop the ids' filter.)
+  const index = [
+    { id: '30000', name: 'DemY:n pm-kilpailut', date: '2025-06-01', organizationName: 'Demon Urheilijat' },
+    { id: '30005', name: 'DemY:n pm-viestit', date: '2026-08-20', organizationName: 'Testilän Kisa' },
+    {
+      id: '30006',
+      name: 'Demolaisen alueen am- ja DemY:n pm-kilpailut',
+      date: '2026-07-15',
+      organizationName: 'Demon Urheilijat',
+    },
+  ];
+  const own = { meets: [{ id: 'avoimet', name: 'Avoimet', comps: ['30006', '30005'] }] };
+  assert.deepEqual(
+    athleteSeasons(index, ['30006', '30000'], [2026, 2025], DEMO_DISTRICTS, null, own).map(({ year, scopes }) => [
+      year,
+      scopes.map((s) => [s.id, s.own, s.meets.map((m) => m.id)]),
+    ]),
+    [
+      [
+        2026,
+        [
+          ['demolainen', false, ['30006']],
+          ['demy', false, ['30006']],
+          ['avoimet', true, ['30006']],
+        ],
+      ],
+      [2025, [['demy', false, ['30000']]]],
+    ],
+  );
+
+  // Each level holds its years newest first and a year's meets by date, a line
+  // per medal, and counts each year's medals. A notable meet's medal is the
+  // meet's own. (Break on purpose: keep the other athletes' medals, or either
+  // order.)
+  const meet = { id: '30006', name: 'Demo', date: '2026-06-06', cover: null };
+  const earlier = { ...meet, id: '30000', date: '2025-06-01' };
+  const spring = { ...meet, id: '30007', date: '2026-05-02' };
+  const body = {
+    scopes: [
+      { id: 'demolainen', kind: 'alue' },
+      { id: 'maly', kind: 'piiri' },
+      { id: 'avoimet', kind: 'notable' },
+    ],
+    years: [
+      {
+        year: 2025,
+        scopes: [
+          {
+            id: 'maly',
+            meets: athleteSeasonMeets(
+              [seasonMeetBody(earlier, record, 'maly', false), seasonMeetBody({ ...meet, id: 'x' }, null, 'maly')],
+              licence,
+            ),
+          },
+        ],
+      },
+      {
+        year: 2026,
+        scopes: [
+          ['demolainen', 'demolainen'],
+          ['maly', 'maly'],
+          ['avoimet', null],
+        ].map(([id, scopeId]) => ({
+          id,
+          meets: athleteSeasonMeets(
+            [meet, ...(id === 'maly' ? [spring] : [])].map((m) => seasonMeetBody(m, record, scopeId, false)),
+            licence,
+          ),
+        })),
+      },
+    ],
+  };
+  assert.deepEqual(
+    athleteYears(body).map((y) => [
+      y.year,
+      y.levels.map((l) => [l.scope.id, l.medals, l.meets.map((m) => [m.id, m.lines])]),
+    ]),
+    [
+      [
+        2026,
+        [
+          ['demolainen', [0, 0, 1], [['30006', [{ event: 'M 100m', medal: 3, club: 'Näyteniemen Vauhti' }]]]],
+          [
+            'maly',
+            [2, 0, 0],
+            [
+              ['30007', [{ event: 'M 100m', medal: 1, club: 'Näyteniemen Vauhti' }]],
+              ['30006', [{ event: 'M 100m', medal: 1, club: 'Näyteniemen Vauhti' }]],
+            ],
+          ],
+          ['avoimet', [0, 0, 1], [['30006', [{ event: 'M 100m', medal: 3, club: 'Näyteniemen Vauhti' }]]]],
+        ],
+      ],
+      [2025, [['maly', [1, 0, 0], [['30000', [{ event: 'M 100m', medal: 1, club: 'Näyteniemen Vauhti' }]]]]]],
+    ],
+    'an unbuilt meet has no card',
+  );
+  assert.equal(athleteYearsName(body), record.athletes.find(([k]) => k === key)[1]);
+
+  // A line links to its start by the event name alone (docs/architecture.md,
+  // "The route table"), and the schedule finds each of the record's starts by
+  // it.
+  const at = medalStartAt(demoSchedule());
+  assert.deepEqual(
+    record.starts.filter((s) => !at(s.start.EventName).link).map((s) => s.start.EventName),
     [],
   );
 });

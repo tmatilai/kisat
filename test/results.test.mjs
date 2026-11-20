@@ -1157,10 +1157,19 @@ test('name-cell asides', () => {
   );
   assert.deepEqual(
     athleteCard({ Organization: { NameShort: 'MalV' } }),
-    { name: '', club: 'MalV', bib: null, marks: [] },
+    { name: '', club: 'MalV', bib: null, licence: null, marks: [] },
     'a short name is better than none, and no bib is no bib — never a dash or a 0',
   );
   assert.equal(athleteCard({ Number: 0 }).bib, null, 'a meet that numbers nobody has no Nro to print');
+  // The licence opens the athlete's medal years, and a relay team has none.
+  // (Break on purpose: take the first athlete's licence on any row.)
+  assert.equal(athleteCard({ Athletes: [{ Id: 'a', LicenseId: '62940230' }] }).licence, '62940230');
+  assert.equal(athleteCard({ Athletes: [{ Id: 'a' }] }).licence, null, 'a made person may have no licence');
+  assert.equal(
+    athleteCard({ Athletes: [{ LicenseId: '1' }, { LicenseId: '2' }] }).licence,
+    null,
+    'a relay team names no one athlete',
+  );
   assert.deepEqual(athleteCard(null).marks, [], 'nothing at all still builds a card');
   assert.deepEqual(
     athleteCard(runner, marks.get('t2')).marks,

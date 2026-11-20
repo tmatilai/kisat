@@ -307,6 +307,13 @@ seedKv('medalseason:v4:testi-s4', {
   ],
   unknown: [],
 });
+// The medalist index names Aino Esimerkki (111) in both meets above, and in a
+// meet with no record.
+seedKv('medalists:v1', {
+  v: 1,
+  meets: {},
+  licences: { 111: ['testi-s4', '18978', 'testi-none'], 222: ['testi-s4'] },
+});
 seedKv('medalseason:v4:testi-s2', {
   builtAt: STALE_BUILT_AT,
   lastDay: STALE_DAY,
@@ -1420,6 +1427,60 @@ try {
   }
   console.log('GET /api/medalclub/:orgId ok');
 
+  // --- GET /api/medalathlete/:licence: an athlete's medals, read from the
+  // records that the medalist index names. ---
+  {
+    const r = await api('/api/medalathlete/111');
+    assert.equal(r.status, 200);
+    assert.equal(r.headers.get('cache-control'), 'no-store');
+    const body = await r.json();
+    // (Break on purpose: return every scope, or keep the other athletes'
+    // medals.)
+    assert.deepEqual(
+      body.scopes.map((s) => [s.id, s.kind]),
+      [
+        ['sm', 'maa'],
+        ['tjig', 'notable'],
+      ],
+      'the scopes that hold a medal',
+    );
+    assert.deepEqual(
+      body.years[0].scopes.map((s) => [s.id, s.meets.map((m) => [m.id, m.starts, m.athletes])]),
+      [
+        [
+          'sm',
+          [
+            [
+              'testi-s4',
+              [{ start: { EventName: 'P17 Kuula', Age: '17' }, medals: [['1', 2, 'a1']] }],
+              [['a1', 'Aino Esimerkki', '111']],
+            ],
+          ],
+        ],
+        [
+          'tjig',
+          [
+            [
+              '18978',
+              [{ start: { EventName: 'T13 60m', Age: '13' }, medals: [['1', 1, 'a1']] }],
+              [['a1', 'Aino Esimerkki', '111']],
+            ],
+          ],
+        ],
+      ],
+    );
+    const none = await (await api('/api/medalathlete/333')).json();
+    assert.deepEqual([none.scopes, none.years.flatMap((y) => y.scopes)], [[], []], 'a licence the index lacks');
+    assert.equal((await api('/api/medalathlete/a1')).status, 400);
+    assert.equal((await api('/api/medalathlete/111', { method: 'POST' })).status, 405);
+    assert.equal(
+      (await fetch(`${BASE}/api/medalathlete/111`)).status,
+      403,
+      'the x-kisat-client gate covers this route too',
+    );
+  }
+  console.log('GET /api/medalathlete/:licence ok');
+
   // --- GET /api/medalseason/:scopeId/:year: the scope's meets off the seeded
   // index, each with its record projected to the scope. ---
   {
@@ -1727,6 +1788,7 @@ try {
       '/api/meet/demo',
       '/api/scan/abc',
       '/api/medalclub/1',
+      '/api/medalathlete/111',
       '/api/watch',
       `/api/results/${LISTED_COMP}`,
       `/api/results/${LISTED_COMP}/${LISTED_EVENT_ID}`,

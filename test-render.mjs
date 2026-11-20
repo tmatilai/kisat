@@ -28,6 +28,7 @@ const ROUTES = [
   { module: 'event', path: '/c/demo', links: [GROUP] },
   { module: 'event', path: '/c/demo', links: ['a[href^="/c/demo/o/"]'] },
   { module: 'medals', path: '/c/demo/mitalit' },
+  { module: 'medals', path: '/c/demo/l/M%20100m' },
   { module: 'cup', path: '/c/democup/cup' },
   { module: 'follow', path: '/c/demo#/a/i1-a' },
   { module: 'tables', path: '/mitat' },

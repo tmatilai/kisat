@@ -65,11 +65,11 @@ const LOADERS = {
 const RENDERS = {
   athleteLink: (m, r) => m.activateFocusLink(r.compId, 'athlete', r.athleteId),
   clubLink: (m, r) => m.activateFocusLink(r.compId, 'club', r.orgId),
-  combined: (m, r) => m.renderCombined(r.compId, r.key),
+  combined: (m, r) => m.renderCombined(r.compId, r.key, r.licence),
   comp: (m, r) => m.renderComp(r.compId, r.date),
   cup: (m, r, isRefresh) => m.renderCup(r.compId, r.club, isRefresh),
   cupSeason: (m, r) => m.renderCupSeason(r),
-  group: (m, r) => m.renderGroup(r.compId, r.key),
+  group: (m, r) => m.renderGroup(r.compId, r.key, r.licence),
   home: (m) => m.renderHome(),
   hurdleSheet: (m, r) => m.renderHurdleSheet(r.compId, r.date),
   hurdleTable: (m, r) => m.renderHurdleTable(r),
@@ -77,6 +77,8 @@ const RENDERS = {
   laps: (m, r) => m.renderLaps(r.compId, r.key),
   measure: (m) => m.renderMeasure(),
   medalClub: (m, r) => m.renderMedalClub(r),
+  medalAthlete: (m, r) => m.renderMedalAthlete(r),
+  medalStart: (m, r) => m.renderMedalStart(r),
   medalSeason: (m, r, isRefresh) => m.renderMedalSeason(r, isRefresh),
   medals: (m, r) => m.renderMedals(r.compId, r.ages, r.club),
   pairLink: (m, r) => m.activatePairLink(r.pairs),
@@ -131,6 +133,7 @@ async function renderRoute(isRefresh = false) {
       route.view === 'medals' ||
       route.view === 'medalSeason' ||
       route.view === 'medalClub' ||
+      route.view === 'medalAthlete' ||
       route.view === 'cupSeason',
   );
   if (!isRefresh) {
@@ -149,11 +152,13 @@ async function renderRoute(isRefresh = false) {
     keepRenderCost(cost, startedAt);
     viewShown = true;
     // The position is restored once the content is in, as the placeholder would
-    // clamp it. A view not seen this session opens at the top. A refresh scrolls
-    // only if the page moved, and a short page leaves the offset in the map.
+    // clamp it. A view not seen this session opens at the top, or, when its link
+    // names an athlete, at that athlete's class. A refresh scrolls only if the
+    // page moved, and a short page leaves the offset in the map.
     if (isRefresh) {
       if (keepY != null && keepY !== window.scrollY) window.scrollTo(0, keepY);
-    } else window.scrollTo(0, (scrollKey && scrollPositions.get(scrollKey)) || 0);
+    } else if (route.licence && !scrollPositions.has(scrollKey)) openAtSpotted();
+    else window.scrollTo(0, (scrollKey && scrollPositions.get(scrollKey)) || 0);
     setUpdated(true, note ?? flash);
     (window.requestIdleCallback ?? setTimeout)(prefetchModules);
     helpEl.hidden = !helpTopics;
@@ -174,6 +179,22 @@ async function renderRoute(isRefresh = false) {
     if (replace) showError(err);
     setUpdated(replace && meetGone(err));
   }
+}
+
+// Scrolls a start to the class heading (h3.cat-head) above the row of the
+// athlete its link names, the row with the class `spotted` (rowClass,
+// app/event.js). A start with no class heading scrolls to the nearest heading
+// above the row, such as its heat's, or to the row itself.
+function openAtSpotted() {
+  const row = appEl.querySelector('.spotted');
+  const before = (selector) =>
+    [...appEl.querySelectorAll(selector)]
+      .filter((h) => h.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .pop();
+  const head = row ? before('h3.cat-head') || before('h3') : null;
+  const header = document.querySelector('header');
+  const top = row ? (head || row).getBoundingClientRect().top + window.scrollY - (header?.offsetHeight || 0) - 8 : 0;
+  window.scrollTo(0, Math.max(0, top));
 }
 
 // Loads a module with load(). One that fails while the site still answers is

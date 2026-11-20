@@ -33,6 +33,7 @@ All keys are in the `ROSTER` namespace, except the Watches.
 | `medals:v9:<id>[tag]`                                   | `putMedals`                                          | as `roster:`                                 |
 | `digest:<id>`                                           | `cacheDigest`                                        | 180 days                                     |
 | `medalseason:v4:<id>[tag]`                              | `putMedals`, `warmSeason`                            | 180 days, never once settled                 |
+| `medalists:v1`                                          | `indexMedalists`, only on a change                   | never                                        |
 | `cupseason:v2:<id>`                                     | `putMeet`, `buildCupSeason`                          | 180 days                                     |
 | `results:v2:<id>:<event>[tag]`, `schedule:v1:<id>[tag]` | `putResults`                                         | 180 days, `ROSTER_CACHE_TTL_S` during a race |
 | `t4r:v8:<id>`                                           | `t4rPagesOf`                                         | 45 days                                      |
@@ -212,6 +213,34 @@ medals.
   `pending`, and the scope's year or the cron builds it.
 - **A notable meet's record without the meet's own medals is treated as missing**, and the cron
   rebuilds it.
+
+### An athlete's years
+
+`GET /api/medalathlete/:licence` returns the licence's medals in the championships and at the
+notable meets, for every year:
+
+```
+{licence,
+ scopes: [{id, kind, name, short}],
+ years: [{year, scopes: [{id, meets}]}]}
+```
+
+The shapes are those of a club's years, with only the athlete's medals, and only the scopes and
+meets that hold one of them.
+
+`medalists:v1` maps each licence to the meets whose season records name it as a medalist, by the
+meet's own places or a scope's. The route reads only those records, so it also finds a medal won for
+an earlier club.
+
+- **The cron fills the medalist index.** Each season record's key carries the record's `builtAt` in
+  its KV metadata. The cron lists the keys and reads only the records whose `builtAt` the index has
+  not seen, up to `MEDALIST_INDEX_READS` a run. It reads a record stored without the metadata once.
+  A record that a request builds reaches the athlete's page at the next cron run.
+- **Only a licence has medals.** A record names no relay runners, so a relay medal is the club's
+  alone. A medalist that a record keeps with no licence, such as one from another site whom the
+  athlete index did not know, has no page.
+- **The route spends `SEARCH_LIMITER`**, so walking through the licences costs as much as walking
+  through the search ("The athlete index").
 
 ### The cup's year
 

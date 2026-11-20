@@ -703,7 +703,8 @@ function medalSeasonMeetEmpty(record) {
 
 // Returns a club's medalists over a year under the chips' `cover`, as
 // clubMedalists' boxes whose lines name their meet. A person is a LicenseId, or
-// the club's licensed row of that name (docs/tuloslista-api.md).
+// the club's licensed row of that name (docs/tuloslista-api.md). A box's
+// `licence` is that LicenseId, or null for a person with none and for a relay.
 function medalSeasonMedalists(meets, clubId, cover = null) {
   return medalSeasonBoxes(meets, cover, (id) => id === String(clubId));
 }
@@ -759,11 +760,10 @@ function medalSeasonBoxes(meets, cover, clubOk) {
   const licenceOf = new Map(rows.filter((r) => r.a?.licence).map((r) => [`${r.club}|${fold(r.name)}`, r.a.licence]));
   const boxes = new Map();
   for (const r of rows) {
-    const key = !r.a
-      ? `o${r.club}`
-      : r.a.licence || licenceOf.get(`${r.club}|${fold(r.name)}`) || `n${r.club}|${fold(r.name)}`;
+    const licence = r.a ? r.a.licence || licenceOf.get(`${r.club}|${fold(r.name)}`) || null : null;
+    const key = !r.a ? `o${r.club}` : licence || `n${r.club}|${fold(r.name)}`;
     if (!boxes.has(key))
-      boxes.set(key, { key, name: r.name, club: r.clubName, athlete: !!r.a, medals: [0, 0, 0], lines: [] });
+      boxes.set(key, { key, name: r.name, club: r.clubName, athlete: !!r.a, licence, medals: [0, 0, 0], lines: [] });
     if (r.line.counted) boxes.get(key).medals[r.line.medal - 1]++;
     boxes.get(key).lines.push(r.line);
   }
@@ -967,6 +967,23 @@ function clubYearTable(body, cover = null) {
   }));
 }
 
+// Returns a club's medalists of a year under the chips' `cover`, as
+// clubYearTable's rows of that year with the scope, [{scope, year, medals,
+// total, pending, meets, boxes}]. `boxes` are the scope's year page medalists
+// (medalSeasonMedalists), including relays. A scope with no medalist is left
+// out.
+function clubYearMedalists(body, year, cover = null) {
+  const season = (body?.years || []).find((y) => y.year === year);
+  if (!season) return [];
+  return clubYearTable({ ...body, years: [season] }, cover)
+    .map(({ scope, years: [row] }) => ({
+      scope,
+      ...row,
+      boxes: medalSeasonMedalists(season.scopes.find((s) => s.id === scope.id)?.meets, body.club.id, cover),
+    }))
+    .filter((r) => r.boxes.length);
+}
+
 // Returns each notable meet of notable.json with its index rows of a year, as
 // [{id, name, meets: [{id, name, date}]}]. A meet's year is its index row's,
 // or that of the row of `elsewhere` that stands alone under its id.
@@ -1023,13 +1040,162 @@ function clubYearAges(body) {
   return medalSeasonAges((body?.years || []).flatMap((y) => y.scopes.flatMap((s) => s.meets)));
 }
 
+// --- An athlete's years ---
+
+// The medalist index maps a licence to the meets whose season records name it
+// as a medalist (docs/backend.md, "An athlete's years").
+const MEDALIST_INDEX_VERSION = 1;
+
+function medalistIndexOf(index) {
+  return index?.v === MEDALIST_INDEX_VERSION ? index : { v: MEDALIST_INDEX_VERSION, meets: {}, licences: {} };
+}
+
+// Returns the licences of a record's medalists, by the meet's own places or a
+// scope's.
+function recordMedalists(record) {
+  const keys = new Set(
+    (record?.starts || []).flatMap((s) =>
+      [...(s.medals || []), ...(s.scoped || []).flatMap(([, medals]) => medals)].map(([, , key]) => key),
+    ),
+  );
+  const licences = (record?.athletes || [])
+    .filter(([key, , licence]) => licence && keys.has(key))
+    .map(([, , licence]) => String(licence));
+  return [...new Set(licences)];
+}
+
+// Returns the ids among `ids` whose record the medalist index has not read at
+// its current `builtAt`. `builtAtOf(id)` returns the stored record's `builtAt`,
+// 0 for a record stored without it, or undefined for no record.
+function medalistIndexDue(index, ids, builtAtOf) {
+  const seen = medalistIndexOf(index).meets;
+  return ids.filter((id) => {
+    const at = builtAtOf(id);
+    if (at === undefined) return false;
+    return at === 0 ? !Object.hasOwn(seen, id) : seen[id] !== at;
+  });
+}
+
+// Returns {index, changed}, where each [id, record] replaces what the index
+// held for the meet. `changed` is false if nothing differs, and then worker.js
+// skips the write.
+function mergeMedalistIndex(index, entries) {
+  const base = medalistIndexOf(index);
+  const fresh = (entries || []).filter(([id, record]) => record && base.meets[id] !== record.builtAt);
+  if (!fresh.length) return { index: base, changed: index?.v !== MEDALIST_INDEX_VERSION };
+  const redone = new Set(fresh.map(([id]) => String(id)));
+  const licences = {};
+  for (const [licence, ids] of Object.entries(base.licences)) {
+    const kept = ids.filter((id) => !redone.has(id));
+    if (kept.length) licences[licence] = kept;
+  }
+  const meets = { ...base.meets };
+  for (const [id, record] of fresh) {
+    meets[id] = record.builtAt;
+    for (const licence of recordMedalists(record)) (licences[licence] ||= []).push(String(id));
+  }
+  return { index: { v: MEDALIST_INDEX_VERSION, meets, licences }, changed: true };
+}
+
+// Returns the ids of the meets whose records name the licence as a medalist.
+function medalistMeets(index, licence) {
+  const { licences } = medalistIndexOf(index);
+  return Object.hasOwn(licences, String(licence)) ? licences[String(licence)] : [];
+}
+
+// Returns each year's scopes over the meets of `ids`, as handleMedalClub's
+// `asked` (worker.js). A scope with none of the meets is left out.
+function athleteSeasons(meets, ids, years, districts, elsewhere = null, notable = null) {
+  const wanted = new Set((ids || []).map(String));
+  const mine = (meets || []).filter((m) => wanted.has(String(m.id)));
+  return years.map((year) => ({
+    year,
+    scopes: [
+      ...meetScopes(districts).map((s) => ({
+        id: s.id,
+        own: false,
+        meets: medalSeasonMeets(mine, s.id, year, districts, elsewhere),
+      })),
+      ...notableYear(notable, meets, year, elsewhere).map((n) => ({ id: n.id, own: true, meets: n.meets })),
+    ]
+      .map((s) => ({ ...s, meets: s.meets.filter((m) => wanted.has(m.id)) }))
+      .filter((s) => s.meets.length),
+  }));
+}
+
+// Returns a year's built meets (seasonMeetBody's) with only the medals of the
+// athlete with the licence, and drops a meet left with none.
+function athleteSeasonMeets(meets, licence) {
+  const wanted = String(licence);
+  return (meets || [])
+    .filter((m) => m.starts != null)
+    .map((m) => {
+      const keys = new Set(m.athletes.filter(([, , l]) => String(l) === wanted).map(([key]) => key));
+      const starts = m.starts
+        .map((s) => ({ ...s, medals: s.medals.filter(([, , key]) => keys.has(key)) }))
+        .filter((s) => s.medals.length);
+      const clubs = new Set(starts.flatMap((s) => s.medals.map(([club]) => club)));
+      return {
+        ...m,
+        starts,
+        names: m.names.filter(([club]) => clubs.has(club)),
+        athletes: m.athletes.filter(([key]) => keys.has(key)),
+        unknown: [],
+      };
+    })
+    .filter((m) => m.starts.length);
+}
+
+// Returns an athlete's medals per year (/api/medalathlete's body), as [{year,
+// levels}], newest first. A year's levels keep the body's order of scopes,
+// each as {scope, medals, meets}, where `medals` counts the level's golds,
+// silvers and bronzes that year. A level's meets run by date, each as {id,
+// name, date, lines}, with a line per medal: {event, medal, club}.
+function athleteYears(body) {
+  const scopes = new Map((body?.scopes || []).map((scope) => [scope.id, scope]));
+  const byDate = (x, y) => String(x.date).localeCompare(String(y.date));
+  return (body?.years || [])
+    .map(({ year, scopes: seasons }) => ({
+      year,
+      levels: seasons
+        .filter(({ id }) => scopes.has(id))
+        .map(({ id, meets }) => {
+          const medals = [0, 0, 0];
+          const shown = meets.flatMap((meet) => {
+            const names = new Map(meet.names || []);
+            const lines = medalSeasonStarts(meet).flatMap((s) =>
+              s.medals.map(([club, medal]) => ({ event: s.start.EventName, medal, club: names.get(club) || '' })),
+            );
+            for (const l of lines) medals[l.medal - 1]++;
+            return lines.length ? [{ id: meet.id, name: meet.name, date: meet.date, lines }] : [];
+          });
+          return { scope: scopes.get(id), medals, meets: shown.sort(byDate) };
+        })
+        .filter((l) => l.meets.length),
+    }))
+    .filter((y) => y.levels.length)
+    .sort((a, b) => b.year - a.year);
+}
+
+// Returns the athlete's name in the latest of the body's meets.
+function athleteYearsName(body) {
+  const meets = (body?.years || []).flatMap((y) => y.scopes.flatMap((s) => s.meets));
+  const latest = meets.sort((a, b) => String(b.date).localeCompare(String(a.date)))[0];
+  return latest?.athletes?.[0]?.[1] || null;
+}
+
 export {
+  athleteSeasonMeets,
+  athleteSeasons,
+  athleteYears,
+  athleteYearsName,
   buildRoundGoesOn,
   cacheTtlFor,
   clubMedalStarts,
   clubMedalists,
   clubSeasonMeets,
   clubYearAges,
+  clubYearMedalists,
   clubYearTable,
   followedRows,
   isNotableMeet,
@@ -1048,17 +1214,22 @@ export {
   medalSeasonRecord,
   medalSeasonStarts,
   medalSeasonTable,
+  medalStartAt,
   medalTable,
   medalTables,
   medalistBoxes,
+  medalistIndexDue,
+  medalistMeets,
   medalistsOpenAll,
   meetChampionships,
   meetMedals,
   meetMedalsBody,
+  mergeMedalistIndex,
   notableDue,
   notableYear,
   ownMedalStarts,
   recordLacksOwn,
+  recordMedalists,
   recordSettled,
   restMedals,
   scopeMedalStarts,
