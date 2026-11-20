@@ -26,7 +26,7 @@ for the official at the finish line. On a dev host, `?mode=juoksut` selects Juok
 `make help` lists every command.
 
 - `public/`: everything that ships. `make build` bundles it into `dist/`, which is what gets
-  deployed (`docs/architecture.md`).
+  deployed.
 - `public/index.html`: the markup and **all** the CSS.
 - `public/lib/`: pure logic, with no DOM and no network access, one file per area.
 - `public/app.js`: the router. It renders each route with a view module from `public/app/`.
@@ -107,10 +107,10 @@ The UI is in Finnish, and so are many names in the code and the docs.
   out a view. A case that a test asserts on is modelled on a real, measured competition, even when
   its names are invented.
 - **Measure, do not guess.** Tuloslista publishes no API documentation, so check each claim about
-  its API against a live competition before writing it down. Write the claim once, in
-  `docs/tuloslista-api.md`, as one sentence that ends with the month it was last confirmed, such as
-  "(2026-08)". Don't name a competition id or copy counts, because the API drops old competitions.
-  Code, tests and other docs refer to the claim instead of repeating it.
+  its API against a live competition before relying on it. Record the measurement in `demo.js` and a
+  test that asserts on it. Where code depends on a measurement that no test can pin, give it a
+  one-line comment that ends with the month, such as "(2026-08)". Don't name a competition id or
+  copy counts, because the API drops old competitions.
 - **Check that each new test or probe check can fail.** After writing it, break the code on purpose
   and confirm that the check fails. Restore the code from a copy of the file, because `git checkout`
   would also discard the change under test.
@@ -155,16 +155,23 @@ existing documentation is older and too terse. Don't copy its style.
 
 ### What to write
 
-- **By default, add no comment.** Add one only for what the code can't show: why it is done this
-  way, a constraint and what breaks if it changes, a fact about Tuloslista, or a measurement. Never
-  describe what the next lines do.
-- **State each fact once.** A doc states a rule and where it is tested. A code comment cites the
-  doc's section, such as `(docs/backend.md, "A scope's year")`, instead of restating the rule. Code
-  copied from elsewhere doesn't copy its comment.
-- **A new function gets one line in its doc's list**: "`function` (`file`): what it does". Add a
-  rule paragraph only where a reader would otherwise break the rule. Say what a change does not
-  cover when a reader would assume it does.
-- **Doc references to code go in a list**, not in parentheses inside a sentence.
+- **A doc holds only what the code and the tests can't tell a reader:**
+  - traps in the Tuloslista API, and behaviour seen only during a live meet or at the track, dated;
+  - contracts that outlive a deploy: KV keys, response bodies, stored formats, URL shapes and the
+    data files' formats;
+  - constraints and traps: what must hold, and what breaks if it doesn't;
+  - procedures that a person follows, such as deploying or updating a data file.
+- **A measurement that can be taken again in minutes stays out of the docs**, such as the shape of
+  an outside API's response, an outside page's layout, a timing or a size. Measure it again when it
+  matters.
+- **A doc doesn't list functions, files or tests.** `grep` finds them. Name a function only where a
+  rule is about it.
+- **A comment or a doc never explains what the code does.** A comment says why, or the constraint
+  that holds, and never describes the next lines.
+- **State each fact once.** A code comment cites the doc's section, such as
+  `(docs/backend.md, "A scope's year")`, instead of restating the rule. Code copied from elsewhere
+  doesn't copy its comment.
+- **Say what a change does not cover** when a reader would assume it does.
 - **New text goes in its own paragraph** or at the end of one.
 - **When a change drops or changes a claim, or renames something**, search the docs and comments for
   the old claim or name.
@@ -205,21 +212,18 @@ Read the added comments and doc lines together, as a developer new to the repo w
 
 ## Where to read next
 
-- `docs/views.md`: each view of a meet and of a year, the code behind it, and the traps no test
-  catches.
+- `docs/views.md`: the rules and traps of the meet and year views.
 - `docs/home.md`: the front page, its sections, sorting and dates, and the scan's fill-in loop.
-- `docs/architecture.md`: the routes and how to add one, the page's modules, the packages left out,
-  the render log, the two modes, view state, back targets, layers and the filter bar.
+- `docs/architecture.md`: the routes and how to add one, the packages left out, the render log, the
+  two modes, view state, back targets, layers and the filter bar.
 - `docs/backend.md`: `worker.js`, KV, caches, rate limits, Watch records, the club and meet indexes,
   the cron, `/api/results` and `/calendar.json`.
-- `docs/tuloslista-api.md`: how the Tuloslista API behaves.
-- `docs/elsewhere.md`: meets whose results are on another site, `elsewhere.json`, and the `t4r*` and
-  `ol*` functions.
+- `docs/tuloslista-api.md`: the Tuloslista API's traps and its behaviour during a meet.
+- `docs/elsewhere.md`: meets whose results are on another site, and `elsewhere.json`.
 - `docs/style.md`: anything visual.
 - `docs/juoksut.md`: Juoksut mode, and what the lap counter requires of the rest of the app.
 - `docs/lap-counter.md`: the lap counter.
-- `docs/hurdles.md`: hurdle setups, `hurdleSpec`, the hurdle box on a start, the hurdle table page,
-  `hurdles.json`.
+- `docs/hurdles.md`: hurdle setups, their sources, and `hurdles.json`.
 - `docs/implements.md`: the implement table page, `implements.json`.
 - `docs/venues.md`: a kenttä: the select, its index and board files, reading a board, and adding
   one.

@@ -12,8 +12,7 @@ const RELAY_WORD_RE = /^\p{L}*(?:viesti|stafett)/iu;
 const classlessName = (name) => RELAY_FORMULA_RE.test(name) || RELAY_WORD_RE.test(name);
 
 // Says whether a start's name names no class. Its Age is then the filing's,
-// and a relay of several youth classes is filed as the adult men
-// (docs/tuloslista-api.md).
+// and a relay of several youth classes is filed as the adult men (2026-09).
 const classlessStart = (start) => Boolean(start?.EventName) && !parseEventName(start.EventName).sex;
 
 // Files a classless start under the meet's oldest named youth class, so a chip
@@ -75,7 +74,7 @@ function compareCategories(a, b) {
 }
 
 // Returns a row's class age, 0 for yleinen, from a name that names a class, as
-// Age can be the group's (docs/tuloslista-api.md). Otherwise it is the filed
+// Age can be the group's (2026-08). Otherwise it is the filed
 // Age (filedStart). A bare Mixed names no age, and its filed Age is the
 // class's, so reading it as yleinen puts a youth relay under the adults.
 function rowClassAge(row, schedule = null) {
@@ -149,7 +148,8 @@ function combinedEventStatus(statuses) {
 
 // Returns a meet's phase over the rows somebody entered, as an empty class sits
 // at Unallocated for good. CountEnrolled reads 0 on entered rows, so the
-// results fan-out decides, and a 404 counts as none (docs/tuloslista-api.md).
+// results fan-out decides (docs/tuloslista-api.md), and the 404 of a class
+// nobody entered counts as none (2026-08).
 function meetPhase(schedule, eventResults) {
   const byEvent = new Map((eventResults || []).map(({ eventId, data }) => [String(eventId), data]));
   const entered = [];
@@ -170,7 +170,7 @@ const RUN_CATEGORIES = ['Track', 'Relay'];
 
 // Writes a start's time in UTC in the API's form, so that every row of one
 // start gives one key: one start's rows can write its instant under two
-// offsets (docs/tuloslista-api.md). A time with no offset stays as it is, as
+// offsets (2026-09). A time with no offset stays as it is, as
 // its instant would depend on the reader's zone.
 function startTs(ts) {
   const t = /(?:[+-]\d\d:\d\d|Z)$/.test(String(ts)) ? tsKey(ts) : Infinity;
@@ -384,7 +384,7 @@ function hasEarlierRound(rounds, round) {
 const API = 'https://cached-public-api.tuloslista.com/live/v1';
 
 // Holds one document per EventId, as /results/{comp}/{eventId} carries every
-// round of an event (docs/tuloslista-api.md). It caches the promise, or a
+// round of an event (2026-08). It caches the promise, or a
 // concurrent caller fetches again. get() never rejects.
 function eventStore(load) {
   const docs = new Map();
@@ -414,7 +414,7 @@ function meetGone(err) {
 }
 
 // Returns one scheduled round's detail out of its event's document, picking the
-// round by Id and never by name (docs/tuloslista-api.md). `missing` is
+// round by Id and never by name (2026-08). `missing` is
 // Tuloslista's 404 for a class nobody entered. Any other error means this fetch
 // got no answer, and the two read differently.
 function roundDetail(entry, doc) {

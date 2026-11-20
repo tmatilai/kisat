@@ -92,9 +92,9 @@ export default async function probe({ D, W, log, ok, groupKey, appJs, demoJs, se
   );
 
   // --- A dead heat at the cut wears the badge on both rows ---
-  // The sixth and last q is a tie the API gives to one half
-  // (docs/tuloslista-api.md). The round must reach qualBadgeEl for the
-  // other half's q to show. Aada's same 12,61 ranks alone and stays bare.
+  // The sixth and last q is a tie the API gives to one half. The round must
+  // reach qualBadgeEl for the other half's q to show. Aada's same 12,61 ranks
+  // alone and stays bare.
   const rowFor = (name) => [...D.querySelectorAll('#app tbody tr')].find((tr) => tr.textContent.includes(name));
   const badgeOf = (name) => rowFor(name)?.querySelector('td.result .q-badge')?.textContent.trim() ?? '—';
   log(
@@ -166,7 +166,7 @@ export default async function probe({ D, W, log, ok, groupKey, appJs, demoJs, se
     [...D.querySelectorAll('#app .wind')].every((s) => s.closest('h3') && !s.closest('table')),
   );
   // Välierät's heat 2 is not yet run and carries 'NM', "not measured", which
-  // must not print as a wind (docs/tuloslista-api.md, "Wind").
+  // must not print as a wind.
   await open('valierat');
   log(`välierät winds: ${winds().join(' | ')}`);
   ok('NM is not a wind', winds().join('|') === 'tuuli +0,3');
@@ -216,8 +216,7 @@ export default async function probe({ D, W, log, ok, groupKey, appJs, demoJs, se
   log(`field first: ${cards()[0]?.textContent.replace(/\s+/g, ' ').trim().slice(0, 70)}`);
   ok('field rows name their heat', cards().filter((c) => /Erä \d/.test(c.textContent)).length === 4);
   // r3q's round-wide ranks are 1, 2, 8 and 13 (demo.js), so the check is on
-  // their order and not on 1..4. A real Karsinta ranks round-wide too
-  // (docs/tuloslista-api.md, "Results and ranks").
+  // their order and not on 1..4. A real Karsinta ranks round-wide too.
   const fieldRanks = cards().map((c) => parseInt(c.querySelector('.num').textContent, 10));
   log(`field ranks merged: ${fieldRanks.join(', ')}`);
   ok(

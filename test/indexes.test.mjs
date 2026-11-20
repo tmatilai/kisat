@@ -44,7 +44,7 @@ import {
 import { DEMO_API, DEMO_CUP_ID, DEMO_ID, demoSchedule } from '../public/demo.js';
 
 // --- The meet index and its crawler (docs/backend.md). The /properties
-// answers take the API's shape (docs/tuloslista-api.md, "Endpoints") with
+// answers take the API's shape with
 // invented names. ---
 test('meet index', () => {
   const listing = [
@@ -334,7 +334,7 @@ test('mergeOrgIndex/orgIndexClubs', () => {
 
   // A club with no name is not indexed, and nameShort stands in for a missing
   // full name. Id 0 is no club (isFollowableOrgId), and it carries a real
-  // club's name (docs/tuloslista-api.md).
+  // club's name.
   const odd = mergeOrgIndex(null, [
     { id: 1, name: '', nameShort: '' },
     { id: '', name: 'Nimetön id', nameShort: '' },
@@ -758,9 +758,9 @@ test('rosterPeople', () => {
   const roster = buildRoster(demoEventResults());
   const people = rosterPeople(roster);
 
-  // A runner in e1 and in e5's team is two roster rows under one licence
-  // (docs/tuloslista-api.md). (Break on purpose: return
-  // roster.athletes.filter(a => a.licenseId), and this counts two.)
+  // A runner in e1 and in e5's team is two roster rows under one licence.
+  // (Break on purpose: return roster.athletes.filter(a => a.licenseId), and
+  // this counts two.)
   assert.equal(
     roster.athletes.filter((a) => a.name === 'Ville Mallinen').length,
     2,

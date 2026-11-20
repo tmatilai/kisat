@@ -1,52 +1,45 @@
 # Deployment
 
-The Worker deploys from `main` to the live hosts and from any other branch to a preview. A fork
-follows "A deployment of your own".
-
-- `wrangler.jsonc`: the Worker's `name`, its custom domains under `routes`, its bindings and the
-  `previews` block.
-- `deploy-ci` (`Makefile`): the deploy, which builds `dist/` first.
-- `PREVIEW` (`Makefile`): the preview that the preview targets act on, the branch's unless set.
-  `PREVIEW_HOST` is its host.
+The Worker deploys from `main` to the live hosts, and from any other branch to a preview. The
+preview targets of the `Makefile` act on the preview that `PREVIEW` names, which defaults to the
+current branch's preview.
 
 ## The live site
 
-- **A push to `main` deploys to the live hosts.** Workers Builds runs `make deploy-ci` on it. The
-  target waits on the offline tests alone, so a Tuloslista outage or a flaky port in the build
-  sandbox cannot block a fix. CI runs the other checks on the same push.
-- **`make deploy-ci` by hand deploys the checkout to the live hosts, whatever the branch.** Run
+- **A push to `main` deploys to the live hosts.** Workers Builds runs `make deploy-ci` on the push.
+  The target runs only the offline tests before it deploys, so a Tuloslista outage or a flaky port
+  in the build sandbox cannot block a fix. CI runs the other checks on the same push.
+- **`make deploy-ci` run by hand deploys the checkout to the live hosts, on any branch.** Run
   `make login` first.
-- **A push to any other branch deploys a preview at `PREVIEW_HOST`.** The preview binds production's
-  KV and the same rate limiters, so a Watch made there is a real one.
-- **`make deploy-preview` deploys the checkout to `PREVIEW` without a push.**
+- **A push to any other branch deploys a preview at `PREVIEW_HOST`.** The preview uses the
+  production KV namespaces and the same rate limiters, so a Watch created on a preview is a real
+  Watch. `make deploy-preview` deploys the checkout to the preview without a push.
 - **The zone's WAF does not cover `workers.dev`.** On a preview, only the Worker's own header check
-  and limiters hold.
-- **`make tail` shows no preview's requests** (2026-09). The dashboard's Logs view shows them under
-  `$workers.preview`.
-- **The Workers Builds image runs pnpm 10.** It switches to the pnpm that `package.json` names, but
-  it cannot switch to a pnpm 12 (2026-09).
+  and rate limiters apply.
+- **`make tail` does not show a preview's requests** (2026-09). The dashboard's Logs view shows them
+  under `$workers.preview`.
+- **Workers Builds cannot switch to pnpm 12** from the pnpm 10 in its image, though it switches to
+  other versions that `package.json` names (2026-09).
 
 ## A preview with its own data
 
-The scheduler calls no preview's `scheduled()` ([Cloudflare][preview-cron], 2026-10), so a preview
-with its own data runs the cron's work on request.
+Cloudflare's scheduler never calls a preview's `scheduled()` handler ([Cloudflare][preview-cron],
+2026-10). A preview with its own data therefore runs the cron's work through a request.
 
-- `make preview-own-data`: sets the preview's `PREVIEW_DATA` to `own` and a new `CRON_TOKEN`, which
-  it keeps in `.wrangler/cron-token/`. Each run rotates the token, so a token kept by another
-  checkout then gets a 403.
-- `previewEnv` (`lib/routes.js`): swaps in `ROSTER_PREVIEW` and `WATCHES_PREVIEW`, which every such
-  preview shares.
-- `make preview-cron RUNS=12`: calls `POST /api/cron` with the token, one cron run a call.
-- `make preview-shared-data`: moves the preview back to production's KV.
+1. `make preview-own-data` moves the preview to the namespaces `ROSTER_PREVIEW` and
+   `WATCHES_PREVIEW`, and sets a new `CRON_TOKEN`. Each run replaces the token, so another checkout
+   that kept the old token gets a 403. All previews with their own data share these two namespaces.
+2. `make preview-cron RUNS=12` calls `POST /api/cron` with the token, once per cron run.
+3. `make preview-shared-data` moves the preview back to the production KV namespaces.
 
 ## A deployment of your own
 
-1. **The Workers Paid plan.** A roster build on a cache miss costs a subrequest per event
-   (`docs/backend.md`, "The roster"). On a large meet that passes the Free plan's 50 subrequests a
-   request (2026-10). The meet crawler counts on the paid plan too (`docs/backend.md`, "The meet
-   index").
-2. **A zone on the same account**, for the custom domains. The Juoksut host's first label must be
-   `juoksut`. A deploy with only the Kisat domain works, without the lap counter.
+1. **The Workers Paid plan.** On a cache miss, a roster build makes one subrequest per event
+   (`docs/backend.md`, "The roster"). For a large meet, that exceeds the Free plan's limit of 50
+   subrequests per request (2026-10). The meet crawler also needs the paid plan (`docs/backend.md`,
+   "The meet index").
+2. **A zone on the same account**, for the custom domains. The first label of the Juoksut host must
+   be `juoksut`. A deployment with only the Kisat domain works, but it has no lap counter.
 3. **Four KV namespaces**, created once:
 
    ```sh
@@ -57,30 +50,31 @@ with its own data runs the cron's work on request.
    pnpm exec wrangler kv namespace create WATCHES_PREVIEW
    ```
 
-   The ids of `ROSTER` and `WATCHES` replace those in both `kv_namespaces` and
-   `previews.kv_namespaces`. The other two replace those in `previews.kv_namespaces` only.
+   The ids of `ROSTER` and `WATCHES` replace the ids in both `kv_namespaces` and
+   `previews.kv_namespaces`. The ids of the other two replace the ids in `previews.kv_namespaces`
+   only.
 
-4. **The names in the files.** Change each host and address that this grep finds, where `<zone>` is
-   the zone of the hosts under `routes` in `wrangler.jsonc`:
+4. **The host names in the files.** Change each host and address that this grep finds, where
+   `<zone>` is the zone of the hosts under `routes` in `wrangler.jsonc`:
 
    ```sh
    git grep -n <zone>
    ```
 
    The grep misses two places:
-   - `wrangler.jsonc`: the Worker's `name` and the KV ids of step 3.
+   - `wrangler.jsonc`: the Worker's `name` and the KV ids from step 3.
    - `PREVIEW_HOST` (`Makefile`): the Worker's `name` and the account's `workers.dev` subdomain.
 
-   The tests name the live hosts only as examples and need no change.
+   The tests use the live hosts only as examples, so they need no change.
 
-5. **The deploy.** In the Worker's settings under Builds, connect the repository with
-   `make deploy-ci` as the deploy command. Leave Preview builds on, with their command
-   `npx wrangler preview`. With `npx wrangler versions upload` there, a branch's build fails with
-   "The name in your wrangler.jsonc file must match the name of your Worker", even with the right
-   name (2026-09).
-6. **The WAF rules**, in the zone's dashboard under Security. One is a Rate Limiting rule on
-   `/api/*` of both hosts, and `docs/backend.md`, "Abuse protection, layered", has its measured
-   rate. The other is a Custom Rule with action Block and this expression, with the fork's hosts:
+5. **The deploy.** In the Worker's settings under Builds, connect the repository and set the deploy
+   command to `make deploy-ci`. Leave Preview builds on, with the command `npx wrangler preview`.
+   With `npx wrangler versions upload` as that command, a branch's build fails with "The name in
+   your wrangler.jsonc file must match the name of your Worker", even when the name is correct
+   (2026-09).
+6. **The WAF rules**, in the zone's dashboard under Security. The first is a Rate Limiting rule on
+   `/api/*` of both hosts. Its measured rate is in `docs/backend.md`, "Abuse protection". The second
+   is a Custom Rule with the action Block and this expression, with your own hosts:
 
    ```
    (http.host in {"kisat.example.com" "juoksut.example.com"}) and
@@ -88,7 +82,7 @@ with its own data runs the cron's work on request.
    (not any(http.request.headers["x-kisat-client"][*] eq "1"))
    ```
 
-7. **A check of the result.** Each command should print the status after it.
+7. **A check of the result.** Each command should print the status shown in its comment.
 
    ```sh
    KISAT=https://kisat.example.com JUOKSUT=https://juoksut.example.com
@@ -100,7 +94,7 @@ with its own data runs the cron's work on request.
    status -H 'x-kisat-client: 1' "$JUOKSUT/api/roster/demo"          # 404
    ```
 
-   The front page's search finds older meets once the cron has run about a dozen times
+   The front page's search finds older meets after the cron has run about a dozen times
    (`docs/backend.md`, "The meet index").
 
 [preview-cron]: https://developers.cloudflare.com/workers/previews/resources/#cron-triggers

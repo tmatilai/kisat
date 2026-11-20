@@ -276,7 +276,7 @@ test("hurdleSpec: a class's setup, off the event name and the age", () => {
   // A class no band covers has no row.
   assert.equal(spec('Mixed 15 60m aidat', null, null).row, null);
   assert.equal(spec('P7 60m aidat', 'Male', '7').row, null);
-  // The name's class beats a group's Age (docs/tuloslista-api.md).
+  // The name's class beats a group's Age.
   // (Break on purpose: read Gender and Age first, and both land on the
   // senior rows.)
   assert.equal(spec('M65 60m aidat', 'Male', '30').row, 'M 60-69');
@@ -407,7 +407,7 @@ test("Aitaviesti: the relay table and the shuttle's tapes", () => {
   });
 
   // The sekaviesti's two rows are keyed off the name's M/N token in either
-  // order, never the round's filing (docs/tuloslista-api.md).
+  // order, never the round's filing.
   // (Break on purpose: key off hurdleKey first.)
   const seka = spec('M/N 4x100m aitaviesti', 'Male', '0');
   assert.equal(seka.row, 'M/N sekaviesti');
@@ -428,7 +428,7 @@ test("Aitaviesti: the relay table and the shuttle's tapes", () => {
   assert.equal(spec('Mixed 4x100m aitaviesti', null, null).row, 'M/N sekaviesti');
   assert.equal(spec('N/M 4x100m aitaviesti', 'Female', '0').row, 'M/N sekaviesti');
   // A junior mixed class has no sheet row, neither the adult rows nor one
-  // gender's (docs/tuloslista-api.md). (Break on purpose: treat an aged M/N
+  // gender's. (Break on purpose: treat an aged M/N
   // as one gender, or drop the adult gate.)
   assert.deepEqual(spec('M/N17 4x100m aitaviesti', 'Male', '17'), { distance: 100, row: null, rows: [], tapes: null });
   assert.equal(spec('M/N 17 4x100m aitaviesti', 'Male', '17').rows.length, 0);
@@ -456,7 +456,7 @@ test("shuttleStartRows gives the rows that the day's lines and the aitaviesti bo
   const entries = (...list) =>
     list.map(([label, EventName, Gender, Age]) => ({ label, round: { EventName, Gender, Age } }));
 
-  // This is the sekaviesti filed under one gender (docs/tuloslista-api.md).
+  // This is the sekaviesti filed under one gender.
   const seka = shuttleStartRows(entries(['M/N', 'M/N 4x100m aitaviesti', 'Male', '0']), hurdles);
   assert.equal(seka.multiClass, false);
   assert.deepEqual(

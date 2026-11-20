@@ -43,7 +43,7 @@ test('buildDigest/scanDigest', () => {
   ]);
 
   // A person is one line. An individual entry and a relay entry are two
-  // roster rows under one licence (docs/tuloslista-api.md). (Break on
+  // roster rows under one licence. (Break on
   // purpose: key the merge on a.id and Ville gets two lines.)
   const ville = digest.athletes.filter((a) => a[2] === 'Ville Mallinen');
   assert.equal(ville.length, 1);
@@ -127,8 +127,8 @@ test('buildDigest/scanDigest', () => {
   // Following him by name puts him back (below).
   assert.ok(!demu.some((l) => l.name === 'Tuomas Kokeinen'));
 
-  // A followed club does not match its athlete's entry in another club's team
-  // (docs/tuloslista-api.md). (Break on purpose: drop scanDigest's
+  // A followed club does not match its athlete's entry in another club's team.
+  // (Break on purpose: drop scanDigest's
   // per-event teamOrg check and Tuomas reappears.)
   const malv = scanDigest(digest, [{ type: 'club', id: 2 }]);
   assert.deepEqual(

@@ -91,7 +91,7 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
   assert.equal(
     isFinalRound([heats], heats),
     true,
-    "an event's only round is its final whatever the flag says — the single-round Alkuerät the cup skips (docs/tuloslista-api.md)",
+    "an event's only round is its final whatever the flag says — the single-round Alkuerät the cup skips",
   );
   assert.equal(isFinalRound([finalRound], null), false);
 
@@ -104,7 +104,7 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
   assert.equal(
     medalFor({ ResultRank: 1, NotInCompetition: true }, finalRound, [finalRound]),
     null,
-    'a guest takes no medal — the cup skips the same rows (docs/tuloslista-api.md)',
+    'a guest takes no medal — the cup skips the same rows',
   );
 
   // renderMedals (app/medals.js) passes the followed events reconciled with
@@ -1796,9 +1796,8 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
     'the classes in class order, the adults after the youth',
   );
   // A cover reads a row's class off its event name, as the class filter
-  // does, and not off the Age a masters' row is filed at
-  // (docs/tuloslista-api.md). (Break on purpose: read startAge in
-  // coversStart.)
+  // does, and not off the Age a masters' row is filed at. (Break on purpose:
+  // read startAge in coversStart.)
   const m65 = Object.values(schedule)
     .flat()
     .find((r) => r.EventName === 'M65 60m aidat');

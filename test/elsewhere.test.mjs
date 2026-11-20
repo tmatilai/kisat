@@ -164,7 +164,7 @@ test("t4rGraft: an SM meet's results from another site on its entries", async ()
     "each row keeps its entry's ids and takes the page's place, a field result gets a dot, and a new surname is still its entry",
   );
   // A youth class is P or T here and M or N on the other site
-  // (docs/elsewhere.md). (Break on purpose: drop eventNameKey's P and T.)
+  // (2026-09). (Break on purpose: drop eventNameKey's P and T.)
   const youth = (name) =>
     t4rGraft(
       schedule,
@@ -225,7 +225,7 @@ test("t4rGraft: an SM meet's results from another site on its entries", async ()
     'an event that failed to load',
   );
   // Each heat on a page becomes a heat of the round, and a row carries its
-  // heat's wind (docs/elsewhere.md). (Break on purpose: put t4rHeats' rows in
+  // heat's wind. (Break on purpose: put t4rHeats' rows in
   // one heat.)
   assert.deepEqual(
     heatsOf('s5').map((h) => [h.Index, h.Wind, h.Allocations.map((a) => [a.HeatRank, a.ResultRank, a.Wind])]),
@@ -276,7 +276,7 @@ test("t4rGraft: an SM meet's results from another site on its entries", async ()
     ],
   );
   // A vertical jump's attempts are its bars in the order raised, without a
-  // passed bar, from a page that wraps them (docs/elsewhere.md). (Break on
+  // passed bar, from a page that wraps them. (Break on
   // purpose: read the columns column by column, or keep a passed bar.)
   assert.deepEqual(
     rowsOf('s11').map((a) => a.Attempts.map((t) => `${t.Line1}:${t.Line2}`)),
@@ -289,8 +289,8 @@ test("t4rGraft: an SM meet's results from another site on its entries", async ()
   );
   // The graft fills the root's SubEvents, which the standings read and the
   // meet leaves empty (docs/tuloslista-api.md, "An adults' SM whose results are
-  // on another site"), and a leg cell's points come off the page
-  // (docs/elsewhere.md). (Break on purpose: leave SubEvents as they were, and
+  // on another site"), and a leg cell's points come off the page.
+  // (Break on purpose: leave SubEvents as they were, and
   // every leg column is empty.)
   const ottelu = graft.events.find((e) => e.eventId === 's20').data;
   const legs = combinedLegColumns(ottelu, combinedEventStarts(graft.schedule).find((m) => m.key === 'N 7-ottelu').legs);
@@ -329,7 +329,7 @@ test("t4rGraft: an SM meet's results from another site on its entries", async ()
     'a track row has no attempts, and the bars of the grid are the grafted ones',
   );
   // Each of the site's rounds with no row here is a start of its own, timed
-  // by its index row and dated by its directory (docs/elsewhere.md). (Break
+  // by its index row and dated by its directory. (Break
   // on purpose: anchor t4rEventGraft on the last page, or leave the front
   // page out of t4rDays.)
   const heats400 = graft.events.find((e) => e.eventId === 's1').data.Rounds;
@@ -420,8 +420,7 @@ test("t4rGraft: an SM meet's results from another site on its entries", async ()
     [t4rIndex(null), t4rResultPage(''), t4rWanted(null, null)],
     [{ days: [], rows: [] }, { event: '', round: '', heats: [] }, []],
   );
-  // A start list words its rule two ways, and each mark stays as written
-  // (docs/elsewhere.md).
+  // A start list words its rule two ways, and each mark stays as written.
   const rule = (text) =>
     t4rQualRule(`<tr><td width="250px">Ryhmä 1/2<br>Jatkoonpääsy: ${text}</td></td><td>13.27</td></tr>`);
   assert.deepEqual(
@@ -468,7 +467,7 @@ test("t4rGraft: an SM meet's results from another site on its entries", async ()
     ['Jatkoonpääsy: 1 parasta/erä (Q) ja 2 nopeinta aikaa (q)', null],
   );
   // A bar is centimetres on the start list and metres on the round, by the
-  // event's kind (docs/elsewhere.md). (Break on purpose: drop
+  // event's kind. (Break on purpose: drop
   // t4rRoundQualRule's VerticalJump test, and a count of 1 becomes 0.01. Or
   // spread page.qualRule as it is, and the bar stays 175.)
   const qualifying = (subCategory) => {
@@ -506,7 +505,7 @@ test("t4rGraft: an SM meet's results from another site on its entries", async ()
     'a page that cannot be read costs its own event alone',
   );
   assert.deepEqual(await t4rSitePages(read(''), entries), [], 'no front page, no pages');
-  // A page decodes as windows-1252, as a browser reads it (docs/elsewhere.md).
+  // A page decodes as windows-1252, as a browser reads it (2026-09).
   // (Break on purpose: decode one byte per character, and the š is dropped.)
   assert.equal(t4rDecode(Uint8Array.from([0x4e, 0xe4, 0x79, 0x74, 0xf6, 0x9a]).buffer), 'Näytöš');
   console.log('t4rSitePages ok');

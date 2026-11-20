@@ -806,7 +806,7 @@ async function renderLaps(compId, groupKey) {
   const band = { heat: null, slots: null };
 
   // Derives one heat's standings. A competitor out of the race trails the field
-  // and takes no position (docs/lap-counter.md, "Who still needs an action").
+  // and takes no position.
   function standingsFor(heat) {
     const hs = state.heats[heat.index] || { startTs: null, events: [] };
     const done = hs.done || {};

@@ -54,7 +54,7 @@ for (const day of days) {
 
       const round = (data.Rounds || []).find((r) => r.Id === e.round.Id);
       if (!round) continue;
-      // ResultRank is round-wide (docs/tuloslista-api.md), so a shared rank
+      // ResultRank is round-wide, so a shared rank
       // in a multi-heat round shares its mark.
       if ((round.Heats || []).length > 1) {
         const byRank = new Map();
@@ -73,7 +73,7 @@ for (const day of days) {
       for (const h of round.Heats || []) {
         const allocs = sortResults(h.Allocations || []);
         // A ranked row has a HeatRank for displayRank to print. A single-heat
-        // round's HeatRank is its ResultRank (docs/tuloslista-api.md).
+        // round's HeatRank is its ResultRank.
         for (const a of allocs) {
           if (a.ResultRank == null) continue;
           checkedRankPair += 1;

@@ -269,8 +269,8 @@ export default async function probe({ D, W, log, ok, groupKey, appJs, settle, ba
       .join(' | ')}`,
   );
   ok('every result on both tables carries what it scored', scoring().length === 11);
-  // The guest has the biggest number on the page and scores nothing
-  // (docs/tuloslista-api.md). (Break on purpose: drop the NotInCompetition
+  // The guest has the biggest number on the page and scores nothing. (Break on
+  // purpose: drop the NotInCompetition
   // test from cupStandings, and this row scores for its club.)
   ok(
     "a guest's points are not a club's",
@@ -397,7 +397,7 @@ export default async function probe({ D, W, log, ok, groupKey, appJs, settle, ba
   ok('a qualifying round alone scores nobody', scoring().length === 3 && !scored().length);
 
   // --- The meet body's flag is the gate ---
-  // Every allocation carries SeuraCUPPoints (docs/tuloslista-api.md), and
+  // Every allocation carries SeuraCUPPoints, and
   // `{cup: false}` takes all of this away. (Break on purpose: gate pointsEl's
   // cup half on `a.SeuraCUPPoints` and not the rail, and the rows keep them.)
   const realFetch = appJs.fetchJson;

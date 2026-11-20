@@ -833,7 +833,7 @@ test('siteAssetPath', () => {
 });
 
 // --- siteMeta: the title and preview tags a crawler reads in the served
-// document (docs/backend.md, "The document, and what a preview says") ---
+// document (docs/backend.md, "Link previews") ---
 test('siteMeta', () => {
   assert.equal(siteMeta('kisat'), null, "index.html ships Kisat's own strings untouched");
   assert.equal(siteMeta('juoksut').title, 'Juoksut');
@@ -1050,7 +1050,7 @@ test('class and discipline filter', () => {
   const day = Object.values(schedule)[0];
   const choices = meetFilterChoices(schedule);
   // A row's class is read off its event name, not off the Age it is filed at
-  // (e49, docs/tuloslista-api.md).
+  // (e49).
   // (Break on purpose: read startAge first.)
   assert.equal(rowClassAge(day.find((r) => r.EventName === 'M65 60m aidat')), 65);
   assert.equal(choices.ages.includes(30), false);

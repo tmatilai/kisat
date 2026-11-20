@@ -142,7 +142,7 @@ export default async function probe({ D, W, log, ok, wait, appJs, demoJs, libJs,
 
   // 3c. In an undrawn start where nobody has confirmed yet (e46), only the
   // meet's setting puts the line up. The demo's reads "off", as a meet that
-  // confirms can (docs/tuloslista-api.md). (Break on purpose: gate
+  // confirms can. (Break on purpose: gate
   // confirmSetting on the setting's `"on"` and the line goes.)
   const zeroRow = rows.find((r) => r.EventId === 'e46');
   const zeroStarts = new W.Date(zeroRow.BeginDateTimeWithTZ.replace(/\.\d+/, '')).getTime();

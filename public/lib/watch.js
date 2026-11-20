@@ -97,7 +97,7 @@ function watchEntryAthleteIds(entry, roster) {
 // Returns what a filter matches. An individual row matches on athleteIds, every
 // athlete an entry covers. A relay matches on namedAthleteIds, the athletes
 // followed by name, or on clubIds, as a followed club reaches a relay only
-// through the team's club (docs/tuloslista-api.md). licences need no roster.
+// through the team's club (2026-08). licences need no roster.
 // Returns a Watch's clubs as [{id, name}] in the list's order, each once. A
 // disabled entry is left out, as watchTargets leaves it out.
 function watchClubs(entries) {

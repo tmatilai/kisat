@@ -119,8 +119,7 @@ export default async function probe({ W, D, log, ok, wait, appJs, settle }) {
   ok(`a hidden older meet is findable by search ("${search.value}")`, rowIds().includes(String(hiddenComp.Id)));
   ok('no older button while searching', !D.querySelector('#app > div:last-child button'));
   // The placeholder venue "Kilpailupaikka" matches nothing, as a search reads
-  // only what a row prints (meetPlace, lib/home.js; docs/tuloslista-api.md,
-  // "`Location` defaults to the placeholder `Kilpailupaikka`").
+  // only what a row prints (meetPlace, lib/home.js).
   // (Break on purpose: match the raw c.Location in renderHome's search
   // filter, and tens of meets match.)
   search.value = 'kilpailupaikka';

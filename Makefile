@@ -102,8 +102,8 @@ login: $(INSTALLED)
 tail: $(INSTALLED)
 	$(WRANGLER) tail
 
-# The preview targets act on PREVIEW, the branch's preview unless set
-# (docs/deployment.md, "The live site"). On main, PREVIEW_HOST is empty.
+# The preview targets act on PREVIEW (docs/deployment.md). On main,
+# PREVIEW_HOST is empty.
 BRANCH_ALIAS := $(shell git branch --show-current | tr -d '\n' | tr 'A-Z' 'a-z' | tr -cs 'a-z0-9' '-')
 PREVIEW ?= $(BRANCH_ALIAS)
 PREVIEW_HOST := $(if $(filter-out main,$(PREVIEW)),$(PREVIEW)-kisat.teemu-matilainen.workers.dev)

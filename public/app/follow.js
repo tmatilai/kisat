@@ -1037,8 +1037,8 @@ function athleteNameLink(compId, athleteId, alloc, { nested = false, marks = [] 
 }
 
 // A tapped club opens the club sheet (docs/views.md,
-// "The athlete and club sheets"). Id 0 (docs/tuloslista-api.md,
-// "Categories, names and identity") and Juoksut mode (docs/juoksut.md) get
+// "The athlete and club sheets"). Id 0, which means no club (2026-08), and
+// Juoksut mode (docs/juoksut.md) get
 // plain text. `nested` works as in
 // athleteNameLink. `text` is what the caller draws, such as the day list's
 // NameShort.

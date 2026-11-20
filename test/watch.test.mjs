@@ -93,9 +93,8 @@ test('watchEntryForAthlete', () => {
     enabled: true,
   });
   // The entry keys on the licence, since the athlete id identifies an entry
-  // and not a person (docs/tuloslista-api.md, "Categories, names and
-  // identity"). (Break on purpose: return `id: found.id`, and the check above
-  // fails.)
+  // and not a person. (Break on purpose: return `id: found.id`, and the check
+  // above fails.)
   assert.ok(
     emma.licenseId !== String(emma.id),
     'the fixture must actually distinguish the two ids, or this test proves nothing',
@@ -217,8 +216,7 @@ test('watchEntryAthleteIds/watchTargets/filterEventIds/watchGroups', () => {
   assert.notEqual(emma.organizationId, nea.organizationId, 'the two Keihäs entrants are on different clubs');
 
   // An athlete entry stores the LicenseId, since Athletes[].Id identifies an
-  // entry and not a person (docs/tuloslista-api.md, "Categories, names and
-  // identity").
+  // entry and not a person.
   assert.ok(
     emma.licenseId && emma.licenseId !== String(emma.id),
     'the fixture must actually distinguish the two ids, or this test proves nothing',
@@ -327,7 +325,7 @@ test('watchEntryAthleteIds/watchTargets/filterEventIds/watchGroups', () => {
   );
 
   // A club entry resolves to its athletes and to the club. A relay matches a
-  // club entry on the club alone (docs/tuloslista-api.md).
+  // club entry on the club alone.
   const demuTargets = watchTargets([{ type: 'club', id: 1, enabled: true }], roster);
   assert.deepEqual(demuTargets.clubIds, new Set(['1']));
   assert.equal(demuTargets.namedAthleteIds.size, 0, 'a club follows nobody by name');
@@ -373,7 +371,7 @@ test('watchEntryAthleteIds/watchTargets/filterEventIds/watchGroups', () => {
   );
 
   // A club's athlete whose only entry is another club's relay team does not
-  // bring that relay (docs/tuloslista-api.md).
+  // bring that relay.
   const malvTargets = watchTargets([{ type: 'club', id: 2, enabled: true }], roster);
   assert.ok(malvTargets.athleteIds.has(String(tuomas.id)), 'he is on their roster all the same');
   assert.deepEqual(
@@ -544,7 +542,7 @@ test('allocMatches', () => {
     "and not one of the extra entered names either (break on purpose: drop relayLineup's slice)",
   );
   // An entry has no AthleteOrders, so its runners are the first legCount
-  // names by Index (docs/tuloslista-api.md).
+  // names by Index.
   const enrolled = { Organization: { Id: 5 }, Athletes: relay.Athletes };
   assert.equal(allocMatches(enrolled, targets({ namedAthleteIds: ['r2'] }), team), true);
   assert.equal(allocMatches(enrolled, targets({ namedAthleteIds: ['reserve'] }), team), false);
@@ -572,7 +570,7 @@ test('findAthleteAllocations', () => {
   assert.equal(relayFound.length, 1, 'a followed relay runner is found via AthleteOrders, not just Athletes');
   assert.equal(relayFound[0].alloc.Id, 'f1');
   // A club entry matches the club's own team, not the team one of its
-  // athletes runs in for another club (docs/tuloslista-api.md).
+  // athletes runs in for another club.
   const malv = findAthleteAllocations(relayRound, only(['2'], 'clubIds'), team);
   assert.deepEqual(
     malv.map((m) => m.alloc.Id),
@@ -600,8 +598,8 @@ test('matchedEntries', () => {
   assert.equal(unallocated[0].total, null, 'no round yet, so no field size either');
   assert.equal(unallocated[0].heatIndex, null, 'nor a heat — nothing is drawn yet');
 
-  // An undrawn round can be in Rounds[] with an empty or missing Heats
-  // (docs/tuloslista-api.md). (Break on purpose: test `if (round)`, and the
+  // An undrawn round can be in Rounds[] with an empty or missing Heats. (Break
+  // on purpose: test `if (round)`, and the
   // entered athlete is not found.)
   const shellRound = { Id: 'r1', Heats: [] };
   assert.deepEqual(
@@ -614,7 +612,7 @@ test('matchedEntries', () => {
     matchedEntries(null, DEMO_EVENTS.e6.Enrollments, ids(['g1-a'])),
     'a missing Heats key (not even an empty array) must also fall through',
   );
-  // The heat shell is the third undrawn shape (docs/tuloslista-api.md).
+  // The heat shell is the third undrawn shape.
   // (Break on purpose: test `Heats.length`, and nobody is found.)
   const heatShell = { Id: 'r1', Heats: [{ Index: 1, Allocations: [] }] };
   assert.deepEqual(
@@ -772,7 +770,7 @@ test('confirmSetting/confirmNote', () => {
   assert.equal(confirmNote(nobody, on, ts, closes).closed, true, 'the deadline itself is past it');
   assert.equal(confirmNote(nobody, on, ts, starts).closed, true);
   // One wall time under two offsets is two instants, as one competition's
-  // rows carry (docs/tuloslista-api.md). (Break on purpose: read the
+  // rows carry. (Break on purpose: read the
   // string's hours, not tsKey's instant, and both answer alike.)
   const between = closes - 2 * 60 * 60 * 1000;
   assert.equal(confirmNote(nobody, on, ts, between).closed, false, 'still open under +00:00');
@@ -816,7 +814,7 @@ test('confirmSetting/confirmNote', () => {
   assert.equal(ottelu(DEMO_EVENTS.e56), 'Varmistaneita 1/3');
 
   // The Ottelut box uses the day list's words (combinedCounts). It counts no
-  // erät, since the root's one heat is a container (docs/tuloslista-api.md).
+  // erät, since the root's one heat is a container.
   assert.equal(countLine(combinedCounts(DEMO_EVENTS.e59)), '2/3 varmistanutta');
   assert.equal(combinedCounts(DEMO_EVENTS.e59).heats, null);
   assert.equal(countLine(combinedCounts(DEMO_EVENTS.e41)), '3/4 varmistanutta');
@@ -872,9 +870,9 @@ test('watchConfirmations', () => {
   const ts = (h) => `2026-08-26T${String(h).padStart(2, '0')}:00:00.0000000+00:00`;
   const at = (h) => tsKey(ts(h));
 
-  // The gate opens on the setting or on a confirmation in the field
-  // (docs/tuloslista-api.md). (Break on purpose: drop the
-  // `confirmsHere` half, and the first of these answers null.)
+  // The gate opens on the setting or on a confirmation in the field. (Break on
+  // purpose: drop the `confirmsHere` half, and the first of these answers
+  // null.)
   const one = [{ name: 'A', label: '100 m', ts: ts(14), confirmed: true }];
   const none = [{ name: 'A', label: '100 m', ts: ts(14), confirmed: false }];
   const noSetting = watchConfirmations(one, null, true);

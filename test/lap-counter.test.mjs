@@ -115,8 +115,7 @@ test('counting starts', () => {
       [2, 4, 6],
     );
     assert.equal(tileAnchor({ lane: 2, bib: 105 }, 1), 'R2');
-    // The enrollment carries the whole pool and the allocation the lineup
-    // (docs/tuloslista-api.md).
+    // The enrollment carries the whole pool and the allocation the lineup.
     const legs = relayLegCount(data.EventType, data.Name);
     assert.equal(legs, 4);
     assert.equal(data.Enrollments[1].Athletes.length, 7, 'seven entered');
@@ -132,7 +131,7 @@ test('counting starts', () => {
     assert.equal(heatWind(round.Heats[0], data.EventType), null, 'a relay is never wind-legal');
   }
 
-  // The 3x400 m is filed under the 4x400 m type (docs/tuloslista-api.md).
+  // The 3x400 m is filed under the 4x400 m type.
   // Trusting the type adds two laps in a hall.
   {
     const { data, allocs } = start('3x400m viesti');
@@ -230,7 +229,7 @@ test('counting starts', () => {
 });
 
 // --- raceDistance + crossings, over every relay of two real meets (a relay's
-// Length is one leg, docs/tuloslista-api.md) ---
+// Length is one leg) ---
 test('raceDistance', () => {
   const relay = (name, TeamSize, Length) => raceDistance({ Category: 'Relay', TeamSize, Length, Name: name });
   const cases = [
@@ -260,8 +259,8 @@ test('raceDistance', () => {
   // A plain 400 m is never multiplied.
   assert.equal(raceDistance({ Category: 'Track', Length: 400, Name: '400m' }), 400);
 
-  // A P9 3x400m viesti can be filed under the 4x400 m EventType
-  // (docs/tuloslista-api.md, "Relays"). The event's name gives the legs.
+  // A P9 3x400m viesti can be filed under the 4x400 m EventType. The event's
+  // name gives the legs.
   const mistyped = {
     Category: 'Relay',
     SubCategory: 'Sprint',
@@ -416,8 +415,7 @@ test('shuttle relays', () => {
   assert.equal(crossingsFor(240, 200), 2, 'the arithmetic on its own is wrong');
   assert.equal(crossingsFor(240, 200, true), 1);
   assert.equal(crossingsFor(240, 400, true), 1);
-  // One crossing means the lane names the team, though these teams carry
-  // bibs (docs/tuloslista-api.md, "Categories, names and identity").
+  // One crossing means the lane names the team, though these teams carry bibs.
   assert.equal(tileAnchor({ lane: 4, bib: '57' }, crossingsFor(240, 200, true)), 'R4');
 });
 

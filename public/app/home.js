@@ -178,7 +178,7 @@ async function renderHome() {
   }
 
   // Rows outside the listing take their venue byline from here. Only the
-  // listing and a row that stands alone carry a venue (docs/tuloslista-api.md).
+  // listing and a row that stands alone carry a venue (2026-08).
   // A recent meet missing from both shows its date range alone.
   const knownPlaces = new Map(comps.map((c) => [String(c.Id), meetPlace(c.Location, c.OrganizationName)]));
 
@@ -188,8 +188,7 @@ async function renderHome() {
   const whenOf = (c) => whens.get(String(c.Id));
 
   comps.sort((a, b) => meetSortValue(whenOf(b), todayIso) - meetSortValue(whenOf(a), todayIso));
-  // Finished meets hide behind a button (meetIsRecent, docs/home.md,
-  // "Dates and sorting").
+  // Finished meets hide behind a button.
   const older = comps.filter((c) => !meetIsRecent(whenOf(c)));
   let showOlder = false;
   // The meets the listing has dropped come from /api/meets on the first
@@ -250,8 +249,7 @@ async function renderHome() {
     const pool = f ? [...comps, ...(archived || [])] : showOlder ? comps : comps.filter((c) => meetIsRecent(whenOf(c)));
     // A search matches the byline the row prints (meetPlace). The raw Location
     // often holds a placeholder word, which would match meets that never show
-    // it (docs/tuloslista-api.md, "`Location` defaults to the placeholder
-    // `Kilpailupaikka`").
+    // it (2026-08).
     listEl.replaceChildren(
       ...pool
         .filter((c) => !f || `${c.Name} ${meetPlace(c.Location, c.OrganizationName)}`.toLowerCase().includes(f))
@@ -339,7 +337,7 @@ async function renderHome() {
 
 // Asks which meets around today have somebody followed entered. The default
 // request leaves out build=1 because home re-renders on every
-// visibilitychange (docs/backend.md, "The Worker builds only when asked").
+// visibilitychange (docs/backend.md, "The scan").
 async function fetchScan(watchId, build) {
   if (!watchId) return null;
   return fetchJson(`/api/scan/${watchId}?day=${scanTodayIso()}${build ? '&build=1' : ''}`).catch(() => null);

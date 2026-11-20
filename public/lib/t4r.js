@@ -1,7 +1,7 @@
 import { parse } from 'parse5';
 import { T4R_FINAL_RE, t4rMark, t4rWanted } from './elsewhere.js';
 
-// --- The other site's pages (docs/elsewhere.md, "The pages") ---
+// --- The other site's pages ---
 // Only worker.js and the tests import this file. parse5 is a package, and
 // `make serve` serves public/ unbundled, so a file the page loads must not
 // import this one.
@@ -43,7 +43,7 @@ const t4rAttrs = (node) =>
     .flatMap((n) => (n.attrs || []).map((a) => a.value))
     .join(' ');
 // Reads the heat's wind from the row over its table. A field group's row has
-// none, and an event with no reading has the word alone (docs/elsewhere.md).
+// none, and an event with no reading has the word alone.
 const t4rHeatWind = (label) => (label || []).map((t) => /^Tuuli:\s*(\S+)/i.exec(t)?.[1]).find(Boolean) || null;
 
 // Reads a day's index page as {days, rows}, where `days` are the other days'
@@ -81,8 +81,8 @@ function t4rIndex(html, dir = '') {
 }
 
 // Parses a result page as t4rGraft's {event, round, heats}. A header row that
-// starts "Sija" opens a heat, and a result row has both a name and a club
-// (docs/elsewhere.md). A leg's points are its one unheaded cell of digits.
+// starts "Sija" opens a heat, and a result row has both a name and a club.
+// A leg's points are its one unheaded cell of digits.
 function t4rResultPage(html) {
   const doc = parse(String(html ?? ''));
   const heats = [];
@@ -131,8 +131,8 @@ function t4rResultPage(html) {
   return { event: t4rText(t4rAll(doc, 'h1')[0]), round: t4rText(t4rAll(doc, 'h2')[0]), heats };
 }
 
-// Reads a start list's rule for going through as a round's QRank and QResult
-// (docs/elsewhere.md). A field round gives the mark before "(Q)" and a track
+// Reads a start list's rule for going through as a round's QRank and QResult.
+// A field round gives the mark before "(Q)" and a track
 // round two counts. A page with no rule gives null.
 function t4rQualRule(html) {
   const texts = t4rNodes(parse(String(html ?? ''))).filter((n) => n.nodeName === '#text');
@@ -151,7 +151,7 @@ function t4rQualRule(html) {
 
 // Splits a relay row's runners at commas. A long relay writes each leg's split
 // after the name, and the split's comma cuts its fraction into an item with no
-// letter (docs/elsewhere.md). Both parts of the split drop out.
+// letter. Both parts of the split drop out.
 const T4R_SPLIT_RE = /\s+\d+(?:[.:]\d\d)?$/u;
 const t4rRunners = (text) =>
   String(text ?? '')

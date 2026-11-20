@@ -254,7 +254,7 @@ export default async function probe({ D, W, log, ok, groupKey, appJs, settle }) 
   // --- And the starts that must not be read this way ---
   // A field start of two classes calls both heat 1 as well, but each class
   // draws its own order from 1, so the numbers collide (laneDrawn,
-  // lib/results.js; docs/tuloslista-api.md, "Heats and allocations").
+  // lib/results.js).
   await open('kolmiloikka');
   log(`kolmiloikka h2s: ${heads('h2').join(' | ')} // seg: ${segButtons().join('|') || '(none)'}`);
   ok('no combined view for a field start', !heads('h2').includes('Tulokset'));
@@ -267,8 +267,7 @@ export default async function probe({ D, W, log, ok, groupKey, appJs, settle }) 
   ok('three jumpers each', D.querySelectorAll('#app .ladder-card').length === 6);
 
   // A track start's two classes can each draw their own lanes from 1, so six
-  // runners share four lanes (lanesAreOneDraw, lib/results.js). The rate is in
-  // docs/tuloslista-api.md ("Heats and allocations").
+  // runners share four lanes (lanesAreOneDraw, lib/results.js).
   await open('nelisataa');
   log(`400m h2s: ${heads('h2').join(' | ')} // seg: ${segButtons().join('|') || '(none)'}`);
   ok('no combined view when the lanes collide', !heads('h2').includes('Tulokset'));

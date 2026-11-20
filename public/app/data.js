@@ -354,7 +354,7 @@ async function loadGroup(compId, groupKey) {
 
 // Fetches the multi-event's root document. Only a leg carries its id (`RootId`),
 // so the legs are tried in turn. A leg nobody entered has no document
-// (docs/tuloslista-api.md), so a leg that fails is skipped.
+// (2026-08), so a leg that fails is skipped.
 async function loadCombinedRoot(compId, legs, schedule) {
   for (const leg of legs) {
     let data;

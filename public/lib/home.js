@@ -4,7 +4,8 @@ import { dayDiff, fiToIsoDay, isoDay, isoToFiDay, shiftIsoDay } from './dates.js
 
 // Places a meet against today, for home's sort, its highlight and its split of
 // recent meets from older ones. It reads the schedule's days, else the
-// listing's Date (docs/tuloslista-api.md). `running` is true only on one of
+// listing's Date, which is one day and not always the first (2026-08).
+// `running` is true only on one of
 // the meet's days, so a rest day between them is not running. Returns null,
 // not a meet that ended today, where the meet's dates or today cannot be read.
 function meetWhen(days, date, todayIso) {
@@ -45,7 +46,7 @@ function meetSortValue(when, todayIso) {
 // --- Cross-meet front page ------------------------------------
 
 // The listing's Date gets this slack, as a meet can start days before the
-// window with its Date after its first day (docs/tuloslista-api.md).
+// window with its Date after its first day (2026-08).
 const CAL_SLACK_BEFORE_DAYS = 5;
 const CAL_SLACK_AFTER_DAYS = 2;
 
@@ -90,7 +91,7 @@ function scanSince(scan) {
   return m ? `${Number(m[2])}.${Number(m[1])}.` : '';
 }
 
-// The listing puts this in a venue left blank (docs/tuloslista-api.md).
+// The listing puts this in a venue left blank (2026-08).
 const PLACEHOLDER_LOCATION = 'Kilpailupaikka';
 
 function meetPlace(location, organizationName) {

@@ -21,7 +21,7 @@ function isCupMeet(properties) {
 
 // Returns the cup event a payload scores in, its own except that both genders'
 // walks of one age merge on the group's digits. No start lines up with a cup
-// event, so the standings name the rows that counted (docs/tuloslista-api.md).
+// event, so the standings name the rows that counted (2026-08).
 function cupEventKey(eventId, data) {
   const group = String(data?.Group || '');
   return data?.EventType?.SubCategory === 'Walk' && group.length > 1 ? `walk:${group.slice(1)}` : `event:${eventId}`;
@@ -35,7 +35,7 @@ function cupScoringKey(eventId, alloc) {
 
 // Says whether row `a` beats `b` as its club's scorer. More points win, then
 // the better result, even across the walks' two races, then the better place,
-// or `b` stays (docs/tuloslista-api.md, "One scorer per club per event").
+// or `b` stays (2026-09).
 function cupRowBeats(a, b, category) {
   const pa = Number(a.SeuraCUPPoints);
   const pb = Number(b.SeuraCUPPoints);
@@ -45,7 +45,7 @@ function cupRowBeats(a, b, category) {
   return (a.ResultRank ?? Infinity) < (b.ResultRank ?? Infinity);
 }
 
-// Sums the club table by the measured rules (docs/tuloslista-api.md). Only a
+// Sums the club table by the measured rules (2026-08). Only a
 // Final scores, and a club's best row per event counts, with the walks merged
 // and guests out. `scoring` keys each row that counted with points.
 function cupStandings(eventResults) {
@@ -104,7 +104,7 @@ function cupStandings(eventResults) {
 // --- The finals, which score by place ------------------------------
 
 // A final scores by place, from a Type 0 setting whose IntValue is the winner's
-// points, as the official reader's /points page does (docs/tuloslista-api.md).
+// points, as the official reader's /points page does (2026-08).
 const CUP_FINAL_SETTING_TYPE = 0;
 
 function cupFinalMax(properties) {
@@ -199,7 +199,8 @@ function cupFinalStandings(eventResults, max) {
 }
 
 // Says what a meet scores from /properties, as null, { final: false } or
-// { final: true, max }. The name never decides (docs/tuloslista-api.md).
+// { final: true, max }. Only the Settings[] flags decide, never the
+// name (2026-08).
 function cupMode(properties) {
   if (isCupMeet(properties)) return { final: false };
   const max = cupFinalMax(properties);
@@ -244,7 +245,7 @@ function cupBreakdown(eventResults, mode, schedule) {
       if (!mode.final && round?.RoundTypeCategory !== 'Final') continue;
       const start = starts.get(round?.Id);
       // A final's rows come from cupFinalRoundRows' walk by place. Heats are
-      // unordered (docs/tuloslista-api.md).
+      // unordered (2026-08).
       const rows = mode.final
         ? cupFinalRoundRows(round, mode.max).filter((r) => r.counts)
         : (round.Heats || [])
@@ -331,7 +332,8 @@ function cupSeasonRows(record, { clubIds = new Set(), licences = new Set() } = {
 // --- The cup's year ---
 
 // A cup meet is found by its name, and its kind by the 9-year-olds' spellings
-// and "finaali" (docs/tuloslista-api.md, "A cup meet's name finds it").
+// and "finaali" (docs/tuloslista-api.md, "A cup meet can be found by its
+// name").
 const CUP_MEET_RE = /seuracup|föreningscup/iu;
 // Returns seriesOf(name), which gives seuracup.json's 'A', 'B', 'C' or null. A
 // name compares by clubNameKey, as the site's case and punctuation differ from

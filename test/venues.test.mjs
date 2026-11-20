@@ -186,7 +186,7 @@ test('hurdle setups', () => {
   const setups = (entries) => hurdleStartSetups(entries, hurdles);
 
   // The demo's 60 m start has three settings, and e49 carries a group's Age
-  // that the box must not read (docs/tuloslista-api.md).
+  // that the box must not read.
   const short = setups(start('60m aidat'));
   assert.equal(short.distance, 60);
   assert.deepEqual(
