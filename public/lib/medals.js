@@ -703,7 +703,8 @@ function medalSeasonMeetEmpty(record) {
 
 // Returns a club's medalists over a year under the chips' `cover`, as
 // clubMedalists' boxes whose lines name their meet. A person is a LicenseId, or
-// the club's licensed row of that name (docs/tuloslista-api.md).
+// the club's licensed row of that name (docs/tuloslista-api.md). A box's
+// `licence` is that LicenseId, or null for a person with none and for a relay.
 function medalSeasonMedalists(meets, clubId, cover = null) {
   return medalSeasonBoxes(meets, cover, (id) => id === String(clubId));
 }
@@ -759,11 +760,10 @@ function medalSeasonBoxes(meets, cover, clubOk) {
   const licenceOf = new Map(rows.filter((r) => r.a?.licence).map((r) => [`${r.club}|${fold(r.name)}`, r.a.licence]));
   const boxes = new Map();
   for (const r of rows) {
-    const key = !r.a
-      ? `o${r.club}`
-      : r.a.licence || licenceOf.get(`${r.club}|${fold(r.name)}`) || `n${r.club}|${fold(r.name)}`;
+    const licence = r.a ? r.a.licence || licenceOf.get(`${r.club}|${fold(r.name)}`) || null : null;
+    const key = !r.a ? `o${r.club}` : licence || `n${r.club}|${fold(r.name)}`;
     if (!boxes.has(key))
-      boxes.set(key, { key, name: r.name, club: r.clubName, athlete: !!r.a, medals: [0, 0, 0], lines: [] });
+      boxes.set(key, { key, name: r.name, club: r.clubName, athlete: !!r.a, licence, medals: [0, 0, 0], lines: [] });
     if (r.line.counted) boxes.get(key).medals[r.line.medal - 1]++;
     boxes.get(key).lines.push(r.line);
   }

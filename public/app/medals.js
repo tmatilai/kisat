@@ -720,7 +720,11 @@ async function renderMedalSeason({ scopeId, year: wantedYear, ages, club }, isRe
         boxes.map((b) =>
           medalistRowEl(
             b,
-            { club: withClub && b.club, watched: !withClub && !!targets?.licences.has(b.key) },
+            {
+              club: withClub && b.club,
+              watched: !withClub && !!targets?.licences.has(b.key),
+              after: athleteYearsEntryEl(b),
+            },
             (l) =>
               bodyMedalLineEl(
                 l,
@@ -1169,8 +1173,15 @@ function medalistAllEl(boxes, keys, repaint) {
 }
 
 // Draws a box (medalistBoxes and the like) as a row. Its whole head is the
-// button that opens its lines, so the name is plain text.
-function medalistRowEl(box, { club = '', watched = false, tail = medalSlotsEl(box.medals) }, lineEl, open, onToggle) {
+// button that opens its lines, so the name is plain text. `after` is drawn
+// after the lines, such as a link to the athlete's years.
+function medalistRowEl(
+  box,
+  { club = '', watched = false, tail = medalSlotsEl(box.medals), after = null },
+  lineEl,
+  open,
+  onToggle,
+) {
   return el(
     'div',
     { class: watched ? 'row watched' : 'row' },
@@ -1190,8 +1201,19 @@ function medalistRowEl(box, { club = '', watched = false, tail = medalSlotsEl(bo
         ],
         tail,
       ),
-      open ? el('div', { class: 'medalist-entries' }, box.lines.map(lineEl)) : null,
+      open ? el('div', { class: 'medalist-entries' }, box.lines.map(lineEl), after) : null,
     ),
+  );
+}
+
+// Ends an opened box of a licensed athlete with a link to the athlete's years.
+function athleteYearsEntryEl(box) {
+  if (!box.licence) return null;
+  athleteNames.set(box.licence, box.name);
+  return el(
+    'a',
+    { class: 'medalist-more', href: `${MEDAL_SEASON_PAGE_PATH}${athleteYearsHash(box.licence)}` },
+    'Kaikki mitalit ›',
   );
 }
 

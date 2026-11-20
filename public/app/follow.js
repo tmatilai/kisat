@@ -3,7 +3,16 @@ import { confirmCloses } from '../lib/confirmation.js';
 import { coverOfTicks, coverTicks, coverWords, meetCoverChoices, scopeTree, tickedScopes } from '../lib/districts.js';
 import { isFollowableOrgId } from '../lib/indexes.js';
 import { athleteCard, qualBadge, qualPending } from '../lib/results.js';
-import { compViewMode, cupPath, focusLink, keyringLinkHash, pastedLink, watchLink } from '../lib/routes.js';
+import {
+  MEDAL_SEASON_PAGE_PATH,
+  athleteYearsHash,
+  compViewMode,
+  cupPath,
+  focusLink,
+  keyringLinkHash,
+  pastedLink,
+  watchLink,
+} from '../lib/routes.js';
 import { SEARCH_MIN_CHARS } from '../lib/search.js';
 import {
   copyWatchLabel,
@@ -1160,6 +1169,20 @@ function openAthleteSheet(compId, athleteId, alloc, marks) {
         },
         'Näytä kaikki lajit',
       ),
+      // The medal pages are Kisat's alone (KISAT_ONLY_VIEWS, lib/routes.js).
+      card.licence && SITE_MODE !== 'juoksut'
+        ? el(
+            'button',
+            {
+              class: 'btn btn-secondary',
+              onclick: () => {
+                closeTopLayer();
+                navigate(`${MEDAL_SEASON_PAGE_PATH}${athleteYearsHash(card.licence)}`, { replace: true });
+              },
+            },
+            'Näytä mestaruusmitalit',
+          )
+        : null,
     ),
   );
 }

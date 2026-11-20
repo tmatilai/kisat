@@ -544,6 +544,7 @@ function athleteCard(alloc, marks = []) {
     club: org?.Name || org?.NameShort || '',
     // The bib is null where the meet numbers nobody (bibNumbersUsed).
     bib: alloc?.Number ? String(alloc.Number) : null,
+    licence: alloc?.Athletes?.length === 1 ? alloc.Athletes[0].LicenseId || null : null,
     marks: marks.map((m) => ({ label: m.round?.Name || m.label, result: m.result })),
   };
 }

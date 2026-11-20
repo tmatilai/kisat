@@ -1322,13 +1322,14 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
     medalSeasonMedalists(moved, '1').map((b) => [
       b.name,
       b.athlete,
+      b.licence,
       ...b.medals,
       b.lines.map((l) => `${l.medal}:${l.meet}`),
     ]),
     [
-      ['Aino Esimerkki', true, 2, 1, 0, ['1:m1', '1:m3', '2:m2']],
-      ['Eero Esimerkki', true, 0, 1, 0, ['2:m1']],
-      ['Demon Urheilijat', false, 0, 0, 1, ['3:m1']],
+      ['Aino Esimerkki', true, '111', 2, 1, 0, ['1:m1', '1:m3', '2:m2']],
+      ['Eero Esimerkki', true, '222', 0, 1, 0, ['2:m1']],
+      ['Demon Urheilijat', false, null, 0, 0, 1, ['3:m1']],
     ],
     "one person across meets, a row without a licence by its name; the relays the club's",
   );
