@@ -24,6 +24,7 @@ import {
   TABLE_PAGE_PATH,
   TABLE_TAB_VIEWS,
   anchorMoved,
+  athleteYearsHash,
   clubYearsHash,
   compViewMode,
   compViewSetMode,
@@ -41,8 +42,10 @@ import {
   layerPopAction,
   legacyDayPath,
   legacyRoutePath,
+  medalStartPath,
   medalsPath,
   menuAnchorPos,
+  parseAthleteYearsHash,
   parseClubYearsHash,
   parseLinkHash,
   parseRoute,
@@ -207,6 +210,20 @@ test('parseRoute', () => {
   assert.deepEqual(routeOf('/mestaruudet#/seura/123'), { view: 'medalClub', club: '123', ages: [] });
   assert.equal(parseClubYearsHash('#/seura'), null, 'no club is the scopes');
   assert.equal(parseClubYearsHash('#/seura/1/2026/13'), null);
+  // An athlete's years: `urheilija` and the licence. (Break on purpose: parse
+  // the season's fragment first.)
+  assert.deepEqual(routeOf(`/mestaruudet${athleteYearsHash('62940230')}`), {
+    view: 'medalAthlete',
+    licence: '62940230',
+    year: null,
+  });
+  assert.deepEqual(routeOf(`/mestaruudet${athleteYearsHash('62940230', 2026)}`), {
+    view: 'medalAthlete',
+    licence: '62940230',
+    year: 2026,
+  });
+  assert.equal(parseAthleteYearsHash('#/urheilija/abc'), null, 'a licence is digits');
+  assert.equal(parseAthleteYearsHash('#/urheilija'), null);
   // The kenttä link is written by hand, so its shape is pinned here
   // (docs/venues.md).
   assert.deepEqual(parseRoute('/c/demo/k/demola-mallikentta'), {
@@ -383,6 +400,24 @@ test('parseRoute', () => {
     [true, false, false],
   );
   assert.equal(medalsPath('20354'), '/c/20354/mitalit');
+  // A class's medal start is named by its event, which can hold a slash.
+  // (Break on purpose: stop the name at a slash.)
+  assert.deepEqual(parseRoute(new URL(medalStartPath('20354', 'M/N 4x100m aitaviesti'), 'https://x').pathname), {
+    view: 'medalStart',
+    compId: '20354',
+    name: 'M/N 4x100m aitaviesti',
+  });
+  // The start's page reads the athlete to highlight from the fragment.
+  // (Break on purpose: drop the fragment from the group route.)
+  const spotted = new URL(medalStartPath('20354', 'M 100m', '62940230'), 'https://x');
+  assert.deepEqual(parseRoute(spotted.pathname, spotted.hash), {
+    view: 'medalStart',
+    compId: '20354',
+    name: 'M 100m',
+    licence: '62940230',
+  });
+  assert.equal(parseRoute('/c/20354/g/k', '#/urheilija/62940230').licence, '62940230');
+  assert.equal(parseRoute('/c/20354/o/M%2010-ottelu', '#/urheilija/62940230').licence, '62940230');
   assert.equal(parseRoute('/c/20354/mitalit/x').view, 'home');
   assert.equal(parseRoute('/c/20354/cup/d/2026-08-08').view, 'home', 'no day on it');
   assert.equal(parseRoute('/c/cup').view, 'comp', 'a competition is still a competition');

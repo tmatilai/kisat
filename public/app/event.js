@@ -152,7 +152,7 @@ function soleHeatWind(d) {
 // Renders a start's page. Its highlighting and class filter read the meet's
 // stored view state, as the schedule view does (docs/architecture.md,
 // "View state").
-async function renderGroup(compId, groupKey) {
+async function renderGroup(compId, groupKey, licence = null) {
   const seq = renderSeq;
   setScrollKey(`group:${compId}:${groupKey}`);
   setBack(`/c/${compId}`);
@@ -163,7 +163,7 @@ async function renderGroup(compId, groupKey) {
   // and how the meet confirms entries (docs/backend.md, "Meet settings").
   const [loaded, targets, cupMeet, scopeChoice, listed] = await Promise.all([
     loadGroup(compId, groupKey),
-    followTargets(compId, state),
+    followTargets(compId, state, true, licence),
     fetchMeetBody(compId),
     // The scope choice feeds the Mitalit view (scopeResults).
     loadScopeChoice(compId),
@@ -476,7 +476,7 @@ function categorySections(
       parts.push(
         el(
           'h3',
-          {},
+          { class: 'cat-head' },
           `${d.data?.Name || d.schedRound.EventName}${roundName} `,
           statusChip(detailStatus(d)),
           windSpan(soleHeatWind(d)),
@@ -865,9 +865,15 @@ function pointsEl(a, rail) {
 }
 
 // Adds the followed-row class (allocMatches, lib/watch.js) to `extra`. `team`
-// is the event's relayInfo, so a relay row matches on its club and lineup.
+// is the event's relayInfo, so a relay row matches on its club and lineup. The
+// row of the athlete the page's link names (withAthleteTargets) also gets the
+// class `spotted`, which openAtSpotted (app.js) scrolls to.
 function rowClass(a, targets, team, extra) {
-  const classes = [extra, allocMatches(a, targets, team) ? 'watched' : null].filter(Boolean);
+  const classes = [
+    extra,
+    allocMatches(a, targets, team) ? 'watched' : null,
+    targets?.spotted && allocMatches(a, targets.spotted, team) ? 'spotted' : null,
+  ].filter(Boolean);
   return classes.length ? classes.join(' ') : null;
 }
 
@@ -1363,7 +1369,7 @@ function enrollmentTable(enrollments, t) {
 // --- A multi-event's own page (/c/<compId>/o/<label>) ---
 
 // Draws a multi-event's standings in three fetches, however many legs it has.
-async function renderCombined(compId, key) {
+async function renderCombined(compId, key, licence = null) {
   const seq = renderSeq;
   setScrollKey(`combined:${compId}:${key}`);
   setBack(`/c/${compId}`);
@@ -1372,7 +1378,7 @@ async function renderCombined(compId, key) {
   const state = viewStateFor(compId);
   const [schedule, targets, meet, scopeChoice] = await Promise.all([
     fetchSchedule(compId),
-    followTargets(compId, state),
+    followTargets(compId, state, true, licence),
     fetchMeetBody(compId),
     loadScopeChoice(compId),
   ]);

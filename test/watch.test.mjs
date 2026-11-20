@@ -26,6 +26,7 @@ import {
   matchedEntries,
   normalizeWatchEntries,
   normalizeWatchInput,
+  watchAthletes,
   watchClubs,
   watchConflictMerge,
   watchEntriesWith,
@@ -35,6 +36,7 @@ import {
   watchRegistryAdd,
   watchRegistryRemove,
   watchTargets,
+  withAthleteTargets,
 } from '../public/lib/watch.js';
 import { DEMO_EVENTS, DEMO_ID, demoResponse, demoSchedule } from '../public/demo.js';
 
@@ -186,23 +188,23 @@ test('watchConflictMerge', () => {
   assert.equal(watchConflictMerge(base, { ...fresh, label: 'Demot' }, 'Demo', [emma]).label, 'Demot');
 });
 
-// --- watchClubs: a Watch's clubs, for the championships page ---
+// --- watchClubs/watchAthletes: a Watch's clubs and athletes, for the
+// championships page ---
 
-test('watchClubs', () => {
+test('watchClubs/watchAthletes', () => {
+  const entries = [
+    { type: 'club', id: 1, name: 'Demon Urheilijat', enabled: true },
+    { type: 'athlete', id: '70000001', name: 'Emma Mittainen', enabled: true },
+    { type: 'club', id: '2', name: 'Malliseura', enabled: false },
+    { type: 'club', id: '1', name: 'Demon Urheilijat', enabled: true },
+    { type: 'club', id: '3', name: 'Testilän Kisa' },
+  ];
   // (Break on purpose: keep a disabled club, or a club twice.)
-  assert.deepEqual(
-    watchClubs([
-      { type: 'club', id: 1, name: 'Demon Urheilijat', enabled: true },
-      { type: 'athlete', id: '70000001', name: 'Emma Mittainen', enabled: true },
-      { type: 'club', id: '2', name: 'Malliseura', enabled: false },
-      { type: 'club', id: '1', name: 'Demon Urheilijat', enabled: true },
-      { type: 'club', id: '3', name: 'Testilän Kisa' },
-    ]),
-    [
-      { id: '1', name: 'Demon Urheilijat' },
-      { id: '3', name: 'Testilän Kisa' },
-    ],
-  );
+  assert.deepEqual(watchClubs(entries), [
+    { id: '1', name: 'Demon Urheilijat' },
+    { id: '3', name: 'Testilän Kisa' },
+  ]);
+  assert.deepEqual(watchAthletes(entries), [{ id: '70000001', name: 'Emma Mittainen' }]);
   assert.deepEqual(watchClubs(undefined), []);
 });
 
@@ -489,6 +491,25 @@ test('focusTargets', () => {
   assert.ok(club.athleteIds.size > 1, 'and the roster is what turns it into people');
 
   assert.equal(focusTargets({ kind: 'club', id: '4242', name: 'Ei ketään' }, roster).athleteIds.size, 0);
+});
+
+// --- withAthleteTargets: the athlete an event page highlights ---
+test('withAthleteTargets', () => {
+  const roster = buildRoster(demoEventResults());
+  const emma = roster.athletes.find((a) => a.name === 'Emma Mittainen');
+  const club = watchTargets([{ type: 'club', id: '4242', enabled: true }], roster);
+
+  // The athlete is added by name, so their relay team matches too, and the
+  // filter keeps what it had. (Break on purpose: return `added` alone.)
+  const both = withAthleteTargets(club, emma.licenseId, roster);
+  assert.deepEqual(both.namedAthleteIds, new Set([String(emma.id)]));
+  assert.deepEqual(both.clubIds, new Set(['4242']));
+  // `spotted` holds the added athlete alone, as the page opens at that row
+  // and not at a followed club's. (Break on purpose: give `spotted` the merge.)
+  assert.deepEqual(both.spotted.clubIds, new Set());
+  assert.deepEqual(both.spotted.athleteIds, new Set([String(emma.id)]));
+  assert.deepEqual(withAthleteTargets(null, emma.licenseId, roster).athleteIds, new Set([String(emma.id)]));
+  assert.equal(withAthleteTargets(club, null, roster), club, 'no licence, no change');
 });
 
 // --- allocMatches: whether one allocation or entry belongs to a filter ---

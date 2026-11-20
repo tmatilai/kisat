@@ -94,19 +94,21 @@ function watchEntryAthleteIds(entry, roster) {
   return ids;
 }
 
+// Returns a Watch's entries of one type as [{id, name}] in the list's order,
+// each once. A disabled entry is left out, as watchTargets leaves it out.
+function watchEntriesOf(entries, type) {
+  const seen = new Set();
+  return (entries || [])
+    .filter((e) => e?.type === type && e.enabled !== false && !seen.has(String(e.id)) && seen.add(String(e.id)))
+    .map((e) => ({ id: String(e.id), name: e.name || '' }));
+}
+const watchClubs = (entries) => watchEntriesOf(entries, 'club');
+const watchAthletes = (entries) => watchEntriesOf(entries, 'athlete');
+
 // Returns what a filter matches. An individual row matches on athleteIds, every
 // athlete an entry covers. A relay matches on namedAthleteIds, the athletes
 // followed by name, or on clubIds, as a followed club reaches a relay only
 // through the team's club (2026-08). licences need no roster.
-// Returns a Watch's clubs as [{id, name}] in the list's order, each once. A
-// disabled entry is left out, as watchTargets leaves it out.
-function watchClubs(entries) {
-  const seen = new Set();
-  return (entries || [])
-    .filter((e) => e?.type === 'club' && e.enabled !== false && !seen.has(String(e.id)) && seen.add(String(e.id)))
-    .map((e) => ({ id: String(e.id), name: e.name || '' }));
-}
-
 function watchTargets(entries, roster) {
   const athleteIds = new Set();
   const namedAthleteIds = new Set();
@@ -215,6 +217,25 @@ function focusTargets(focus, roster) {
   return { athleteIds: new Set([id]), namedAthleteIds: new Set([id]), clubIds: new Set() };
 }
 
+// Returns `targets` with one more athlete, by licence, followed by name. A link
+// from an athlete's medal years highlights the athlete on the event page
+// (docs/architecture.md, "The route table"). `spotted` matches that athlete
+// alone, so the page can open at the athlete's own row.
+function withAthleteTargets(targets, licence, roster) {
+  if (!licence) return targets;
+  const added = watchTargets([{ type: 'athlete', id: licence }], roster);
+  if (!targets) return { ...added, spotted: added };
+  const merged = (name) => new Set([...(targets[name] || []), ...added[name]]);
+  return {
+    ...targets,
+    athleteIds: merged('athleteIds'),
+    namedAthleteIds: merged('namedAthleteIds'),
+    clubIds: merged('clubIds'),
+    licences: merged('licences'),
+    spotted: added,
+  };
+}
+
 // --- This device's Watches ---
 // These functions take plain arrays, and app/data.js owns the localStorage I/O. A
 // Watch's editToken stays in its own key, so a forgotten list stays editable.
@@ -256,6 +277,7 @@ export {
   matchedEntries,
   normalizeWatchEntries,
   normalizeWatchInput,
+  watchAthletes,
   watchClubs,
   watchConflictMerge,
   watchEntriesWith,
@@ -265,4 +287,5 @@ export {
   watchRegistryAdd,
   watchRegistryRemove,
   watchTargets,
+  withAthleteTargets,
 };

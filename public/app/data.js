@@ -11,7 +11,7 @@ import {
   roundDetails,
   scheduleStatuses,
 } from '../lib/schedule.js';
-import { focusTargets, watchRegistryAdd, watchRegistryRemove, watchTargets } from '../lib/watch.js';
+import { focusTargets, watchRegistryAdd, watchRegistryRemove, watchTargets, withAthleteTargets } from '../lib/watch.js';
 import { SITE_MODE } from './shell.js';
 
 // --- Fetching ---
@@ -84,16 +84,21 @@ async function loadActiveWatch(watchId) {
 // Gives the quick-filter's targets, or with none set the active Watch's, for
 // a view that shows no filter chip (resolveFilter builds the chip's). A Watch
 // or a club quick-filter matches through the roster. Without `withRoster`
-// they match on the club ids and licences an entry stores.
-async function followTargets(compId, state, withRoster = true) {
+// they match on the club ids and licences an entry stores. `licence` adds one
+// athlete (withAthleteTargets).
+async function followTargets(compId, state, withRoster = true, licence = null) {
   const wantWatch = !state.focus && state.watchId;
-  const wantRoster = withRoster && (wantWatch || state.focus?.kind === 'club');
+  const wantRoster = (withRoster && (wantWatch || state.focus?.kind === 'club')) || Boolean(licence);
   const [watch, roster] = await Promise.all([
     wantWatch ? loadActiveWatch(state.watchId) : null,
     wantRoster ? fetchJson(`/api/roster/${compId}`).catch(() => null) : null,
   ]);
-  if (state.focus) return focusTargets(state.focus, roster);
-  return watch && (roster || !withRoster) ? watchTargets(watch.entries, roster) : null;
+  const targets = state.focus
+    ? focusTargets(state.focus, roster)
+    : watch && (roster || !withRoster)
+      ? watchTargets(watch.entries, roster)
+      : null;
+  return withAthleteTargets(targets, licence, roster);
 }
 
 function recentComps() {

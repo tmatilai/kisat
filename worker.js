@@ -43,6 +43,8 @@ import {
   seasonYearOk,
 } from './public/lib/indexes.js';
 import {
+  athleteSeasonMeets,
+  athleteSeasons,
   buildRoundGoesOn,
   cacheTtlFor,
   clubSeasonMeets,
@@ -50,8 +52,11 @@ import {
   medalSeasonMeetEmpty,
   medalSeasonMeets,
   medalSeasonRecord,
+  medalistIndexDue,
+  medalistMeets,
   meetChampionships,
   meetMedalsBody,
+  mergeMedalistIndex,
   notableYear,
   recordLacksOwn,
   recordSettled,
@@ -265,6 +270,7 @@ const API_ROUTES = [
     GET: (r, scope, year) => handleMedalSeason(scope, year, r.env, r.request, r.url),
   },
   { re: /^\/api\/medalclub\/([^/]+)$/, GET: (r, orgId) => handleMedalClub(orgId, r.env) },
+  { re: /^\/api\/medalathlete\/([^/]+)$/, GET: (r, licence) => handleMedalAthlete(licence, r.env, r.request) },
   { re: /^\/api\/cupseason\/([^/]+)$/, GET: (r, year) => handleCupSeason(year, r.env, r.request, r.url) },
   { re: /^\/api\/watch$/, POST: (r) => handleWatchCreate(r.env, r.request) },
   {
@@ -396,6 +402,7 @@ export default {
 function runCron(env) {
   return crawlMeets(env)
     .then(() => warmSeason(env))
+    .then(() => indexMedalists(env))
     .then(() => backfillAthletes(env));
 }
 
@@ -707,9 +714,18 @@ async function putMedals(env, compId, body, stats, lastDay) {
     env.ROSTER.put(medalsKey(compId), JSON.stringify({ builtAt, body, stats }), {
       expirationTtl: cacheTtlFor(lastDay, todayIso(), CACHE_TTLS),
     }),
-    env.ROSTER.put(medalSeasonKey(compId), JSON.stringify(record), options),
+    putSeasonRecord(env, compId, record, options),
   ]);
   return record;
+}
+
+// Stores a season record with its `builtAt` in the key's metadata, which the
+// medalist index compares without reading the record (indexMedalists).
+function putSeasonRecord(env, compId, record, options) {
+  return env.ROSTER.put(medalSeasonKey(compId), JSON.stringify(record), {
+    ...options,
+    metadata: { builtAt: record.builtAt },
+  });
 }
 
 // Reads a meet's /properties, or null where it does not answer.
@@ -1822,6 +1838,110 @@ async function handleCupSeason(yearParam, env, request, url) {
   });
 }
 
+// --- An athlete's years (docs/backend.md) -------------------------------
+
+const MEDALISTS_KEY = 'medalists:v1';
+const MEDALIST_INDEX_READS = 100;
+const LICENCE_RE = /^\d{1,12}$/;
+
+// Reads the championship records that the medalist index has not seen at their
+// current `builtAt`, up to MEDALIST_INDEX_READS a run, and writes the index if
+// it changed. The KV listing's metadata holds each record's `builtAt`.
+async function indexMedalists(env) {
+  const startMs = Date.now();
+  const today = todayIso();
+  const meets = warmSeasonMeets(
+    meetIndexMeets(await env.ROSTER.get(MEETS_KEY, 'json')),
+    medalYears(today),
+    districts,
+    today,
+    elsewhere,
+    notable,
+  ).filter((m) => !m.kind);
+  const builtAt = new Map();
+  let cursor;
+  do {
+    const page = await env.ROSTER.list({ prefix: 'medalseason:v4:', cursor });
+    for (const k of page.keys) builtAt.set(k.name, k.metadata?.builtAt ?? 0);
+    cursor = page.list_complete ? null : page.cursor;
+  } while (cursor);
+  const stored = await env.ROSTER.get(MEDALISTS_KEY, 'json');
+  const due = medalistIndexDue(
+    stored,
+    meets.map((m) => m.id),
+    (id) => builtAt.get(medalSeasonKey(id)),
+  ).slice(0, MEDALIST_INDEX_READS);
+  const records = await Promise.all(due.map((id) => env.ROSTER.get(medalSeasonKey(id), 'json')));
+  const { index, changed } = mergeMedalistIndex(
+    stored,
+    due.map((id, i) => [id, records[i]]),
+  );
+  if (changed) await env.ROSTER.put(MEDALISTS_KEY, JSON.stringify(index));
+  console.log(
+    `medalists: ${due.length} read of ${meets.length}, ${Object.keys(index.licences).length} licences, ${Date.now() - startMs}ms`,
+  );
+}
+
+// GET /api/medalathlete/:licence (docs/backend.md, "An athlete's years").
+async function handleMedalAthlete(licence, env, request) {
+  if (!LICENCE_RE.test(licence)) return new Response('Virheellinen lisenssi.', { status: 400 });
+  const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const { success } = await env.SEARCH_LIMITER.limit({ key: ip });
+  if (!success) {
+    console.warn(`medalathlete: rate limit hit for ${ip}`);
+    return new Response('Liikaa pyyntöjä, yritä hetken kuluttua uudelleen.', { status: 429 });
+  }
+  const [index, medalists] = await Promise.all([
+    env.ROSTER.get(MEETS_KEY, 'json'),
+    env.ROSTER.get(MEDALISTS_KEY, 'json'),
+  ]);
+  const today = todayIso();
+  const asked = athleteSeasons(
+    meetIndexMeets(index),
+    medalistMeets(medalists, licence),
+    medalYears(today),
+    districts,
+    elsewhere,
+    notable,
+  );
+  const ids = [...new Set(asked.flatMap((y) => y.scopes.flatMap((s) => s.meets.map((m) => m.id))))];
+  const found = await Promise.all(ids.map((id) => env.ROSTER.get(medalSeasonKey(id), 'json')));
+  const records = new Map(ids.map((id, i) => [id, found[i]]));
+  const now = Date.now();
+  const stale = (r) => !!r && isStale(r.builtAt, r.lastDay, now) && !recordSettled(r.lastDay, today);
+  const years = asked.map(({ year, scopes }) => ({
+    year,
+    scopes: scopes
+      .map(({ id, own, meets }) => ({
+        id,
+        meets: athleteSeasonMeets(
+          meets.map((m) => seasonMeetBody(m, records.get(m.id), own ? null : id, stale(records.get(m.id)))),
+          licence,
+        ),
+      }))
+      .filter((s) => s.meets.length),
+  }));
+  const used = new Set(years.flatMap((y) => y.scopes.map((s) => s.id)));
+  console.log(`medalathlete: ${ids.length} meets read`);
+  return new Response(
+    JSON.stringify({
+      licence,
+      scopes: [
+        ...meetScopes(districts).map(({ id, kind, name, short }) => ({ id, kind, name, short })),
+        ...(notable.meets || []).map(({ id, name }) => ({ id, kind: 'notable', name, short: null })),
+      ].filter((s) => used.has(s.id)),
+      years,
+    }),
+    {
+      headers: {
+        'content-type': 'application/json; charset=utf-8',
+        'cache-control': 'no-store',
+        'x-content-type-options': 'nosniff',
+      },
+    },
+  );
+}
+
 // --- The cron's warming -------------------------------------------------
 //
 // Warms the records of every championship year, the notable meets and this
@@ -1857,7 +1977,7 @@ async function warmSeason(env) {
     if (!meet.kind) closedOf(meet, record);
     if (!meet.kind && seasonRecordUnkept(record, today)) {
       const keep = seasonRecordKeep(record, today, DIGEST_KV_TTL_S);
-      await env.ROSTER.put(medalSeasonKey(meet.id), JSON.stringify(keep.record), keep.options);
+      await putSeasonRecord(env, meet.id, keep.record, keep.options);
       kept += 1;
     }
     const lacks = isNotableMeet(notable, meet.id) && recordLacksOwn(record);

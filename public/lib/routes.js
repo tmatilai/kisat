@@ -139,14 +139,18 @@ function parseRoute(pathname, hash = '') {
   // that stands alone (ALONE_ID_RE). The lap counter's route goes before the
   // group's, which would take "/laps" as the key's end.
   if ((m = path.match(/^\/c\/([\w-]+)\/g\/([^?]+)\/laps$/))) return { view: 'laps', compId: m[1], key: m[2] };
-  if ((m = path.match(/^\/c\/([\w-]+)\/g\/([^?]+)$/))) return { view: 'group', compId: m[1], key: m[2] };
+  // A start's and a multi-event's page take an athlete to highlight in the
+  // fragment (withAthleteTargets, lib/watch.js).
+  if ((m = path.match(/^\/c\/([\w-]+)\/g\/([^?]+)$/)))
+    return { view: 'group', compId: m[1], key: m[2], ...parseAthleteYearsHash(hash) };
   // A day is YYYY-MM-DD in the path and the schedule's own key in the route
   // (dayPath).
   if ((m = path.match(/^\/c\/([\w-]+)\/d\/(\d{4}-\d{2}-\d{2})$/)))
     return { view: 'comp', compId: m[1], date: isoToFiDay(m[2]) };
   // A multi-event's standings key on the label, as the RootId is unknown
   // until a leg is fetched.
-  if ((m = path.match(/^\/c\/([\w-]+)\/o\/([^?]+)$/))) return { view: 'combined', compId: m[1], key: m[2] };
+  if ((m = path.match(/^\/c\/([\w-]+)\/o\/([^?]+)$/)))
+    return { view: 'combined', compId: m[1], key: m[2], ...parseAthleteYearsHash(hash) };
   // The club cup is one table a meet, with no day and a picked club (cupPath).
   if ((m = path.match(/^\/c\/([\w-]+)\/cup(?:\/s\/([\p{L}\p{N}_-]+))?$/u)))
     return { view: 'cup', compId: m[1], club: m[2] || null };
@@ -154,6 +158,10 @@ function parseRoute(pathname, hash = '') {
   // picked club after its segment (medalsPath).
   if ((m = path.match(/^\/c\/([\w-]+)\/mitalit(?:\/([\d,]+))?(?:\/s\/([\p{L}\p{N}_-]+))?$/u)))
     return { view: 'medals', compId: m[1], ages: parseAges(m[2]), club: m[3] || null };
+  // A class's medal start, found by its event name (docs/architecture.md, "The
+  // route table").
+  if ((m = path.match(/^\/c\/([\w-]+)\/l\/([^?]+)$/)))
+    return { view: 'medalStart', compId: m[1], name: m[2], ...parseAthleteYearsHash(hash) };
   // A club's cup page at /cup/<orgId> is the meet's cup page with the club
   // picked. This shim is temporary (docs/shims.md).
   if ((m = path.match(/^\/c\/(\w+)\/cup\/(\d+)$/))) return { view: 'cup', compId: m[1], club: m[2] };
@@ -176,6 +184,8 @@ function parseRoute(pathname, hash = '') {
     return { view: TABLE_TAB_VIEWS[tab], ...rest };
   }
   if (path === MEDAL_SEASON_PAGE_PATH) {
+    const athlete = parseAthleteYearsHash(hash);
+    if (athlete) return { view: 'medalAthlete', year: null, ...athlete };
     const club = parseClubYearsHash(hash);
     return club ? { view: 'medalClub', ...club } : { view: 'medalSeason', ...parseSeasonHash(hash) };
   }
@@ -241,6 +251,8 @@ const KISAT_ONLY_VIEWS = [
   'medals',
   'medalSeason',
   'medalClub',
+  'medalAthlete',
+  'medalStart',
   'cupSeason',
 ];
 const JUOKSUT_ONLY_VIEWS = ['laps', 'venueLink', 'hurdleSheet'];
@@ -310,6 +322,10 @@ function medalsPath(compId, ages = [], club = null) {
   return `/c/${compId}/mitalit${agesSegment(ages) ? `/${agesSegment(ages)}` : ''}${club ? `/s/${club}` : ''}`;
 }
 
+function medalStartPath(compId, name, licence = null) {
+  return `/c/${compId}/l/${encodeURIComponent(name)}${licence ? athleteYearsHash(licence) : ''}`;
+}
+
 // Parses a year page's fragment, a scope id the view checks or a year alone for
 // the scopes' list. No year is this year, and the view refuses a year it does
 // not offer, as that needs today.
@@ -343,6 +359,19 @@ function parseClubYearsHash(rawHash) {
 
 function clubYearsHash(club, ages = []) {
   return `#/${['seura', club, agesSegment(ages)].filter(Boolean).join('/')}`;
+}
+
+// Parses an athlete's years' fragment, `#/urheilija/<licence>[/<year>]`, or
+// returns null. The year is the tab of that year's medals. parseRoute reads it
+// before parseSeasonHash, so no scope's id may be `urheilija`.
+function parseAthleteYearsHash(rawHash) {
+  const m = String(rawHash ?? '').match(/^#?\/?urheilija\/(\d{1,12})(?:\/(\d{4}))?\/?$/);
+  if (!m) return null;
+  return m[2] ? { licence: m[1], year: Number(m[2]) } : { licence: m[1] };
+}
+
+function athleteYearsHash(licence, year = null) {
+  return `#/urheilija/${licence}${year ? `/${year}` : ''}`;
 }
 
 function seasonHash(scopeId, year = null, ages = [], club = null) {
@@ -380,8 +409,10 @@ const VIEW_MODULES = {
   implementTable: 'tables',
   laps: 'laps',
   measure: 'measure',
+  medalAthlete: 'medals',
   medalClub: 'medals',
   medalSeason: 'medals',
+  medalStart: 'medals',
   medals: 'medals',
   pairLink: 'follow',
   venueLink: 'hurdles',
@@ -627,6 +658,7 @@ export {
   TABLE_TAB_VIEWS,
   VIEW_MODULES,
   anchorMoved,
+  athleteYearsHash,
   clubYearsHash,
   compViewMode,
   compViewSetMode,
@@ -644,8 +676,10 @@ export {
   layerPopAction,
   legacyDayPath,
   legacyRoutePath,
+  medalStartPath,
   medalsPath,
   menuAnchorPos,
+  parseAthleteYearsHash,
   parseClubYearsHash,
   parseLinkHash,
   parseRoute,

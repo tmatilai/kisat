@@ -990,6 +990,19 @@
         align-items: center;
         gap: 8px;
       }
+      /* A heading with a medal count, whose slots line up with the rows'
+         below it (renderMedalAthlete, app/medals.js). */
+      .count-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding-right: 13px;
+      }
+      .count-head .medal-slots {
+        font-weight: normal;
+        letter-spacing: normal;
+      }
       .pick-clear {
         position: relative;
         flex: none;
