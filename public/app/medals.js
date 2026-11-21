@@ -359,7 +359,7 @@ function medalistLineEl(compId, r, multiDay) {
       r.event,
       r.roundName ? el('span', { class: 'medalist-sub' }, ` · ${r.roundName}`) : null,
       multiDay ? el('span', { class: 'medalist-sub' }, ` · ${dayMonth(r.date)}`) : null,
-      legs.length ? el('span', { class: 'medalist-sub' }, ` (${legs.join(', ')})`) : null,
+      legs.length ? el('span', { class: 'medalist-sub relay-legs' }, ` (${legs.join(', ')})`) : null,
     ),
     el('span', { class: 'medalist-place' }, r.place),
     el(
@@ -394,7 +394,7 @@ function bodyMedalLineEl(l, href, sub) {
 // A relay's runners after its event, as medalistLineEl draws a relay's legs.
 function runnersEl(runners) {
   const named = (runners || []).filter(Boolean);
-  return named.length ? el('span', { class: 'medalist-sub' }, ` (${named.join(', ')})`) : null;
+  return named.length ? el('span', { class: 'medalist-sub relay-legs' }, ` (${named.join(', ')})`) : null;
 }
 
 // Draws a medal table with the place, the club, a column per metal and the

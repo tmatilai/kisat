@@ -66,7 +66,9 @@ import {
   loadGroup,
   loadScopeChoice,
   officialMenuRows,
+  relayNamesHidden,
   setCupMeetSeen,
+  setRelayNamesHidden,
   updateViewState,
   viewStateFor,
 } from './data.js';
@@ -322,7 +324,8 @@ async function renderGroup(compId, groupKey, licence = null) {
       : 'heats';
   const { byScope, combined, heatTables, badgeToggles } = startPageView(model, view);
   if (!singleCat) parts.unshift(catBadges(badgeToggles));
-  if (canCombine || offerMedals) {
+  const relay = detailed.some((d) => relayInfo(d.data).legCount > 1);
+  if (canCombine || offerMedals || relay) {
     const setView = (v) => () => {
       setResultView(groupKey, v);
       render();
@@ -331,19 +334,39 @@ async function renderGroup(compId, groupKey, licence = null) {
       leg
         ? scopeSplitLabel(scopeChoice.districts, scopeChoice.scopes, filedStart(detailed[0].schedRound, schedule))
         : 'Mitalit';
+    const namesShown = !relayNamesHidden();
     parts.push(
       el(
         'div',
         { class: 'filter-bar' },
-        segControl('Tulosten esitystapa', [
-          ...(canCombine
-            ? [
-                { label: 'Erät', pressed: !combined && !byScope, onclick: setView('heats') },
-                { label: shared ? 'Sarjat' : 'Kokonaistulokset', pressed: combined, onclick: setView('total') },
-              ]
-            : [{ label: 'Kaikki', pressed: !byScope, onclick: setView('heats') }]),
-          offerMedals ? { label: medalsLabel(), pressed: byScope, onclick: setView('medals') } : null,
-        ]),
+        canCombine || offerMedals
+          ? segControl('Tulosten esitystapa', [
+              ...(canCombine
+                ? [
+                    { label: 'Erät', pressed: !combined && !byScope, onclick: setView('heats') },
+                    { label: shared ? 'Sarjat' : 'Kokonaistulokset', pressed: combined, onclick: setView('total') },
+                  ]
+                : [{ label: 'Kaikki', pressed: !byScope, onclick: setView('heats') }]),
+              offerMedals ? { label: medalsLabel(), pressed: byScope, onclick: setView('medals') } : null,
+            ])
+          : null,
+        relay
+          ? el(
+              'button',
+              {
+                class: `chip chip-toggle${namesShown ? ' on' : ''}`,
+                'aria-pressed': String(namesShown),
+                // The root class hides the names, so the page needs no render.
+                onclick: (e) => {
+                  const shown = relayNamesHidden();
+                  setRelayNamesHidden(!shown);
+                  e.currentTarget.classList.toggle('on', shown);
+                  e.currentTarget.setAttribute('aria-pressed', String(shown));
+                },
+              },
+              'Juoksijat',
+            )
+          : null,
       ),
     );
   }
@@ -755,7 +778,9 @@ function athleteNameParts(a, legCount, compId, aside = null) {
   // "What each mode has").
   const athleteId = compId && SITE_MODE !== 'juoksut' ? soleAthleteId(a) : null;
   // A relay's club link moves up to the team name.
-  const org = legs.length ? relayLegEls(legs) : clubNameLink(compId, a.Organization, a.Organization?.Name || '');
+  const org = legs.length
+    ? el('span', { class: 'relay-legs' }, relayLegEls(legs))
+    : clubNameLink(compId, a.Organization, a.Organization?.Name || '');
   const teamName = legs.length ? clubNameLink(compId, a.Organization, a.Name) : null;
   const prev = aside?.prev || null;
   const official = officialRank(a);

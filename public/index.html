@@ -573,6 +573,13 @@
       .heat-tag::before {
         content: ' · ';
       }
+      /* The Juoksijat chip hides the runners (relayNamesHidden, app/data.js). */
+      .relay-names-off .relay-legs {
+        display: none;
+      }
+      .relay-names-off .relay-legs + .heat-tag::before {
+        content: '';
+      }
       /* The name cell's asides (athleteNameParts, app/event.js). An earlier
          round's mark sits by the name and the bests on the club line. Both
          stay muted (docs/style.md, "Components"), or a mark reads as this

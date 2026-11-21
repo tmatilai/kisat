@@ -206,6 +206,20 @@ function setViewCats(compId, cats) {
   updateViewState(compId, { cats });
 }
 
+// While `kisatRelayNames` holds `{ hide: true }`, a class on the page root
+// hides every list of a relay's runners (.relay-names-off in index.html).
+const RELAY_NAMES_KEY = 'kisatRelayNames';
+function relayNamesHidden() {
+  return !!readStore(RELAY_NAMES_KEY)?.hide;
+}
+function applyRelayNames() {
+  document.documentElement.classList.toggle('relay-names-off', relayNamesHidden());
+}
+function setRelayNamesHidden(hide) {
+  writeStore(RELAY_NAMES_KEY, hide ? { hide: true } : null);
+  applyRelayNames();
+}
+
 // Sweeps the lap logs and the meet's track, kenttä and flip choices a week
 // after their last write (docs/lap-counter.md, "Storage"). Every writer stamps
 // `t`, so an entry without one is swept too.
@@ -408,6 +422,7 @@ export {
   HOME_VIEW_KEY,
   activeFollow,
   activeWatchSeen,
+  applyRelayNames,
   cupMeetSeen,
   eventStoreFor,
   fetchCompProps,
@@ -432,12 +447,14 @@ export {
   readStore,
   recentComps,
   registerWatch,
+  relayNamesHidden,
   rememberComp,
   rememberWatchEditToken,
   renderLog,
   setActiveFollow,
   setCupMeetSeen,
   setFetchJson,
+  setRelayNamesHidden,
   setRenderCost,
   setViewCats,
   setViewMode,

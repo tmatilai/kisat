@@ -128,6 +128,8 @@ or a start can't lose the state, and a start reads the same stored state. The st
 - `kisatCompView`: the view state of each meet, most recent first, capped at `COMP_VIEW_MAX`. One
   row, `#home`, holds the state of home, `/mestaruudet` and `/seuracup`.
 - `kisatRecentComps`: the meets that this device opened (`docs/home.md`).
+- `kisatRelayNames`: `{hide: true}` while the `Juoksijat` chip hides the relay runners' names on
+  every view.
 - `kisatRenderLog`: the render log ("What a render cost").
 
 Juoksut mode's own keys are in `docs/juoksut.md` and `docs/lap-counter.md`, "Storage".
