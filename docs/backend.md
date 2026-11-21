@@ -108,14 +108,15 @@ The last is a cup final. `confirm` is `{minutes}`, or null if the meet doesn't t
  scopes: [{id, kind, name, short, table}],
  defaults: [{id, cover}],
  closed,
- starts: [{start, medals: [[clubId, medal, key]],
-           scoped: [[scopeId, [[clubId, medal, key]]]]}],
+ starts: [{start, medals: [[clubId, medal, key, runners?]],
+           scoped: [[scopeId, [[clubId, medal, key, runners?]]]]}],
  names: [[clubId, name]],
  athletes: [[key, name, licence]],
  unknown: [name]}
 ```
 
-Each entry of `starts` is one class. `key` is `followedKey`.
+Each entry of `starts` is one class. `key` is `followedKey`. A relay's medal also has `runners`: its
+runners' keys in `athletes`, in leg order.
 
 - **The root events of multi-events are left out of `events`.** The Worker fetches them only for the
   medal table. The cup scores a club through the legs, so including the roots would score it twice.
@@ -190,6 +191,9 @@ record per meet in place of the digest. The years run from `SEASON_FIRST_YEAR` t
   Tuloslista can stop returning a meet (`docs/tuloslista-api.md`, "The listing"). The cron rewrites
   a settled record that still has a TTL without one. Change the key's version, a past meet's
   `elsewhereTag` or `MEET_INDEX_VERSION` only if losing those meets is acceptable.
+- **The cron rebuilds a record without the `relayRunners` field under the same key**, settled or
+  not. If the rebuild fails, the cron keeps the old record and sets `relayRunners: false`, so that
+  it doesn't try again.
 
 ### A club's years
 
@@ -236,9 +240,6 @@ an earlier club.
   its KV metadata. The cron lists the keys and reads only the records whose `builtAt` the index has
   not seen, up to `MEDALIST_INDEX_READS` a run. It reads a record stored without the metadata once.
   A record that a request builds reaches the athlete's page at the next cron run.
-- **Only a licence has medals.** A record names no relay runners, so a relay medal is the club's
-  alone. A medalist that a record keeps with no licence, such as one from another site whom the
-  athlete index did not know, has no page.
 - **The route spends `SEARCH_LIMITER`**, so walking through the licences costs as much as walking
   through the search ("The athlete index").
 

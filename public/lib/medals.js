@@ -17,12 +17,14 @@ import {
 import { elsewhereListsSm } from './elsewhere.js';
 import { isFollowableOrgId } from './indexes.js';
 import {
+  athleteFullName,
   followedKey,
   heatsInOrder,
   isFinalRound,
   officialRank,
   positionText,
   relayInfo,
+  relayLineup,
   resultPending,
   roundAllocated,
   roundFieldSize,
@@ -173,7 +175,8 @@ function meetMedalRows(schedule, eventResults, scopeOf = null) {
 
 // Builds GET /api/medals' body. `table` is the meet's table, and `scopes` has a
 // table per present scope over what the defaults leave it. `starts` holds each
-// class's [clubId, medal, followedKey] and each scope's own under `scoped`.
+// class's medals and each scope's own under `scoped` (docs/backend.md, "The
+// medal table").
 function meetMedalsBody(schedule, eventResults, districts, meet = null) {
   const official = meetMedalRows(schedule, eventResults);
   const all = allocRows(schedule, eventResults);
@@ -211,7 +214,14 @@ function meetMedalsBody(schedule, eventResults, districts, meet = null) {
       const key = `${r.link.kind}:${r.link.key}:${r.event}`;
       if (!starts.has(key)) starts.set(key, { start: r.start, medals: [], scoped: [] });
       if (r.athleteId) athletes.set(r.key, [r.name, r.alloc?.Athletes?.[0]?.LicenseId || null]);
-      add(starts.get(key), [String(r.org.Id), r.medal, r.key]);
+      const runners = (r.athleteId || !(r.legCount > 1) ? [] : relayLineup(r.alloc, r.legCount))
+        .filter((a) => a.Id != null)
+        .map((a) => {
+          const runner = `a${a.Id}`;
+          athletes.set(runner, [athleteFullName(a), a.LicenseId || null]);
+          return runner;
+        });
+      add(starts.get(key), [String(r.org.Id), r.medal, r.key, ...(runners.length ? [runners] : [])]);
     }
   };
   medalsOf(official, (s, pair) => s.medals.push(pair));
@@ -495,7 +505,7 @@ function medalStartAt(schedule) {
 
 // Returns a club's medals per class under the chips' `cover` in programme
 // order, as [{event, medals, names, date, link, counted, only}] (startLine).
-// `names` lists its medalists by medal, and a relay names none.
+// `names` lists the medalists by medal, and a relay's runners in leg order.
 function clubMedalStarts(body, ticked, districts, cover, clubId, schedule) {
   const at = medalStartAt(schedule);
   const athletes = new Map(body?.athletes || []);
@@ -511,9 +521,9 @@ function clubMedalStarts(body, ticked, districts, cover, clubId, schedule) {
     const name = s.start.EventName;
     if (!line || !won.length) continue;
     if (!lines.has(name)) lines.set(name, { event: name, medals: [0, 0, 0], won: [], ...line, ...at(name) });
-    for (const [, medal, key] of won) {
+    for (const [, medal, key, runners = []] of won) {
       lines.get(name).medals[medal - 1]++;
-      lines.get(name).won.push([medal, athletes.get(key)]);
+      for (const k of [key, ...runners]) lines.get(name).won.push([medal, athletes.get(k)]);
     }
   }
   return [...lines.values()].sort(medalOrder).map(({ ts, won, ...l }) => ({
@@ -530,13 +540,37 @@ function clubMedalStarts(body, ticked, districts, cover, clubId, schedule) {
 }
 
 // Returns a club's medalists over the same starts, by medals then name, as
-// [{key, name, athleteId, medals, lines}]. Its relays are one box under its
-// name, and `medals` sums the counted lines. Lines go by medal, then time.
+// [{key, name, athleteId, medals, relays, lines}]. The club's relays share one
+// box under the club's name. A runner's box also lists the runner's relays, as
+// lines with `relay`. `relays` counts those lines and `medals` the others,
+// where they count under `cover`. Lines go by medal, then time, with the relays
+// last.
 function clubMedalists(body, ticked, districts, cover, clubId, schedule) {
   const at = medalStartAt(schedule);
-  const athletes = new Map(body?.athletes || []);
+  const athletes = new Map((body?.athletes || []).map(([key, name, licence]) => [key, [name, licence]]));
   const names = new Map(body?.names || []);
   const boxes = new Map();
+  const medalKeys = new Set((body?.starts || []).flatMap((s) => s.medals.map(([, , key]) => key)));
+  const byLicence = new Map(
+    [...athletes]
+      .filter(([key, [, licence]]) => licence && medalKeys.has(key))
+      .map(([key, [, licence]]) => [licence, key]),
+  );
+  const add = (key, id, line) => {
+    if (!boxes.has(key)) {
+      boxes.set(key, {
+        key,
+        name: athletes.get(key)?.[0] || names.get(id) || '',
+        athleteId: athletes.has(key) ? key.slice(1) : null,
+        medals: [0, 0, 0],
+        relays: [0, 0, 0],
+        lines: [],
+      });
+    }
+    const box = boxes.get(key);
+    if (line.counted) (line.relay ? box.relays : box.medals)[line.medal - 1]++;
+    box.lines.push(line);
+  };
   const all = medalStarts(body, ticked, districts);
   for (const s of all) {
     const line = startLine(
@@ -545,25 +579,28 @@ function clubMedalists(body, ticked, districts, cover, clubId, schedule) {
       all.map((x) => x.start),
     );
     if (!line) continue;
-    for (const [id, medal, key = `o${id}`] of s.medals) {
+    for (const [id, medal, key = `o${id}`, runners = []] of s.medals) {
       if (id !== String(clubId)) continue;
-      if (!boxes.has(key)) {
-        boxes.set(key, {
-          key,
-          name: athletes.get(key) || names.get(id) || '',
-          athleteId: athletes.has(key) ? key.slice(1) : null,
-          medals: [0, 0, 0],
-          lines: [],
-        });
-      }
-      if (line.counted) boxes.get(key).medals[medal - 1]++;
-      boxes.get(key).lines.push({ event: s.start.EventName, medal, ...line, ...at(s.start.EventName) });
+      const medalLine = {
+        event: s.start.EventName,
+        medal,
+        runners: runners.map((r) => athletes.get(r)?.[0] || ''),
+        ...line,
+        ...at(s.start.EventName),
+      };
+      add(key, id, medalLine);
+      // A relay's runner has an Id of their own in the relay entry, so the
+      // runner's box is found by licence.
+      for (const r of runners)
+        if (athletes.has(r)) add(byLicence.get(athletes.get(r)[1]) || r, id, { ...medalLine, relay: true });
     }
   }
   return [...boxes.values()]
     .map((b) => ({
       ...b,
-      lines: b.lines.sort((x, y) => x.medal - y.medal || medalOrder(x, y)).map(({ ts, ...l }) => l),
+      lines: b.lines
+        .sort((x, y) => !!x.relay - !!y.relay || x.medal - y.medal || medalOrder(x, y))
+        .map(({ ts, ...l }) => l),
     }))
     .sort((x, y) => compareMedals(x.medals, y.medals) || x.name.localeCompare(y.name, 'fi'));
 }
@@ -645,11 +682,13 @@ function buildRoundGoesOn(built, elapsedMs, { limit, budgetMs }) {
 
 // Returns a meet's medal season record, stamped for the freshness rule. It
 // keeps each start's own and `scoped` medals, `names`, `athletes`, `closed`
-// and `unknown`.
+// and `unknown`. `relayRunners` marks a record built with its relays' runners
+// (recordLacksRunners).
 function medalSeasonRecord(body, builtAt, lastDay) {
   return {
     builtAt,
     lastDay,
+    relayRunners: true,
     closed: body?.closed ?? null,
     starts: (body?.starts || []).map(({ start, medals, scoped }) => ({ start, medals, scoped })),
     names: body?.names || [],
@@ -694,6 +733,12 @@ function recordLacksOwn(record) {
   return Boolean(record) && (record.starts || []).some((s) => !s.medals);
 }
 
+// Returns true for a record that the cron rebuilds to add its relays' runners
+// (docs/backend.md, "A scope's year").
+function recordLacksRunners(record) {
+  return Boolean(record) && record.relayRunners === undefined;
+}
+
 // Says whether a year leaves the meet out. A meet built after its last day with
 // no medal anywhere has its results elsewhere.
 function medalSeasonMeetEmpty(record) {
@@ -704,7 +749,9 @@ function medalSeasonMeetEmpty(record) {
 // Returns a club's medalists over a year under the chips' `cover`, as
 // clubMedalists' boxes whose lines name their meet. A person is a LicenseId, or
 // the club's licensed row of that name (docs/tuloslista-api.md). A box's
-// `licence` is that LicenseId, or null for a person with none and for a relay.
+// `licence` is that LicenseId, or null for a person with none and for the
+// club's relays. A runner's box also lists the runner's relays, as in
+// clubMedalists.
 function medalSeasonMedalists(meets, clubId, cover = null) {
   return medalSeasonBoxes(meets, cover, (id) => id === String(clubId));
 }
@@ -718,8 +765,9 @@ function medalSeasonFollowedMedalists(meets, { licences = new Set(), clubIds = n
     .map((b) => {
       const lines = b.athlete && licences.has(b.key) ? b.lines : b.lines.filter((l) => clubIds.has(l.club));
       const medals = [0, 0, 0];
-      for (const l of lines) if (l.counted) medals[l.medal - 1]++;
-      return { ...b, lines, medals };
+      const relays = [0, 0, 0];
+      for (const l of lines) if (l.counted) (l.relay ? relays : medals)[l.medal - 1]++;
+      return { ...b, lines, medals, relays };
     })
     .filter((b) => b.lines.length)
     .sort((x, y) => compareMedals(x.medals, y.medals) || x.name.localeCompare(y.name, 'fi'));
@@ -744,16 +792,25 @@ function medalSeasonBoxes(meets, cover, clubOk) {
         starts.map((x) => x.start),
       );
       if (!line) continue;
-      for (const [id, medal, key] of s.medals) {
+      for (const [id, medal, key, runners = []] of s.medals) {
         if (!clubOk(id)) continue;
         const a = athletes.get(key);
-        rows.push({
+        const medalLine = {
+          event: s.start.EventName,
+          medal,
+          meet: meet.id,
+          date: meet.date,
           club: id,
-          clubName: names.get(id) || '',
-          a,
-          name: a?.name || names.get(id) || '',
-          line: { event: s.start.EventName, medal, meet: meet.id, date: meet.date, club: id, ...line },
-        });
+          runners: runners.map((r) => athletes.get(r)?.name || ''),
+          ...line,
+        };
+        const clubName = names.get(id) || '';
+        rows.push({ club: id, clubName, a, name: a?.name || clubName, line: medalLine });
+        for (const r of runners) {
+          const runner = athletes.get(r);
+          if (runner)
+            rows.push({ club: id, clubName, a: runner, name: runner.name, line: { ...medalLine, relay: true } });
+        }
       }
     }
   }
@@ -763,14 +820,26 @@ function medalSeasonBoxes(meets, cover, clubOk) {
     const licence = r.a ? r.a.licence || licenceOf.get(`${r.club}|${fold(r.name)}`) || null : null;
     const key = !r.a ? `o${r.club}` : licence || `n${r.club}|${fold(r.name)}`;
     if (!boxes.has(key))
-      boxes.set(key, { key, name: r.name, club: r.clubName, athlete: !!r.a, licence, medals: [0, 0, 0], lines: [] });
-    if (r.line.counted) boxes.get(key).medals[r.line.medal - 1]++;
-    boxes.get(key).lines.push(r.line);
+      boxes.set(key, {
+        key,
+        name: r.name,
+        club: r.clubName,
+        athlete: !!r.a,
+        licence,
+        medals: [0, 0, 0],
+        relays: [0, 0, 0],
+        lines: [],
+      });
+    const box = boxes.get(key);
+    if (r.line.counted) (r.line.relay ? box.relays : box.medals)[r.line.medal - 1]++;
+    box.lines.push(r.line);
   }
   return [...boxes.values()]
     .map((b) => ({
       ...b,
-      lines: b.lines.sort((x, y) => x.medal - y.medal || String(x.date).localeCompare(String(y.date))),
+      lines: b.lines.sort(
+        (x, y) => !!x.relay - !!y.relay || x.medal - y.medal || String(x.date).localeCompare(String(y.date)),
+      ),
     }))
     .sort((x, y) => compareMedals(x.medals, y.medals) || x.name.localeCompare(y.name, 'fi'));
 }
@@ -918,8 +987,8 @@ function medalSeasonMeets(meets, scopeId, year, districts, elsewhere = null) {
 // --- A club's years ---
 
 // Returns a year's meets (seasonMeetBody's) with only the club's medals, name
-// and medalists, counting the medals of all the club's record `ids` under
-// clubId. An unbuilt meet stays unbuilt.
+// and medalists, a relay's runners included. The medals of all the club's
+// record `ids` count under clubId. An unbuilt meet stays unbuilt.
 function clubSeasonMeets(meets, clubId, ids = [clubId]) {
   const id = String(clubId);
   const own = new Set(ids.map(String));
@@ -928,10 +997,10 @@ function clubSeasonMeets(meets, clubId, ids = [clubId]) {
     const starts = m.starts
       .map((s) => ({
         ...s,
-        medals: s.medals.filter(([c]) => own.has(c)).map(([, medal, key]) => [id, medal, key]),
+        medals: s.medals.filter(([c]) => own.has(c)).map(([, ...rest]) => [id, ...rest]),
       }))
       .filter((s) => s.medals.length);
-    const keys = new Set(starts.flatMap((s) => s.medals.map(([, , key]) => key)));
+    const keys = new Set(starts.flatMap((s) => s.medals.flatMap(([, , key, runners]) => [key, ...(runners || [])])));
     const name = m.names.find(([c]) => c === id) || m.names.find(([c]) => own.has(c));
     return {
       ...m,
@@ -1051,11 +1120,14 @@ function medalistIndexOf(index) {
 }
 
 // Returns the licences of a record's medalists, by the meet's own places or a
-// scope's.
+// scope's, including a relay's runners.
 function recordMedalists(record) {
   const keys = new Set(
     (record?.starts || []).flatMap((s) =>
-      [...(s.medals || []), ...(s.scoped || []).flatMap(([, medals]) => medals)].map(([, , key]) => key),
+      [...(s.medals || []), ...(s.scoped || []).flatMap(([, medals]) => medals)].flatMap(([, , key, runners]) => [
+        key,
+        ...(runners || []),
+      ]),
     ),
   );
   const licences = (record?.athletes || [])
@@ -1124,22 +1196,23 @@ function athleteSeasons(meets, ids, years, districts, elsewhere = null, notable 
 }
 
 // Returns a year's built meets (seasonMeetBody's) with only the medals of the
-// athlete with the licence, and drops a meet left with none.
+// athlete with the licence, the athlete's relays included, and drops a meet
+// left with none. A relay keeps its teammates' names.
 function athleteSeasonMeets(meets, licence) {
   const wanted = String(licence);
   return (meets || [])
     .filter((m) => m.starts != null)
     .map((m) => {
       const keys = new Set(m.athletes.filter(([, , l]) => String(l) === wanted).map(([key]) => key));
-      const starts = m.starts
-        .map((s) => ({ ...s, medals: s.medals.filter(([, , key]) => keys.has(key)) }))
-        .filter((s) => s.medals.length);
+      const mine = ([, , key, runners]) => keys.has(key) || (runners || []).some((r) => keys.has(r));
+      const starts = m.starts.map((s) => ({ ...s, medals: s.medals.filter(mine) })).filter((s) => s.medals.length);
       const clubs = new Set(starts.flatMap((s) => s.medals.map(([club]) => club)));
+      const runners = new Set(starts.flatMap((s) => s.medals.flatMap(([, , , r]) => r || [])));
       return {
         ...m,
         starts,
         names: m.names.filter(([club]) => clubs.has(club)),
-        athletes: m.athletes.filter(([key]) => keys.has(key)),
+        athletes: m.athletes.filter(([key]) => keys.has(key) || runners.has(key)),
         unknown: [],
       };
     })
@@ -1149,9 +1222,11 @@ function athleteSeasonMeets(meets, licence) {
 // Returns an athlete's medals per year (/api/medalathlete's body), as [{year,
 // levels, clubs}], newest first, with `clubs` as yearClubs returns them. A
 // year's levels keep the body's order of scopes, each as {scope, medals,
-// meets}, where `medals` counts the level's golds, silvers and bronzes that
-// year. A level's meets run by date, each as {id, name, date, lines}, with a
-// line per medal: {event, medal, clubId, club}.
+// relays, meets}. `medals` counts the level's individual golds, silvers and
+// bronzes that year, and `relays` its relay medals. A level's meets run by
+// date, each as {id, name, date, lines}, with a line per medal: {event, medal,
+// clubId, club, runners}, where `runners` are a relay's names in leg order, or
+// [] for an individual.
 function athleteYears(body) {
   const scopes = new Map((body?.scopes || []).map((scope) => [scope.id, scope]));
   const byDate = (x, y) => String(x.date).localeCompare(String(y.date));
@@ -1162,20 +1237,23 @@ function athleteYears(body) {
         .filter(({ id }) => scopes.has(id))
         .map(({ id, meets }) => {
           const medals = [0, 0, 0];
+          const relays = [0, 0, 0];
           const shown = meets.flatMap((meet) => {
             const names = new Map(meet.names || []);
+            const people = new Map((meet.athletes || []).map(([key, name]) => [key, name]));
             const lines = medalSeasonStarts(meet).flatMap((s) =>
-              s.medals.map(([club, medal]) => ({
+              s.medals.map(([club, medal, , runners]) => ({
                 event: s.start.EventName,
                 medal,
                 clubId: club,
                 club: names.get(club) || '',
+                runners: (runners || []).map((r) => people.get(r) || ''),
               })),
             );
-            for (const l of lines) medals[l.medal - 1]++;
+            for (const l of lines) (l.runners.length ? relays : medals)[l.medal - 1]++;
             return lines.length ? [{ id: meet.id, name: meet.name, date: meet.date, lines }] : [];
           });
-          return { scope: scopes.get(id), medals, meets: shown.sort(byDate) };
+          return { scope: scopes.get(id), medals, relays, meets: shown.sort(byDate) };
         })
         .filter((l) => l.meets.length),
     }))
@@ -1194,11 +1272,13 @@ function yearClubs(levels) {
   return [...new Set(lines.map((l) => l.clubId))].map((id) => ({ id, name: clubs.get(id) }));
 }
 
-// Returns the athlete's name in the latest of the body's meets.
+// Returns the athlete's name in the latest of the body's meets. The name is
+// found by licence, because a meet's `athletes` also holds the athlete's relay
+// teammates.
 function athleteYearsName(body) {
   const meets = (body?.years || []).flatMap((y) => y.scopes.flatMap((s) => s.meets));
   const latest = meets.sort((a, b) => String(b.date).localeCompare(String(a.date)))[0];
-  return latest?.athletes?.[0]?.[1] || null;
+  return latest?.athletes?.find(([, , licence]) => String(licence) === String(body.licence))?.[1] || null;
 }
 
 export {
@@ -1246,6 +1326,7 @@ export {
   notableYear,
   ownMedalStarts,
   recordLacksOwn,
+  recordLacksRunners,
   recordMedalists,
   recordSettled,
   restMedals,
