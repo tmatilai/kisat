@@ -904,6 +904,7 @@ export {
   olProperties,
   olSchedule,
   olTime,
+  personNameKey,
   standInFor,
   t4rAloneMeet,
   t4rFromLastYear,

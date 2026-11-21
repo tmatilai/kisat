@@ -322,8 +322,8 @@ function medalsPath(compId, ages = [], club = null) {
   return `/c/${compId}/mitalit${agesSegment(ages) ? `/${agesSegment(ages)}` : ''}${club ? `/s/${club}` : ''}`;
 }
 
-function medalStartPath(compId, name, licence = null) {
-  return `/c/${compId}/l/${encodeURIComponent(name)}${licence ? athleteYearsHash(licence) : ''}`;
+function medalStartPath(compId, name, athlete = null) {
+  return `/c/${compId}/l/${encodeURIComponent(name)}${athlete ? athleteYearsHash(athlete) : ''}`;
 }
 
 // Parses a year page's fragment, a scope id the view checks or a year alone for
@@ -367,17 +367,25 @@ function clubYearsHash(club, ages = [], medalists = false) {
   return `#/${['seura', club, ...tab, agesSegment(ages)].filter(Boolean).join('/')}`;
 }
 
-// Parses an athlete's years' fragment, `#/urheilija/<licence>[/<year>]`, or
-// returns null. The year is the tab of that year's medals. parseRoute reads it
-// before parseSeasonHash, so no scope's id may be `urheilija`.
+// Parses an athlete's years' fragment, `#/urheilija/<id>[/<year>]`, or returns
+// null. The id is the medalist id (docs/backend.md, "An athlete's years"), and
+// the year is the tab of that year's medals.
+// parseRoute reads it before parseSeasonHash, so no scope's id may be
+// `urheilija`.
 function parseAthleteYearsHash(rawHash) {
-  const m = String(rawHash ?? '').match(/^#?\/?urheilija\/(\d{1,12})(?:\/(\d{4}))?\/?$/);
-  if (!m) return null;
-  return m[2] ? { licence: m[1], year: Number(m[2]) } : { licence: m[1] };
+  const m = String(rawHash ?? '').match(/^#?\/?urheilija\/([^/]+)(?:\/(\d{4}))?\/?$/);
+  let athlete;
+  try {
+    athlete = m && decodeURIComponent(m[1]);
+  } catch {
+    return null;
+  }
+  if (!athlete || !/^(?:\d{1,12}|[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)+)$/u.test(athlete)) return null;
+  return m[2] ? { athlete, year: Number(m[2]) } : { athlete };
 }
 
-function athleteYearsHash(licence, year = null) {
-  return `#/urheilija/${licence}${year ? `/${year}` : ''}`;
+function athleteYearsHash(athlete, year = null) {
+  return `#/urheilija/${encodeURIComponent(athlete)}${year ? `/${year}` : ''}`;
 }
 
 function seasonHash(scopeId, year = null, ages = [], club = null) {

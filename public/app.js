@@ -73,11 +73,11 @@ const LOADERS = {
 const RENDERS = {
   athleteLink: (m, r) => m.activateFocusLink(r.compId, 'athlete', r.athleteId),
   clubLink: (m, r) => m.activateFocusLink(r.compId, 'club', r.orgId),
-  combined: (m, r) => m.renderCombined(r.compId, r.key, r.licence),
+  combined: (m, r) => m.renderCombined(r.compId, r.key, r.athlete),
   comp: (m, r) => m.renderComp(r.compId, r.date),
   cup: (m, r, isRefresh) => m.renderCup(r.compId, r.club, isRefresh),
   cupSeason: (m, r) => m.renderCupSeason(r),
-  group: (m, r) => m.renderGroup(r.compId, r.key, r.licence),
+  group: (m, r) => m.renderGroup(r.compId, r.key, r.athlete),
   home: (m) => m.renderHome(),
   hurdleSheet: (m, r) => m.renderHurdleSheet(r.compId, r.date),
   hurdleTable: (m, r) => m.renderHurdleTable(r),
@@ -165,7 +165,7 @@ async function renderRoute(isRefresh = false) {
     // page moved, and a short page leaves the offset in the map.
     if (isRefresh) {
       if (keepY != null && keepY !== window.scrollY) window.scrollTo(0, keepY);
-    } else if (route.licence && !scrollPositions.has(scrollKey)) openAtSpotted();
+    } else if (route.athlete && !scrollPositions.has(scrollKey)) openAtSpotted();
     else window.scrollTo(0, (scrollKey && scrollPositions.get(scrollKey)) || 0);
     setUpdated(true, note ?? flash);
     (window.requestIdleCallback ?? setTimeout)(prefetchModules);

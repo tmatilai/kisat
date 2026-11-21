@@ -52,11 +52,14 @@ import {
   medalSeasonMeetEmpty,
   medalSeasonMeets,
   medalSeasonRecord,
+  medalistAliases,
   medalistIndexDue,
   medalistMeets,
+  medalistOwnId,
   meetChampionships,
   meetMedalsBody,
   mergeMedalistIndex,
+  nameMedalists,
   notableYear,
   recordLacksOwn,
   recordLacksRunners,
@@ -271,7 +274,7 @@ const API_ROUTES = [
     GET: (r, scope, year) => handleMedalSeason(scope, year, r.env, r.request, r.url),
   },
   { re: /^\/api\/medalclub\/([^/]+)$/, GET: (r, orgId) => handleMedalClub(orgId, r.env) },
-  { re: /^\/api\/medalathlete\/([^/]+)$/, GET: (r, licence) => handleMedalAthlete(licence, r.env, r.request) },
+  { re: /^\/api\/medalathlete\/([^/]+)$/, GET: (r, id) => handleMedalAthlete(id, r.env, r.request) },
   { re: /^\/api\/cupseason\/([^/]+)$/, GET: (r, year) => handleCupSeason(year, r.env, r.request, r.url) },
   { re: /^\/api\/watch$/, POST: (r) => handleWatchCreate(r.env, r.request) },
   {
@@ -1844,6 +1847,9 @@ async function handleCupSeason(yearParam, env, request, url) {
 const MEDALISTS_KEY = 'medalists:v1';
 const MEDALIST_INDEX_READS = 100;
 const LICENCE_RE = /^\d{1,12}$/;
+// The medalist id of a person without a licence (docs/backend.md, "An
+// athlete's years").
+const MEDALIST_NAME_ID_RE = /^[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)+$/u;
 
 // Reads the championship records that the medalist index has not seen at their
 // current `builtAt`, up to MEDALIST_INDEX_READS a run, and writes the index if
@@ -1873,19 +1879,22 @@ async function indexMedalists(env) {
     (id) => builtAt.get(medalSeasonKey(id)),
   ).slice(0, MEDALIST_INDEX_READS);
   const records = await Promise.all(due.map((id) => env.ROSTER.get(medalSeasonKey(id), 'json')));
-  const { index, changed } = mergeMedalistIndex(
+  const merged = mergeMedalistIndex(
     stored,
     due.map((id, i) => [id, records[i]]),
   );
-  if (changed) await env.ROSTER.put(MEDALISTS_KEY, JSON.stringify(index));
+  const named = nameMedalists(merged.index, await madeLicences(env));
+  const { index } = named;
+  if (merged.changed || named.changed) await env.ROSTER.put(MEDALISTS_KEY, JSON.stringify(index));
   console.log(
-    `medalists: ${due.length} read of ${meets.length}, ${Object.keys(index.licences).length} licences, ${Date.now() - startMs}ms`,
+    `medalists: ${due.length} read of ${meets.length}, ${Object.keys(index.medalists).length} medalists, ${Object.keys(index.names).length} named, ${Date.now() - startMs}ms`,
   );
 }
 
-// GET /api/medalathlete/:licence (docs/backend.md, "An athlete's years").
-async function handleMedalAthlete(licence, env, request) {
-  if (!LICENCE_RE.test(licence)) return new Response('Virheellinen lisenssi.', { status: 400 });
+// GET /api/medalathlete/:id (docs/backend.md, "An athlete's years").
+async function handleMedalAthlete(asked, env, request) {
+  if (!LICENCE_RE.test(asked) && !MEDALIST_NAME_ID_RE.test(asked))
+    return new Response('Virheellinen urheilija.', { status: 400 });
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
   const { success } = await env.SEARCH_LIMITER.limit({ key: ip });
   if (!success) {
@@ -1897,27 +1906,29 @@ async function handleMedalAthlete(licence, env, request) {
     env.ROSTER.get(MEDALISTS_KEY, 'json'),
   ]);
   const today = todayIso();
-  const asked = athleteSeasons(
+  const id = medalistOwnId(medalists, asked);
+  const aliases = medalistAliases(medalists, id);
+  const seasons = athleteSeasons(
     meetIndexMeets(index),
-    medalistMeets(medalists, licence),
+    medalistMeets(medalists, id),
     medalYears(today),
     districts,
     elsewhere,
     notable,
   );
-  const ids = [...new Set(asked.flatMap((y) => y.scopes.flatMap((s) => s.meets.map((m) => m.id))))];
+  const ids = [...new Set(seasons.flatMap((y) => y.scopes.flatMap((s) => s.meets.map((m) => m.id))))];
   const found = await Promise.all(ids.map((id) => env.ROSTER.get(medalSeasonKey(id), 'json')));
   const records = new Map(ids.map((id, i) => [id, found[i]]));
   const now = Date.now();
   const stale = (r) => !!r && isStale(r.builtAt, r.lastDay, now) && !recordSettled(r.lastDay, today);
-  const years = asked.map(({ year, scopes }) => ({
+  const years = seasons.map(({ year, scopes }) => ({
     year,
     scopes: scopes
-      .map(({ id, own, meets }) => ({
-        id,
+      .map(({ id: scopeId, own, meets }) => ({
+        id: scopeId,
         meets: athleteSeasonMeets(
-          meets.map((m) => seasonMeetBody(m, records.get(m.id), own ? null : id, stale(records.get(m.id)))),
-          licence,
+          meets.map((m) => seasonMeetBody(m, records.get(m.id), own ? null : scopeId, stale(records.get(m.id)))),
+          aliases,
         ),
       }))
       .filter((s) => s.meets.length),
@@ -1926,7 +1937,7 @@ async function handleMedalAthlete(licence, env, request) {
   console.log(`medalathlete: ${ids.length} meets read`);
   return new Response(
     JSON.stringify({
-      licence,
+      id,
       scopes: [
         ...meetScopes(districts).map(({ id, kind, name, short }) => ({ id, kind, name, short })),
         ...(notable.meets || []).map(({ id, name }) => ({ id, kind: 'notable', name, short: null })),

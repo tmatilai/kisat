@@ -220,19 +220,24 @@ medals.
 
 ### An athlete's years
 
-`GET /api/medalathlete/:licence` returns the licence's medals in the championships and at the
-notable meets, for every year:
+`GET /api/medalathlete/:id` returns an athlete's medals in the championships and at the notable
+meets, for every year:
 
 ```
-{licence,
+{id,
  scopes: [{id, kind, name, short}],
  years: [{year, scopes: [{id, meets}]}]}
 ```
 
 The shapes are those of a club's years, with only the athlete's medals, and only the scopes and
-meets that hold one of them.
+meets that hold one of them. Each meet also has `own`, the athlete's own keys in `athletes`, since
+`athletes` also holds the athlete's relay teammates.
 
-`medalists:v1` maps each licence to the meets whose season records name it as a medalist, by the
+`id` is the medalist id. It is the athlete's licence, or `<clubId>-<name key>` for a medalist
+without one, such as `147-ainoesimerkki`. The name key is that of `docs/elsewhere.md`. Shared links
+carry the medalist id, so changing its format breaks them.
+
+`medalists:v1` maps each medalist id to the meets whose season records list that medalist, by the
 meet's own places or a scope's. The route reads only those records, so it also finds a medal won for
 an earlier club.
 
@@ -240,6 +245,10 @@ an earlier club.
   its KV metadata. The cron lists the keys and reads only the records whose `builtAt` the index has
   not seen, up to `MEDALIST_INDEX_READS` a run. It reads a record stored without the metadata once.
   A record that a request builds reaches the athlete's page at the next cron run.
+- **The athlete index can later find a licence for a medalist who had none.** A record keeps the
+  licence it was built with. So each cron run looks up each medalist id without a licence in the
+  athlete index, by club and name, and stores the licence it finds in the medalist index's `names`.
+  The route then returns one page for both medalist ids, with the medals of both.
 - **The route spends `SEARCH_LIMITER`**, so walking through the licences costs as much as walking
   through the search ("The athlete index").
 

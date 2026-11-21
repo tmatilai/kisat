@@ -231,15 +231,25 @@ test('parseRoute', () => {
   // the season's fragment first.)
   assert.deepEqual(routeOf(`/mestaruudet${athleteYearsHash('62940230')}`), {
     view: 'medalAthlete',
-    licence: '62940230',
+    athlete: '62940230',
     year: null,
   });
   assert.deepEqual(routeOf(`/mestaruudet${athleteYearsHash('62940230', 2026)}`), {
     view: 'medalAthlete',
-    licence: '62940230',
+    athlete: '62940230',
     year: 2026,
   });
-  assert.equal(parseAthleteYearsHash('#/urheilija/abc'), null, 'a licence is digits');
+  // The medalist id of a person without a licence is the club and the name
+  // key, which keeps ä.
+  // (Break on purpose: leave the id encoded, or accept digits only.)
+  assert.deepEqual(routeOf(`/mestaruudet${athleteYearsHash('ol-demola-ainoesimerkkiä', 2026)}`), {
+    view: 'medalAthlete',
+    athlete: 'ol-demola-ainoesimerkkiä',
+    year: 2026,
+  });
+  assert.equal(parseAthleteYearsHash('#/urheilija/abc'), null, 'an id without a club');
+  assert.equal(parseAthleteYearsHash('#/urheilija/1-a%2Fb'), null, 'a slash in the name key');
+  assert.equal(parseAthleteYearsHash('#/urheilija/%E0'), null, 'a broken escape');
   assert.equal(parseAthleteYearsHash('#/urheilija'), null);
   // The kenttä link is written by hand, so its shape is pinned here
   // (docs/venues.md).
@@ -431,10 +441,10 @@ test('parseRoute', () => {
     view: 'medalStart',
     compId: '20354',
     name: 'M 100m',
-    licence: '62940230',
+    athlete: '62940230',
   });
-  assert.equal(parseRoute('/c/20354/g/k', '#/urheilija/62940230').licence, '62940230');
-  assert.equal(parseRoute('/c/20354/o/M%2010-ottelu', '#/urheilija/62940230').licence, '62940230');
+  assert.equal(parseRoute('/c/20354/g/k', '#/urheilija/62940230').athlete, '62940230');
+  assert.equal(parseRoute('/c/20354/o/M%2010-ottelu', '#/urheilija/62940230').athlete, '62940230');
   assert.equal(parseRoute('/c/20354/mitalit/x').view, 'home');
   assert.equal(parseRoute('/c/20354/cup/d/2026-08-08').view, 'home', 'no day on it');
   assert.equal(parseRoute('/c/cup').view, 'comp', 'a competition is still a competition');
