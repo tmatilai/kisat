@@ -308,11 +308,13 @@ seedKv('medalseason:v4:testi-s4', {
   unknown: [],
 });
 // The medalist index names Aino Esimerkki (111) in both meets above, and in a
-// meet with no record.
+// meet with no record. The index's `names` maps the medalist id of her club
+// and name to 111.
 seedKv('medalists:v1', {
-  v: 1,
+  v: 2,
   meets: {},
-  licences: { 111: ['testi-s4', '18978', 'testi-none'], 222: ['testi-s4'] },
+  medalists: { 111: ['testi-s4', '18978', 'testi-none'], 222: ['testi-s4'] },
+  names: { '1-ainoesimerkki': '111' },
 });
 seedKv('medalseason:v4:testi-s2', {
   builtAt: STALE_BUILT_AT,
@@ -1427,8 +1429,8 @@ try {
   }
   console.log('GET /api/medalclub/:orgId ok');
 
-  // --- GET /api/medalathlete/:licence: an athlete's medals, read from the
-  // records that the medalist index names. ---
+  // --- GET /api/medalathlete/:id: an athlete's medals, read from the records
+  // that the medalist index lists. ---
   {
     const r = await api('/api/medalathlete/111');
     assert.equal(r.status, 200);
@@ -1469,9 +1471,15 @@ try {
         ],
       ],
     );
+    assert.equal(body.id, '111');
+    // The route returns the page of 111 for the medalist id that `names` maps
+    // to 111.
+    // (Break on purpose: return the asked id.)
+    const named = await (await api(`/api/medalathlete/${encodeURIComponent('1-ainoesimerkki')}`)).json();
+    assert.deepEqual(named, body);
     const none = await (await api('/api/medalathlete/333')).json();
     assert.deepEqual([none.scopes, none.years.flatMap((y) => y.scopes)], [[], []], 'a licence the index lacks');
-    assert.equal((await api('/api/medalathlete/a1')).status, 400);
+    assert.equal((await api('/api/medalathlete/a1')).status, 400, 'an id without a club');
     assert.equal((await api('/api/medalathlete/111', { method: 'POST' })).status, 405);
     assert.equal(
       (await fetch(`${BASE}/api/medalathlete/111`)).status,
@@ -1479,7 +1487,7 @@ try {
       'the x-kisat-client gate covers this route too',
     );
   }
-  console.log('GET /api/medalathlete/:licence ok');
+  console.log('GET /api/medalathlete/:id ok');
 
   // --- GET /api/medalseason/:scopeId/:year: the scope's meets off the seeded
   // index, each with its record projected to the scope. ---

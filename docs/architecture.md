@@ -6,17 +6,17 @@ Shared links depend on the URL shapes below. `parseRoute` (`lib/routes.js`) maps
 
 - `/`: home (`docs/home.md`).
 - `/c/<compId>[/d/<YYYY-MM-DD>]`: a meet's day list.
-- `/c/<compId>/g/<groupKey>[#/urheilija/<licence>]`: one start. The fragment highlights one athlete
-  as followed, and the page opens at the athlete's class.
+- `/c/<compId>/g/<groupKey>[#/urheilija/<id>]`: one start. The fragment highlights one athlete as
+  followed, and the page opens at the athlete's class.
 - `/c/<compId>/g/<groupKey>/laps`: the lap counter (`docs/lap-counter.md`).
-- `/c/<compId>/o/<label>[#/urheilija/<licence>]`: a multi-event's standings, identified by the
+- `/c/<compId>/o/<label>[#/urheilija/<id>]`: a multi-event's standings, identified by the
   multi-event's label. The fragment highlights one athlete as followed, and the page opens at the
   athlete's row.
 - `/c/<compId>/cup[/s/<orgId>]`: the club cup's table. The optional `/s/<orgId>` selects a club.
 - `/c/<compId>/mitalit[/<ages>][/s/<orgId>]`: the medal table. The optional parts select the age
   chips and a club.
-- `/c/<compId>/l/<eventName>[#/urheilija/<licence>]`: the start that decided a class's medals, found
-  by the class's event name. The view replaces its own history entry with the start's `/g/` or `/o/`
+- `/c/<compId>/l/<eventName>[#/urheilija/<id>]`: the start that decided a class's medals, found by
+  the class's event name. The view replaces its own history entry with the start's `/g/` or `/o/`
   URL, which keeps the fragment. An athlete's medal years link to it, because a season record keeps
   no round's time.
 - `/c/<compId>/k/<venueId, 400 or 200>`: the kenttä link (`docs/venues.md`).
@@ -29,8 +29,10 @@ Shared links depend on the URL shapes below. `parseRoute` (`lib/routes.js`) maps
 - `/mestaruudet#/seura/<orgId>[/mitalistit[/<year>]][/<ages>]`: a club's medals per year in the
   championships of the club's scopes. `mitalistit` opens the tab of the club's medalists per scope
   in one year, the latest when no year is given.
-- `/mestaruudet#/urheilija/<licence>[/<year>]`: an athlete's championship medals of one year, by
-  level. The page has a tab per year with medals, and opens the latest when no year is given.
+- `/mestaruudet#/urheilija/<id>[/<year>]`: an athlete's championship medals of one year, by level.
+  The page has a tab per year with medals, and opens the latest when no year is given. `<id>` is the
+  medalist id (`docs/backend.md`, "An athlete's years"). On a start's page, only an id that is a
+  licence highlights the athlete.
 - `/seuracup[#/[<osakilpailut, finaalit or piiriId>/]<year>[/s/<orgId>]]`: the club cup's season for
   one year. Without a tab in the URL, the page opens the default tab.
 

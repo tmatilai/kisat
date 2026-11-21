@@ -14,7 +14,7 @@ import {
   scopeFor,
   startLine,
 } from './districts.js';
-import { elsewhereListsSm } from './elsewhere.js';
+import { elsewhereListsSm, personNameKey } from './elsewhere.js';
 import { isFollowableOrgId } from './indexes.js';
 import {
   athleteFullName,
@@ -750,8 +750,8 @@ function medalSeasonMeetEmpty(record) {
 // clubMedalists' boxes whose lines name their meet. A person is a LicenseId, or
 // the club's licensed row of that name (docs/tuloslista-api.md). A box's
 // `licence` is that LicenseId, or null for a person with none and for the
-// club's relays. A runner's box also lists the runner's relays, as in
-// clubMedalists.
+// club's relays. `id` is the person's medalist id, and null for the club's
+// relays. A runner's box also lists the runner's relays, as in clubMedalists.
 function medalSeasonMedalists(meets, clubId, cover = null) {
   return medalSeasonBoxes(meets, cover, (id) => id === String(clubId));
 }
@@ -826,6 +826,7 @@ function medalSeasonBoxes(meets, cover, clubOk) {
         club: r.clubName,
         athlete: !!r.a,
         licence,
+        id: r.a ? licence || medalistId(null, r.club, r.name) : null,
         medals: [0, 0, 0],
         relays: [0, 0, 0],
         lines: [],
@@ -1111,29 +1112,43 @@ function clubYearAges(body) {
 
 // --- An athlete's years ---
 
-// The medalist index maps a licence to the meets whose season records name it
-// as a medalist (docs/backend.md, "An athlete's years").
-const MEDALIST_INDEX_VERSION = 1;
+// The medalist index maps each medalist id to the meets whose season records
+// list that medalist (docs/backend.md, "An athlete's years").
+const MEDALIST_INDEX_VERSION = 2;
 
 function medalistIndexOf(index) {
-  return index?.v === MEDALIST_INDEX_VERSION ? index : { v: MEDALIST_INDEX_VERSION, meets: {}, licences: {} };
+  return index?.v === MEDALIST_INDEX_VERSION
+    ? index
+    : { v: MEDALIST_INDEX_VERSION, meets: {}, medalists: {}, names: {} };
 }
 
-// Returns the licences of a record's medalists, by the meet's own places or a
-// scope's, including a relay's runners.
-function recordMedalists(record) {
-  const keys = new Set(
-    (record?.starts || []).flatMap((s) =>
-      [...(s.medals || []), ...(s.scoped || []).flatMap(([, medals]) => medals)].flatMap(([, , key, runners]) => [
-        key,
-        ...(runners || []),
-      ]),
-    ),
+// Returns the medalist id: the licence, or `<clubId>-<name key>` for a person
+// without one (docs/backend.md, "An athlete's years").
+function medalistId(licence, clubId, name) {
+  if (licence) return String(licence);
+  const key = personNameKey(name);
+  return key && clubId != null ? `${clubId}-${key}` : null;
+}
+
+// Returns a Map from each medalist's key in `athletes` to the medalist id. The
+// club comes from the medal pair, which a relay's runners share.
+function medalistIds(starts, athletes) {
+  const clubOf = new Map();
+  for (const s of starts || [])
+    for (const [club, , key, runners] of [...(s.medals || []), ...(s.scoped || []).flatMap(([, medals]) => medals)])
+      for (const k of [key, ...(runners || [])]) if (!clubOf.has(k)) clubOf.set(k, club);
+  return new Map(
+    (athletes || [])
+      .filter(([key]) => clubOf.has(key))
+      .map(([key, name, licence]) => [key, medalistId(licence, clubOf.get(key), name)])
+      .filter(([, id]) => id),
   );
-  const licences = (record?.athletes || [])
-    .filter(([key, , licence]) => licence && keys.has(key))
-    .map(([, , licence]) => String(licence));
-  return [...new Set(licences)];
+}
+
+// Returns the medalist ids of a record, by the meet's own places or a scope's,
+// including a relay's runners.
+function recordMedalists(record) {
+  return [...new Set(medalistIds(record?.starts, record?.athletes).values())];
 }
 
 // Returns the ids among `ids` whose record the medalist index has not read at
@@ -1156,23 +1171,53 @@ function mergeMedalistIndex(index, entries) {
   const fresh = (entries || []).filter(([id, record]) => record && base.meets[id] !== record.builtAt);
   if (!fresh.length) return { index: base, changed: index?.v !== MEDALIST_INDEX_VERSION };
   const redone = new Set(fresh.map(([id]) => String(id)));
-  const licences = {};
-  for (const [licence, ids] of Object.entries(base.licences)) {
+  const medalists = {};
+  for (const [medalist, ids] of Object.entries(base.medalists)) {
     const kept = ids.filter((id) => !redone.has(id));
-    if (kept.length) licences[licence] = kept;
+    if (kept.length) medalists[medalist] = kept;
   }
   const meets = { ...base.meets };
   for (const [id, record] of fresh) {
     meets[id] = record.builtAt;
-    for (const licence of recordMedalists(record)) (licences[licence] ||= []).push(String(id));
+    for (const medalist of recordMedalists(record)) (medalists[medalist] ||= []).push(String(id));
   }
-  return { index: { v: MEDALIST_INDEX_VERSION, meets, licences }, changed: true };
+  return { index: { ...base, meets, medalists }, changed: true };
 }
 
-// Returns the ids of the meets whose records name the licence as a medalist.
-function medalistMeets(index, licence) {
-  const { licences } = medalistIndexOf(index);
-  return Object.hasOwn(licences, String(licence)) ? licences[String(licence)] : [];
+// Returns {index, changed}. The index's `names` maps each medalist id without a
+// licence to the licence that `licences` (athleteLicences, lib/elsewhere.js)
+// holds for the same club and name.
+function nameMedalists(index, licences) {
+  const base = medalistIndexOf(index);
+  const names = {};
+  for (const id of Object.keys(base.medalists)) {
+    const cut = id.lastIndexOf('-');
+    const licence = cut > 0 ? licences?.get(`${id.slice(cut + 1)}|${id.slice(0, cut)}`) : null;
+    if (licence) names[id] = String(licence);
+  }
+  const changed = JSON.stringify(names) !== JSON.stringify(base.names || {});
+  return { index: changed ? { ...base, names } : base, changed };
+}
+
+// Returns the licence that `names` maps the medalist id to, or else the id.
+function medalistOwnId(index, id) {
+  return medalistIndexOf(index).names?.[String(id)] || String(id);
+}
+
+// Returns every medalist id of one person: medalistOwnId's and each id that
+// `names` maps to it.
+function medalistAliases(index, id) {
+  const own = medalistOwnId(index, id);
+  const names = medalistIndexOf(index).names || {};
+  return [own, ...Object.keys(names).filter((n) => names[n] === own)];
+}
+
+// Returns the ids of the meets where the person won a medal under one of the
+// person's medalist ids.
+function medalistMeets(index, id) {
+  const { medalists } = medalistIndexOf(index);
+  const ids = medalistAliases(index, id).flatMap((i) => (Object.hasOwn(medalists, i) ? medalists[i] : []));
+  return [...new Set(ids)];
 }
 
 // Returns each year's scopes over the meets of `ids`, as handleMedalClub's
@@ -1196,14 +1241,17 @@ function athleteSeasons(meets, ids, years, districts, elsewhere = null, notable 
 }
 
 // Returns a year's built meets (seasonMeetBody's) with only the medals of the
-// athlete with the licence, the athlete's relays included, and drops a meet
-// left with none. A relay keeps its teammates' names.
-function athleteSeasonMeets(meets, licence) {
-  const wanted = String(licence);
+// person with the medalist ids `ids`, relays included, and drops a meet left
+// with none. A relay keeps its teammates' names. `own` lists the person's keys
+// in `athletes`.
+function athleteSeasonMeets(meets, ids) {
+  const wanted = new Set([ids].flat().map(String));
   return (meets || [])
     .filter((m) => m.starts != null)
     .map((m) => {
-      const keys = new Set(m.athletes.filter(([, , l]) => String(l) === wanted).map(([key]) => key));
+      const keys = new Set(
+        [...medalistIds(m.starts, m.athletes)].filter(([, id]) => wanted.has(id)).map(([key]) => key),
+      );
       const mine = ([, , key, runners]) => keys.has(key) || (runners || []).some((r) => keys.has(r));
       const starts = m.starts.map((s) => ({ ...s, medals: s.medals.filter(mine) })).filter((s) => s.medals.length);
       const clubs = new Set(starts.flatMap((s) => s.medals.map(([club]) => club)));
@@ -1213,6 +1261,7 @@ function athleteSeasonMeets(meets, licence) {
         starts,
         names: m.names.filter(([club]) => clubs.has(club)),
         athletes: m.athletes.filter(([key]) => keys.has(key) || runners.has(key)),
+        own: [...keys],
         unknown: [],
       };
     })
@@ -1273,12 +1322,13 @@ function yearClubs(levels) {
 }
 
 // Returns the athlete's name in the latest of the body's meets. The name is
-// found by licence, because a meet's `athletes` also holds the athlete's relay
-// teammates.
+// that of an `own` key, because a meet's `athletes` also holds the athlete's
+// relay teammates.
 function athleteYearsName(body) {
   const meets = (body?.years || []).flatMap((y) => y.scopes.flatMap((s) => s.meets));
   const latest = meets.sort((a, b) => String(b.date).localeCompare(String(a.date)))[0];
-  return latest?.athletes?.find(([, , licence]) => String(licence) === String(body.licence))?.[1] || null;
+  const own = new Set(latest?.own || []);
+  return latest?.athletes?.find(([key]) => own.has(key))?.[1] || null;
 }
 
 export {
@@ -1314,14 +1364,18 @@ export {
   medalStartAt,
   medalTable,
   medalTables,
+  medalistAliases,
   medalistBoxes,
+  medalistId,
   medalistIndexDue,
   medalistMeets,
+  medalistOwnId,
   medalistsOpenAll,
   meetChampionships,
   meetMedals,
   meetMedalsBody,
   mergeMedalistIndex,
+  nameMedalists,
   notableDue,
   notableYear,
   ownMedalStarts,

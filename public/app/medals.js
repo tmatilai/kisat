@@ -1061,35 +1061,35 @@ function redrawTabEl(label, href, current) {
 // Draws an athlete's championship medals of one year, with a tab per year that
 // has medals. Each level has a card per meet and a line per medal that links
 // to the medal's start.
-async function renderMedalAthlete({ licence, year: wantedYear }) {
+async function renderMedalAthlete({ athlete, year: wantedYear }) {
   const seq = renderSeq;
   setHelp(null);
   setBack(MEDAL_SEASON_PAGE_PATH);
-  titleEl.textContent = athleteNames.get(licence) || MEDAL_SEASON_PAGE_TITLE;
+  titleEl.textContent = athleteNames.get(athlete) || MEDAL_SEASON_PAGE_TITLE;
   const state = viewStateFor(HOME_VIEW_KEY);
   const bar = filterBar(HOME_VIEW_KEY, state, { label: watchLabel(state.watchId) }, false);
-  const url = `/api/medalathlete/${encodeURIComponent(licence)}`;
+  const url = `/api/medalathlete/${encodeURIComponent(athlete)}`;
   const data = await keptData(url, () => fetchJson(url).catch(() => null));
   if (seq !== renderSeq) return;
   if (!data) {
-    setScrollKey(`medalathlete:${licence}`);
+    setScrollKey(`medalathlete:${athlete}`);
     appEl.replaceChildren(bar, el('div', { class: 'notice error' }, 'Urheilijan mitalien haku epäonnistui.'));
     return;
   }
-  const name = athleteYearsName(data) || athleteNames.get(licence);
+  const name = athleteYearsName(data) || athleteNames.get(athlete);
   if (name) {
-    athleteNames.set(licence, name);
+    athleteNames.set(athlete, name);
     titleEl.textContent = name;
   }
   const years = athleteYears(data);
   const year = wantedYear ?? years[0]?.year;
-  setScrollKey(`medalathlete:${licence}:${year}`);
+  setScrollKey(`medalathlete:${athlete}:${year}`);
   if (years.length)
     bar.append(
       segControl(
         'Vuosi',
         years.map((y) =>
-          redrawTabEl(String(y.year), `${MEDAL_SEASON_PAGE_PATH}${athleteYearsHash(licence, y.year)}`, y.year === year),
+          redrawTabEl(String(y.year), `${MEDAL_SEASON_PAGE_PATH}${athleteYearsHash(athlete, y.year)}`, y.year === year),
         ),
       ),
     );
@@ -1113,7 +1113,7 @@ async function renderMedalAthlete({ licence, year: wantedYear }) {
           m.lines.map((l) =>
             el(
               'a',
-              { class: 'medalist-entry', href: medalStartPath(m.id, l.event, licence) },
+              { class: 'medalist-entry', href: medalStartPath(m.id, l.event, athlete) },
               el(
                 'span',
                 { class: 'medalist-event' },
@@ -1168,12 +1168,12 @@ async function renderMedalAthlete({ licence, year: wantedYear }) {
 // Opens the start that decided a class's medals (medalStartPath) in place of
 // this link's history entry. A meet whose schedule is gone opens its medal
 // table.
-async function renderMedalStart({ compId, name, licence }) {
+async function renderMedalStart({ compId, name, athlete }) {
   const seq = renderSeq;
   const schedule = await keptData(`schedule:${compId}`, () => fetchSchedule(compId)).catch(() => null);
   if (seq !== renderSeq) return;
   const link = schedule ? medalStartAt(schedule)(name).link : null;
-  const spot = licence ? athleteYearsHash(licence) : '';
+  const spot = athlete ? athleteYearsHash(athlete) : '';
   navigate(link ? `${medalStartHref(compId, link)}${spot}` : medalsPath(compId), { replace: true });
 }
 
@@ -1309,13 +1309,13 @@ function medalistRowEl(
   );
 }
 
-// Ends an opened box of a licensed athlete with a link to the athlete's years.
+// Ends an opened box of an athlete with a link to the athlete's years.
 function athleteYearsEntryEl(box) {
-  if (!box.licence) return null;
-  athleteNames.set(box.licence, box.name);
+  if (!box.id) return null;
+  athleteNames.set(box.id, box.name);
   return el(
     'a',
-    { class: 'medalist-more', href: `${MEDAL_SEASON_PAGE_PATH}${athleteYearsHash(box.licence)}` },
+    { class: 'medalist-more', href: `${MEDAL_SEASON_PAGE_PATH}${athleteYearsHash(box.id)}` },
     'Kaikki mitalit ›',
   );
 }

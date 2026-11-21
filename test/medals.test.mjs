@@ -18,6 +18,7 @@ import {
   scopeSplitLabel,
   tickedScopes,
 } from '../public/lib/districts.js';
+import { athleteLicences } from '../public/lib/elsewhere.js';
 import { SEASON_FIRST_YEAR, medalYearOk, medalYears, seasonYearOk, seasonYears } from '../public/lib/indexes.js';
 import {
   athleteSeasonMeets,
@@ -37,8 +38,10 @@ import {
   medalAges,
   medalFor,
   medalistBoxes,
+  medalistAliases,
   medalistIndexDue,
   medalistMeets,
+  medalistOwnId,
   medalistsOpenAll,
   medalPlaces,
   medalRowsOf,
@@ -59,6 +62,7 @@ import {
   meetMedals,
   meetMedalsBody,
   mergeMedalistIndex,
+  nameMedalists,
   notableDue,
   notableYear,
   recordLacksOwn,
@@ -1419,6 +1423,22 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
     ],
     "one person across meets, a row without a licence by its name; the relays the club's, and a runner's relay in the runner's box last",
   );
+  // A box's `id` is the licence, or the club and the name where nobody of that
+  // name in the club has a licence. (Break on purpose: give the club's relay
+  // box an id.)
+  assert.deepEqual(
+    medalSeasonMedalists(
+      [...moved, yearMeet('m4', '2026-08-01', [['k8', 'Ville Vailla', null]], [['1', 3, 'k8']])],
+      '1',
+    ).map((b) => [b.name, b.id]),
+    [
+      ['Aino Esimerkki', '111'],
+      ['Eero Esimerkki', '222'],
+      ['Demon Urheilijat', null],
+      ['Ville Vailla', '1-villevailla'],
+      ['Ilmari Esimerkki', '333'],
+    ],
+  );
   assert.deepEqual(
     medalSeasonMedalists(moved, '1').find((b) => !b.athlete).lines[0].runners,
     ['Aino Esimerkki', 'Ilmari Esimerkki'],
@@ -2305,6 +2325,42 @@ test("an athlete's years: the medalist index and the lines", () => {
   assert.deepEqual(medalistMeets(third, licence), ['102']);
   assert.deepEqual(medalistMeets(third, '__proto__'), [], 'only a licence the index holds');
   assert.deepEqual(medalistMeets({ v: 0, licences: { [licence]: ['100'] } }, licence), [], 'another version is empty');
+
+  // A medalist without a licence is indexed under the club and the name key.
+  // When the athlete index holds a licence for that club and name, the
+  // licence's page also lists those medals. (Break on purpose: index only
+  // licences, or ignore `names` in medalistMeets.)
+  const unlicensed = {
+    builtAt: 3,
+    starts: [{ start: { EventName: 'N 5000m' }, medals: [['4', 2, 'ab1']] }],
+    athletes: [['ab1', 'Aino Ääninen', null]],
+  };
+  assert.deepEqual(recordMedalists(unlicensed), ['4-ainoääninen']);
+  const { index: road } = mergeMedalistIndex(first, [['105', unlicensed]]);
+  assert.deepEqual(medalistMeets(road, '4-ainoääninen'), ['105']);
+  const learned = athleteLicences({ v: 1, athletes: [['63000001', '4', 'Aino Ääninen', 2026]] });
+  const named = nameMedalists(road, learned);
+  assert.equal(named.changed, true);
+  assert.equal(nameMedalists(named.index, learned).changed, false, 'the same names change nothing');
+  assert.equal(medalistOwnId(named.index, '4-ainoääninen'), '63000001');
+  assert.deepEqual(medalistAliases(named.index, '63000001'), ['63000001', '4-ainoääninen']);
+  assert.deepEqual(medalistMeets(named.index, '63000001'), ['105']);
+  assert.deepEqual(
+    nameMedalists(road, athleteLicences({ v: 1, athletes: [['63000001', '9', 'Aino Ääninen', 2026]] })).index.names,
+    {},
+    'only under the same club',
+  );
+  // The page keeps the medal of the medalist id without a licence, and `own`
+  // lists its key. (Break on purpose: match the licence alone.)
+  const roadMeet = athleteSeasonMeets(
+    [seasonMeetBody({ id: '105', name: 'Maantie', date: '2026-05-01' }, unlicensed, null, false)],
+    medalistAliases(named.index, '63000001'),
+  );
+  assert.deepEqual(
+    roadMeet.map((m) => [m.id, m.starts.length, m.own]),
+    [['105', 1, ['ab1']]],
+  );
+  assert.equal(athleteYearsName({ years: [{ year: 2026, scopes: [{ id: 'x', meets: roadMeet }] }] }), 'Aino Ääninen');
 
   // A year lists the scopes that hold one of the athlete's meets. (Break on
   // purpose: drop the ids' filter.)
