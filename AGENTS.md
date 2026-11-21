@@ -141,6 +141,12 @@ existing documentation is older and too terse. Don't copy its style.
 - **Use the standard engineering term**: duplicate, canonical, returns, merges, maps X to Y, stores,
   calls. Don't invent a term such as "head" or "stands for". Don't give code a human verb such as
   "answers", "says", "agrees", "gives" or "knows".
+- **The subject is what acts**: a function, a route, the cron, the Worker or a person. An id, a key,
+  a record or a field doesn't act. Code stores, maps, looks up or returns it.
+- **Don't use a metaphor verb** such as "joins", "reaches", "lands", "lives" or "goes quiet". Use
+  the verb for what the code does, such as stores, reads, maps or rebuilds.
+- **A bold opening is a plain sentence.** If a rule doesn't fit in one, keep the bold part short and
+  explain the rule in the next sentence.
 - **Every sentence has a subject and a verb and says one thing.** A longer plain sentence beats a
   short cryptic one.
 - **Name the thing.** Write "the sample rate", not "the rate". Refer to a function, field or setting
@@ -175,6 +181,9 @@ existing documentation is older and too terse. Don't copy its style.
 - **New text goes in its own paragraph** or at the end of one.
 - **When a change drops or changes a claim, or renames something**, search the docs and comments for
   the old claim or name.
+- **Improve the text you touch.** When a change touches a doc, a comment or the code it describes,
+  rewrite the lines that break these rules, and delete the lines that only repeat the code or
+  `git log`.
 
 ### Examples
 
@@ -183,6 +192,7 @@ existing documentation is older and too terse. Don't copy its style.
 | Rows whose names agree by `clubNameKey` are one club.         | Two club records with the same `clubNameKey` are the same club.             |
 | `/api/medalclub` answers any of its ids with the head's page. | Given a duplicate record's id, `/api/medalclub` returns the canonical club. |
 | A meet reaches no year.                                       | The year's medal page doesn't list the meet.                                |
+| An id without a licence joins a licence.                      | The cron maps the id to the licence.                                        |
 | The views of a meet: …                                        | Each view of a meet is listed below.                                        |
 | Answer a club's hand-made records as one club                 | Merge duplicate club records in search                                      |
 
