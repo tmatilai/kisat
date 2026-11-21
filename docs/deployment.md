@@ -97,4 +97,21 @@ Cloudflare's scheduler never calls a preview's `scheduled()` handler ([Cloudflar
    The front page's search finds older meets after the cron has run about a dozen times
    (`docs/backend.md`, "The meet index").
 
+## Web Analytics
+
+The page loads Cloudflare's Web Analytics beacon on each host in `ANALYTICS_TOKENS`
+(`lib/routes.js`).
+
+- **The page adds the beacon, not the Worker.** Under `wrangler dev`, the Worker sees the first
+  route's host in both `request.url` and the `Host` header (2026-11). A beacon added by the Worker
+  would load on every local server, including the tests' servers.
+- **Each host has a Web Analytics site of its own, with the manual setup.** In the account's Web
+  Analytics page, add the host as a site, set it to "Enable with JS Snippet installation", and copy
+  the `token` from its snippet into `ANALYTICS_TOKENS`.
+- **The zone's automatic setup must stay off on these hosts**, because Cloudflare supports one
+  beacon per page. On a Free zone, Cloudflare turns the automatic setup on for every host, for
+  visitors outside the EU (2026-11). A Configuration Rule with "Disable Real User Monitoring (RUM)"
+  for both hosts turns it off.
+- **A deployment of your own** replaces the tokens with its own sites' tokens, or removes them.
+
 [preview-cron]: https://developers.cloudflare.com/workers/previews/resources/#cron-triggers

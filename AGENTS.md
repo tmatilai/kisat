@@ -98,10 +98,10 @@ The UI is in Finnish, and so are many names in the code and the docs.
 - **Logic goes in `public/lib/`, with a test.** Code in `lib/` uses neither the DOM nor the network,
   so the offline suite can test all of it. `public/app/` renders and handles events. `worker.js`
   fetches, caches and routes. If code is hard to test, it is probably in the wrong file.
-- **A package earns its place by the code it saves.** Use a well-maintained package where the
-  problem is hard to get right, such as parsing HTML. Pin every package. No module that the page
-  loads may import a package: `public/_headers` allows scripts from the site's own origin only, so
-  nothing loads from a CDN.
+- **Add a package only where it saves a lot of code**, for a problem that is hard to get right, such
+  as parsing HTML. Choose a well-maintained package and pin its version. No module that the page
+  loads may import a package, because the CSP in `public/_headers` blocks scripts from other
+  origins. The Web Analytics beacon is the one exception.
 - **`demo.js` is the test fixture.** It has the same shape as the API, so a new test case extends
   it, and no test mocks the API. `demo.js` is also the only place where a case may exist just to try
   out a view. A case that a test asserts on is modelled on a real, measured competition, even when

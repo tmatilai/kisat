@@ -78,7 +78,7 @@ Rules:
 ## Packages weighed and left out
 
 Each package below was compared with the code it would replace, in 2026-09, and left out
-(`AGENTS.md`, "A package earns its place").
+(`AGENTS.md`, "Add a package only where it saves a lot of code").
 
 - **A router for the Worker**, such as Hono. The Worker would still need its own code for the
   document, the hosts, the modes and the header check.

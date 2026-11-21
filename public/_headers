@@ -1,8 +1,9 @@
 # Cloudflare adds these to what the assets binding serves, the document
 # included, and not to a response worker.js builds. style-src allows the
 # <style> in index.html. connect-src allows this origin and Tuloslista.
+# script-src and connect-src also allow the Web Analytics beacon.
 /*
-  Content-Security-Policy: default-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://cached-public-api.tuloslista.com; img-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://cached-public-api.tuloslista.com https://cloudflareinsights.com; img-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: no-referrer
 

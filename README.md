@@ -21,7 +21,8 @@ invented, and its starts are dated today.
   front page shows the upcoming meets they are entered in.
 - **A follow-list is shared by a link.** There are no accounts. The list stores the names and
   licence numbers of its athletes, which Tuloslista also publishes. A list is deleted 180 days after
-  its last change. The site sets no cookies and runs no analytics.
+  its last change. The site sets no cookies. It counts visits with Cloudflare Web Analytics, which
+  stores nothing in the browser.
 - **Each meet shows its heats, results and field ladders**, its multi-events, its medals per club
   and the standings of a club cup. Some championships publish their results on another site, and
   Kisat reads them from there once the meet is over.
@@ -31,10 +32,10 @@ invented, and its starts are dated today.
 ## How it is built
 
 The app is a static single-page app with no framework. The page runs scripts from its own origin
-only. The browser reads Tuloslista's public JSON API directly, the same API that Tuloslista's own
-pages use. A small Cloudflare Worker in front of the static files stores the follow-lists. The
-Worker also builds and caches data that would take the browser many requests to fetch, such as the
-whole roster of a meet.
+only, apart from the Web Analytics beacon. The browser reads Tuloslista's public JSON API directly,
+the same API that Tuloslista's own pages use. A small Cloudflare Worker in front of the static files
+stores the follow-lists. The Worker also builds and caches data that would take the browser many
+requests to fetch, such as the whole roster of a meet.
 
 Kisat is not affiliated with Tuloslista or with the other result sites it reads.
 
