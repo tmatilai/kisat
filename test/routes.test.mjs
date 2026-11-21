@@ -15,6 +15,8 @@ import {
   renderStats,
 } from '../public/lib/render-log.js';
 import {
+  ANALYTICS_BEACON_SRC,
+  ANALYTICS_TOKENS,
   CUP_SEASON_PAGE_PATH,
   CUP_TAB_FINALS,
   CUP_TAB_ROUNDS,
@@ -977,6 +979,20 @@ test('siteMeta', () => {
   const manifest = (name) => JSON.parse(fs.readFileSync(new URL(name, import.meta.url), 'utf8'));
   assert.equal(siteMeta('juoksut').description, manifest('../public/manifest-juoksut.webmanifest').description);
   assert.ok(head.includes(`content="${manifest('../public/manifest.webmanifest').description}"`));
+});
+
+// --- The Web Analytics beacon (docs/deployment.md, "Web Analytics") ---
+test('the Web Analytics beacon', () => {
+  // A site token is 32 hex characters (2026-11). (Break on purpose: drop a
+  // character from a token.)
+  for (const [host, token] of Object.entries(ANALYTICS_TOKENS)) {
+    assert.match(token, /^[0-9a-f]{32}$/, `the site token of ${host}`);
+  }
+  const headers = fs.readFileSync(new URL('../public/_headers', import.meta.url), 'utf8');
+  const csp = headers.match(/Content-Security-Policy: (.*)/)[1];
+  const sources = (name) => csp.match(new RegExp(`${name} ([^;]*)`))[1].split(' ');
+  assert.ok(sources('script-src').includes(new URL(ANALYTICS_BEACON_SRC).origin), 'the CSP allows the beacon');
+  assert.ok(sources('connect-src').includes('https://cloudflareinsights.com'), 'the CSP allows its reports');
 });
 
 // --- compViewState/compViewUpdate: the per-competition view state, read

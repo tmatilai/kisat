@@ -35,7 +35,16 @@ import {
 } from './app/shell.js';
 import { standInFor } from './lib/elsewhere.js';
 import { logRender } from './lib/render-log.js';
-import { MAIN_MODULES, VIEW_MODULES, isDevHost, legacyRoutePath, reloadDue, routeMode } from './lib/routes.js';
+import {
+  ANALYTICS_BEACON_SRC,
+  ANALYTICS_TOKENS,
+  MAIN_MODULES,
+  VIEW_MODULES,
+  isDevHost,
+  legacyRoutePath,
+  reloadDue,
+  routeMode,
+} from './lib/routes.js';
 import { meetGone } from './lib/schedule.js';
 
 // --- Routing ---
@@ -305,6 +314,16 @@ if (legacyPath) history.replaceState(null, '', `${legacyPath}${location.search}`
 setRouter({ render: renderRoute, scheduleRefresh });
 render();
 scheduleRefresh();
+
+// The page adds the beacon, not the Worker (docs/deployment.md, "Web Analytics").
+const analyticsSiteToken = ANALYTICS_TOKENS[location.hostname];
+if (analyticsSiteToken) {
+  const beacon = document.createElement('script');
+  beacon.type = 'module';
+  beacon.src = ANALYTICS_BEACON_SRC;
+  beacon.dataset.cfBeacon = JSON.stringify({ token: analyticsSiteToken });
+  document.body.append(beacon);
+}
 
 // The probes in dev/ reach these through the runner (dev/AGENTS.md).
 export { GROUP_REFRESH_MS, SCHEDULE_REFRESH_MS, refreshTick, refreshTimer };

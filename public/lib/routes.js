@@ -78,6 +78,15 @@ function siteMeta(mode, pathname = '/', meet = null) {
   return SITE_META[mode] ? { ...SITE_META[mode], siteName } : null;
 }
 
+// --- The Web Analytics beacon (docs/deployment.md, "Web Analytics") ---
+
+// A site token is public, as every page carries its own.
+const ANALYTICS_TOKENS = {
+  'kisat.matilainen.fi': '5b2c3a239fe4416aa7cf5cde583105a5',
+  'juoksut.matilainen.fi': '071948570f7e41f38d589e3208848fc6',
+};
+const ANALYTICS_BEACON_SRC = 'https://static.cloudflareinsights.com/beacon.min.js';
+
 // --- A preview's data (docs/deployment.md, "A preview with its own data") ---
 
 // Swaps the KV for the preview namespaces where the PREVIEW_DATA secret is
@@ -653,6 +662,8 @@ function searchJumpPath(text) {
 }
 
 export {
+  ANALYTICS_BEACON_SRC,
+  ANALYTICS_TOKENS,
   CUP_SEASON_PAGE_PATH,
   CUP_SEASON_PAGE_TITLE,
   CUP_TAB_FINALS,
