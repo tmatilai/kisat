@@ -59,6 +59,7 @@ import {
   mergeMedalistIndex,
   notableYear,
   recordLacksOwn,
+  recordLacksRunners,
   recordSettled,
   seasonMeetBody,
   seasonRecordKeep,
@@ -1947,9 +1948,10 @@ async function handleMedalAthlete(licence, env, request) {
 // Warms the records of every championship year, the notable meets and this
 // year's cup over the meets that have run, at SEASON_WARM_LIMIT builds and
 // SEASON_WARM_READS reads a run. A run starts its reads at an offset set by its
-// 10-minute slot. A settled record is rebuilt only where a notable meet's lacks
-// the meet's own medals, so a finished year goes quiet once each of its records
-// is kept for good (seasonRecordUnkept).
+// 10-minute slot. A settled record is rebuilt only when it lacks its relays'
+// runners, or when it is a notable meet's record without the meet's own medals.
+// So a finished year goes quiet once each of its records is kept for good
+// (seasonRecordUnkept).
 const SEASON_WARM_LIMIT = 2;
 const SEASON_WARM_READS = 60;
 
@@ -1980,7 +1982,8 @@ async function warmSeason(env) {
       await putSeasonRecord(env, meet.id, keep.record, keep.options);
       kept += 1;
     }
-    const lacks = isNotableMeet(notable, meet.id) && recordLacksOwn(record);
+    const noRunners = !meet.kind && recordLacksRunners(record);
+    const lacks = (isNotableMeet(notable, meet.id) && recordLacksOwn(record)) || noRunners;
     if (
       record &&
       !lacks &&
@@ -1992,6 +1995,11 @@ async function warmSeason(env) {
       continue;
     }
     const built = await buildMedalSeason(env, meet.id);
+    if (!built && noRunners) {
+      // A failed rebuild keeps the record (docs/backend.md, "A scope's year").
+      const keep = seasonRecordKeep({ ...record, relayRunners: false }, today, DIGEST_KV_TTL_S);
+      await putSeasonRecord(env, meet.id, keep.record, keep.options);
+    }
     if (!built) continue;
     closedOf(meet, built);
     warmed += 1;

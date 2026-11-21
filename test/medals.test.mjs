@@ -62,6 +62,7 @@ import {
   notableDue,
   notableYear,
   recordLacksOwn,
+  recordLacksRunners,
   recordMedalists,
   recordSettled,
   restMedals,
@@ -737,19 +738,24 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
         boxes.every(
           (b) =>
             b.name &&
-            b.lines.filter((l) => l.counted).length === b.medals[0] + b.medals[1] + b.medals[2] &&
+            b.lines.filter((l) => l.counted && !l.relay).length === b.medals[0] + b.medals[1] + b.medals[2] &&
+            b.lines.filter((l) => l.counted && l.relay).length === b.relays[0] + b.relays[1] + b.relays[2] &&
             b.lines.every((l) => l.link),
         ),
         `${name}: every box named, a counted line a medal`,
       );
       for (const l of lines) {
+        const named = boxes.filter((b) => b.lines.some((x) => x.event === l.event));
         assert.deepEqual(
           l.names.toSorted(),
-          boxes
-            .filter((b) => b.athleteId && b.lines.some((x) => x.event === l.event))
-            .map((b) => b.name)
-            .toSorted(),
-          `${name} ${l.event}: its medalists`,
+          [
+            ...new Set(
+              named.flatMap((b) =>
+                b.athleteId ? [b.name] : b.lines.filter((x) => x.event === l.event).flatMap((x) => x.runners),
+              ),
+            ),
+          ].toSorted(),
+          `${name} ${l.event}: its medalists, a relay's runners`,
         );
       }
     }
@@ -771,6 +777,28 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
       ],
     ],
     "the relays: the club's one box",
+  );
+  assert.deepEqual(
+    vauhti.find((b) => !b.athleteId).lines.find((l) => l.event === 'N15 4x400m viesti').runners,
+    ['Enni Vauhtinen', 'Tuuli Harjoitinen', 'Neea Esimerkkinen', 'Aava Kokeinen'],
+    "a relay's line names its runners in leg order",
+  );
+  // A runner's relay joins the box of the runner's own medals, matched by the
+  // licence, as a ring line after them. (Break on purpose: key the relay line
+  // by the runner's own key.)
+  const runnerBox = clubMedalists(body, [], DEMO_DISTRICTS, null, '1', schedule).find(
+    (b) => b.name === 'Ville Mallinen',
+  );
+  assert.deepEqual(
+    [runnerBox.medals, runnerBox.relays, runnerBox.lines.map((l) => [l.event, !!l.relay])],
+    [
+      [0, 1, 0],
+      [1, 0, 0],
+      [
+        ['M 100m', false],
+        ['M 4x100m viesti', true],
+      ],
+    ],
   );
   assert.deepEqual(
     clubMedalStarts(body, [], DEMO_DISTRICTS, null, '1', schedule).find((l) => l.event === 'T11 60m').names,
@@ -951,6 +979,27 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
     Object.keys(record.starts[0]),
     ['start', 'medals', 'scoped'],
     "the record keeps the meet's own medals and the scopes'",
+  );
+  // A record built before it kept its relays' runners is built again, unless a
+  // rebuild failed. (Break on purpose: return false always.)
+  assert.deepEqual([record, { starts: [] }, { starts: [], relayRunners: false }, null].map(recordLacksRunners), [
+    false,
+    true,
+    false,
+    false,
+  ]);
+  // A relay's medal keeps its runners in leg order, and `athletes` their names
+  // and licences, the pool left out. (Break on purpose: drop `legCount`.)
+  const relayMedal = record.starts.find((s) => s.start.EventName === 'M 4x100m viesti').medals[0];
+  const people = new Map(record.athletes.map(([k, n, l]) => [k, [n, l]]));
+  assert.deepEqual(
+    relayMedal[3].map((k) => people.get(k)),
+    [
+      ['Ville Mallinen', '62938308'],
+      ['Joonas Testinen', '63087215'],
+      ['Tuomas Kokeinen', '63087216'],
+      ['Riku Harjoitinen', '63087217'],
+    ],
   );
   // An older record lacks the meet's own medals, so a notable meet's is built
   // again. (Break on purpose: answer false always.)
@@ -1143,6 +1192,12 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
     new Set(['1']),
   );
   assert.deepEqual(clubOnly[0].names, [['1', 'Demon Urheilijat']]);
+  // The club's relay keeps its runners' names. (Break on purpose: keep the
+  // medals' keys alone in `athletes`.)
+  const clubRelay = medalSeasonMedalists(clubOnly, '1')
+    .find((b) => b.key === 'o1')
+    .lines.find((l) => l.event === 'M 4x100m viesti');
+  assert.deepEqual(clubRelay.runners, ['Ville Mallinen', 'Joonas Testinen', 'Tuomas Kokeinen', 'Riku Harjoitinen']);
   // A duplicate record's medals count under the canonical id. Testilän Kisa
   // (3) plays the duplicate. (Break on purpose: keep each record's own id.)
   const folded = clubSeasonMeets(seasonOf('demy', [[DEMO_ID, record]]), '1', ['1', '3']);
@@ -1325,11 +1380,12 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
       [
         ['k1', 'Aino Esimerkki', '111'],
         ['k2', 'Eero Esimerkki', '222'],
+        ['k3', 'Ilmari Esimerkki', '333'],
       ],
       [
         ['1', 1, 'k1'],
         ['1', 2, 'k2'],
-        ['1', 3, 'o1'],
+        ['1', 3, 'o1', ['k1', 'k3']],
       ],
     ),
     yearMeet('m2', '2026-06-01', [['k7', 'Aino Esimerkki', null]], [['1', 2, 'k7']]),
@@ -1352,23 +1408,30 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
       b.athlete,
       b.licence,
       ...b.medals,
-      b.lines.map((l) => `${l.medal}:${l.meet}`),
+      b.relays,
+      b.lines.map((l) => `${l.medal}:${l.meet}${l.relay ? ':relay' : ''}`),
     ]),
     [
-      ['Aino Esimerkki', true, '111', 2, 1, 0, ['1:m1', '1:m3', '2:m2']],
-      ['Eero Esimerkki', true, '222', 0, 1, 0, ['2:m1']],
-      ['Demon Urheilijat', false, null, 0, 0, 1, ['3:m1']],
+      ['Aino Esimerkki', true, '111', 2, 1, 0, [0, 0, 1], ['1:m1', '1:m3', '2:m2', '3:m1:relay']],
+      ['Eero Esimerkki', true, '222', 0, 1, 0, [0, 0, 0], ['2:m1']],
+      ['Demon Urheilijat', false, null, 0, 0, 1, [0, 0, 0], ['3:m1']],
+      ['Ilmari Esimerkki', true, '333', 0, 0, 0, [0, 0, 1], ['3:m1:relay']],
     ],
-    "one person across meets, a row without a licence by its name; the relays the club's",
+    "one person across meets, a row without a licence by its name; the relays the club's, and a runner's relay in the runner's box last",
+  );
+  assert.deepEqual(
+    medalSeasonMedalists(moved, '1').find((b) => !b.athlete).lines[0].runners,
+    ['Aino Esimerkki', 'Ilmari Esimerkki'],
+    "a relay's line names its runners in leg order",
   );
   assert.deepEqual(
     medalSeasonMedalists(moved, '2').map((b) => [b.name, ...b.medals]),
     [['Eero Esimerkki', 1, 0, 0]],
     'a club change: each club its own medals',
   );
-  // A person is followed across clubs, and a relay names nobody. A followed
-  // club gets its own lines and relays. (Break on purpose: keep a followed
-  // club's whole box, or drop its unnamed rows.)
+  // A person is followed across clubs, with the relays the person ran. A
+  // followed club gets its own lines and relays. (Break on purpose: keep a
+  // followed club's whole box, or drop its unnamed rows.)
   const followedOf = (licences, clubIds) =>
     medalSeasonFollowedMedalists(moved, { licences: new Set(licences), clubIds: new Set(clubIds) }).map((b) => [
       b.name,
@@ -1378,20 +1441,21 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
   assert.deepEqual(
     followedOf(['222', '111', '1'], []),
     [
-      ['Aino Esimerkki', 2, 1, 0, ['1:m1', '1:m3', '2:m2']],
+      ['Aino Esimerkki', 2, 1, 0, ['1:m1', '1:m3', '2:m2', '3:m1']],
       ['Eero Esimerkki', 1, 1, 0, ['1:m3', '2:m1']],
     ],
-    'a club change is still one person',
+    'a club change is still one person, with the relay the person ran',
   );
   assert.deepEqual(followedOf([], ['2']), [['Eero Esimerkki', 1, 0, 0, ['1:m3']]], 'a followed club: its lines alone');
   assert.deepEqual(
     followedOf([], ['1']),
     [
-      ['Aino Esimerkki', 2, 1, 0, ['1:m1', '1:m3', '2:m2']],
+      ['Aino Esimerkki', 2, 1, 0, ['1:m1', '1:m3', '2:m2', '3:m1']],
       ['Eero Esimerkki', 0, 1, 0, ['2:m1']],
       ['Demon Urheilijat', 0, 0, 1, ['3:m1']],
+      ['Ilmari Esimerkki', 0, 0, 0, ['3:m1']],
     ],
-    'and its relays',
+    'and its relays, in the club box and in the runners',
   );
   assert.deepEqual(followedOf([], []), [], 'nothing followed');
   // A medal body is cached five minutes while its meet can move, and a week
@@ -2280,6 +2344,7 @@ test("an athlete's years: the medalist index and the lines", () => {
   const earlier = { ...meet, id: '30000', date: '2025-06-01' };
   const spring = { ...meet, id: '30007', date: '2026-05-02' };
   const body = {
+    licence,
     scopes: [
       { id: 'demolainen', kind: 'alue' },
       { id: 'maly', kind: 'piiri' },
@@ -2326,22 +2391,32 @@ test("an athlete's years: the medalist index and the lines", () => {
           [
             'demolainen',
             [0, 0, 1],
-            [['30006', [{ event: 'M 100m', medal: 3, clubId: '4', club: 'Näyteniemen Vauhti' }]]],
+            [['30006', [{ event: 'M 100m', medal: 3, clubId: '4', club: 'Näyteniemen Vauhti', runners: [] }]]],
           ],
           [
             'maly',
             [2, 0, 0],
             [
-              ['30007', [{ event: 'M 100m', medal: 1, clubId: '4', club: 'Näyteniemen Vauhti' }]],
-              ['30006', [{ event: 'M 100m', medal: 1, clubId: '4', club: 'Näyteniemen Vauhti' }]],
+              ['30007', [{ event: 'M 100m', medal: 1, clubId: '4', club: 'Näyteniemen Vauhti', runners: [] }]],
+              ['30006', [{ event: 'M 100m', medal: 1, clubId: '4', club: 'Näyteniemen Vauhti', runners: [] }]],
             ],
           ],
-          ['avoimet', [0, 0, 1], [['30006', [{ event: 'M 100m', medal: 3, clubId: '4', club: 'Näyteniemen Vauhti' }]]]],
+          [
+            'avoimet',
+            [0, 0, 1],
+            [['30006', [{ event: 'M 100m', medal: 3, clubId: '4', club: 'Näyteniemen Vauhti', runners: [] }]]],
+          ],
         ],
       ],
       [
         2025,
-        [['maly', [1, 0, 0], [['30000', [{ event: 'M 100m', medal: 1, clubId: '4', club: 'Näyteniemen Vauhti' }]]]]],
+        [
+          [
+            'maly',
+            [1, 0, 0],
+            [['30000', [{ event: 'M 100m', medal: 1, clubId: '4', club: 'Näyteniemen Vauhti', runners: [] }]]],
+          ],
+        ],
       ],
     ],
     'an unbuilt meet has no card',
@@ -2357,6 +2432,50 @@ test("an athlete's years: the medalist index and the lines", () => {
     { id: '1', name: 'Old' },
   ]);
   assert.equal(athleteYearsName(body), record.athletes.find(([k]) => k === key)[1]);
+
+  // A relay's runner has the team's medal, with the teammates in leg order, and
+  // the index names the runner. (Break on purpose: match the medal's key alone,
+  // or index the medals' keys alone.)
+  const runner = '63087215';
+  const ran = {
+    licence: runner,
+    scopes: [{ id: 'avoimet', kind: 'notable' }],
+    years: [
+      {
+        year: 2026,
+        scopes: [{ id: 'avoimet', meets: athleteSeasonMeets([seasonMeetBody(meet, record, null, false)], runner) }],
+      },
+    ],
+  };
+  assert.deepEqual(athleteYears(ran)[0].levels[0].meets[0].lines, [
+    {
+      event: 'M 4x100m viesti',
+      medal: 1,
+      clubId: '1',
+      club: 'Demon Urheilijat',
+      runners: ['Ville Mallinen', 'Joonas Testinen', 'Tuomas Kokeinen', 'Riku Harjoitinen'],
+    },
+  ]);
+  assert.ok(recordMedalists(record).includes(runner));
+  assert.equal(athleteYearsName(ran), 'Joonas Testinen', 'not a teammate');
+  // A level counts the relay medals apart from the individual ones. (Break on
+  // purpose: count a relay as an individual medal.)
+  const both = athleteYears({
+    ...ran,
+    years: [
+      {
+        year: 2026,
+        scopes: [{ id: 'avoimet', meets: athleteSeasonMeets([seasonMeetBody(meet, record, null, false)], '62938308') }],
+      },
+    ],
+  })[0].levels[0];
+  assert.deepEqual(
+    [both.medals, both.relays],
+    [
+      [0, 1, 0],
+      [1, 0, 0],
+    ],
+  );
 
   // A line links to its start by the event name alone (docs/architecture.md,
   // "The route table"), and the schedule finds each of the record's starts by

@@ -573,6 +573,13 @@
       .heat-tag::before {
         content: ' · ';
       }
+      /* The Juoksijat chip hides the runners (relayNamesHidden, app/data.js). */
+      .relay-names-off .relay-legs {
+        display: none;
+      }
+      .relay-names-off .relay-legs + .heat-tag::before {
+        content: '';
+      }
       /* The name cell's asides (athleteNameParts, app/event.js). An earlier
          round's mark sits by the name and the bests on the club line. Both
          stay muted (docs/style.md, "Components"), or a mark reads as this
@@ -1098,12 +1105,19 @@
       }
       .medal-1 {
         background: var(--gold);
+        color: var(--gold);
       }
       .medal-2 {
         background: var(--silver);
+        color: var(--silver);
       }
       .medal-3 {
         background: var(--bronze);
+        color: var(--bronze);
+      }
+      .medal.medal-ring {
+        background: none;
+        box-shadow: inset 0 0 0 2px currentColor;
       }
       /* A medal table's picked club fills its row, a toggle's on state. Each
          metal has a fixed slot so the counts line up (medalSlotsEl,

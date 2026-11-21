@@ -61,8 +61,8 @@ any other measurement goes.
   measured 2026-09).
 - **A meet uses confirmation per event and per entry, not for the whole meet.** A meet can take
   confirmations in a few events and draw everybody in the rest. The data does not distinguish a
-  required confirmation from a recorded one. A relay team confirms once, wherever its organiser says
-  (2026-08).
+  required confirmation from a recorded one. A relay team confirms once, where and how its organiser
+  decides (2026-08).
 - **An unconfirmed entrant may still run, and a confirmed entrant may not be drawn** (2026-08).
 
 ## Results and ranks
@@ -86,9 +86,10 @@ any other measurement goes.
 
 - **A flat shuttle relay is filed as a plain relay**, with `SubCategory: "Sprint"`, so only the name
   shows that it is a shuttle relay (2026-08).
-- **A shuttle relay's drawn `Position` follows no single convention.** It is either lane of a pair,
-  or the pair's number, and no field shows which lane runs which legs (2026-09). At the track, the
-  pairs were lanes (1,2), (3,4) and so on, with legs 2 and 4 in the odd lane (observed, 2026-08).
+- **A shuttle relay's drawn `Position` follows no single convention.** It is either one of the
+  pair's two lanes or the pair's number, and no field shows which lane runs which legs (2026-09). At
+  the track, the pairs were lanes 1 and 2, 3 and 4, and so on, and legs 2 and 4 ran in the odd lane
+  (observed, 2026-08).
 - **`TeamId` tells a club's two teams in a race apart, but not which team has which number in its
   `Name`** (2026-08).
 

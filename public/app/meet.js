@@ -727,7 +727,7 @@ function watchAllocLine(label, { alloc, total, heatIndex, heatCount }, { data, r
       'span',
       { class: 'watch-row-name' },
       name,
-      legs.length ? el('span', { class: 'watch-row-legs' }, ' (', relayLegEls(legs), ')') : null,
+      legs.length ? el('span', { class: 'watch-row-legs relay-legs' }, ' (', relayLegEls(legs), ')') : null,
     ),
     el(
       'span',

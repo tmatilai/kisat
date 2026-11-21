@@ -124,7 +124,12 @@ test('counting starts', () => {
       ['Testinen', 'Harjoitinen', 'Demoinen', 'Vauhtinen'],
       'the first four by Index run',
     );
-    assert.deepEqual(relayLegs(allocs[1], legs), ['Testinen', 'Harjoitinen', 'Demoinen', 'Vauhtinen']);
+    assert.deepEqual(relayLegs(allocs[1], legs), [
+      'Jooa Testinen',
+      'Frans Harjoitinen',
+      'Viljami Demoinen',
+      'Elmo Vauhtinen',
+    ]);
     // A 60 m leg is short enough for a wind, so only the Category gate keeps
     // this reading off the page.
     assert.equal(round.Heats[0].Wind, '+1,4', 'the fixture must carry a reading, or the next line proves nothing');

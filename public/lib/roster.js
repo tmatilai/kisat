@@ -1,4 +1,4 @@
-import { relayInfo, relayLineup, roundAllocated } from './results.js';
+import { athleteFullName, relayInfo, relayLineup, roundAllocated } from './results.js';
 
 // --- Roster aggregation: every event's own /results, fetched by worker.js ---
 
@@ -34,7 +34,7 @@ function buildRoster(eventResults) {
           entry = {
             id: ath.Id,
             licenseId: ath.LicenseId || '',
-            name: [ath.Firstname, ath.Surname].filter(Boolean).join(' '),
+            name: athleteFullName(ath),
             organizationId: (ath.Organization || org)?.Id ?? null,
             events: [],
           };

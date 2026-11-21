@@ -298,6 +298,10 @@ function followedKey(alloc) {
 
 // --- Relays ---
 
+function athleteFullName(a) {
+  return [a?.Firstname, a?.Surname].filter(Boolean).join(' ');
+}
+
 // Returns a relay's runners in leg order, from AthleteOrders once drawn and
 // Athletes[] by Index before. Only the first `legs` count and the rest are a
 // pool, and Enrollments carry no AthleteOrders (2026-08).
@@ -311,7 +315,7 @@ function relayLineup(alloc, legs = 0) {
   return legs > 0 ? named.slice(0, legs) : named;
 }
 
-// Returns a relay's runners' surnames, or [] for an individual, who also has an
+// Returns a relay's runners' names, or [] for an individual, who also has an
 // Athletes[]. AthleteOrders or a second athlete marks a relay.
 function relayLegs(alloc, legs = 0) {
   return relayLegParts(alloc, legs).map((p) => p.name);
@@ -322,7 +326,7 @@ function relayLegs(alloc, legs = 0) {
 function relayLegParts(alloc, legs = 0, named = null) {
   if (!alloc?.AthleteOrders?.length && !(alloc?.Athletes?.length > 1)) return [];
   return relayLineup(alloc, legs)
-    .map((a) => ({ name: a.Surname || a.Firstname || '', followed: !!named?.has(String(a.Id)) }))
+    .map((a) => ({ name: athleteFullName(a), followed: !!named?.has(String(a.Id)) }))
     .filter((p) => p.name);
 }
 
@@ -556,6 +560,7 @@ export {
   allocMark,
   allocPosition,
   athleteCard,
+  athleteFullName,
   attemptColumns,
   beatsMark,
   bestsParts,

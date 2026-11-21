@@ -334,11 +334,12 @@ test('relays', () => {
   assert.deepEqual(
     relayLegs({
       AthleteOrders: [
-        { Index: 2, Athlete: { Surname: 'Toka' } },
+        { Index: 2, Athlete: { Firstname: 'Juho', Surname: 'Toka' } },
         { Index: 1, Athlete: { Surname: 'Eka' } },
       ],
     }),
-    ['Eka', 'Toka'],
+    ['Eka', 'Juho Toka'],
+    'a full name, or the one name the API gives',
   );
   // A runner followed by name is marked only among the legs.
   // (Break on purpose: mark off Athletes[] whole, and the followed reserve
@@ -829,10 +830,10 @@ test('shared heats', () => {
     assert.equal(legs, 4);
     assert.equal(det[0].data.Enrollments[0].Athletes.length, 6, 'six entered');
     assert.deepEqual(relayLegs(heat.rows.find((r) => r.alloc.Id === 't1').alloc, legs), [
-      'Testinen',
-      'Kokeinen',
-      'Näytteinen',
-      'Demoinen',
+      'Aino Testinen',
+      'Sanni Kokeinen',
+      'Iiris Näytteinen',
+      'Peppi Demoinen',
     ]);
     assert.equal(heatsAreShared([heat]), true, 'teams share a heat the same way people do');
   }

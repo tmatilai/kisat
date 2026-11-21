@@ -359,7 +359,7 @@ function medalistLineEl(compId, r, multiDay) {
       r.event,
       r.roundName ? el('span', { class: 'medalist-sub' }, ` · ${r.roundName}`) : null,
       multiDay ? el('span', { class: 'medalist-sub' }, ` · ${dayMonth(r.date)}`) : null,
-      legs.length ? el('span', { class: 'medalist-sub' }, ` (${legs.join(', ')})`) : null,
+      legs.length ? el('span', { class: 'medalist-sub relay-legs' }, ` (${legs.join(', ')})`) : null,
     ),
     el('span', { class: 'medalist-place' }, r.place),
     el(
@@ -380,9 +380,21 @@ function bodyMedalLineEl(l, href, sub) {
   return el(
     href ? 'a' : 'span',
     { class: 'medalist-entry', href: href || null },
-    el('span', { class: 'medalist-disc' }, medalEl(l.medal)),
-    el('span', { class: 'medalist-event' }, l.event, sub ? el('span', { class: 'medalist-sub' }, ` · ${sub}`) : null),
+    el('span', { class: 'medalist-disc' }, medalEl(l.medal, !!l.relay)),
+    el(
+      'span',
+      { class: 'medalist-event' },
+      l.event,
+      sub ? el('span', { class: 'medalist-sub' }, ` · ${sub}`) : null,
+      runnersEl(l.runners),
+    ),
   );
+}
+
+// A relay's runners after its event, as medalistLineEl draws a relay's legs.
+function runnersEl(runners) {
+  const named = (runners || []).filter(Boolean);
+  return named.length ? el('span', { class: 'medalist-sub relay-legs' }, ` (${named.join(', ')})`) : null;
 }
 
 // Draws a medal table with the place, the club, a column per metal and the
@@ -1107,8 +1119,9 @@ async function renderMedalAthlete({ licence, year: wantedYear }) {
                 { class: 'medalist-event' },
                 l.event,
                 clubs.length > 1 ? el('span', { class: 'medalist-sub' }, ` · ${l.club}`) : null,
+                runnersEl(l.runners),
               ),
-              medalSlotEl(l.medal),
+              medalSlotEl(l.medal, l.runners.length > 0),
             ),
           ),
         ),
@@ -1139,7 +1152,7 @@ async function renderMedalAthlete({ licence, year: wantedYear }) {
     clubsEl || '',
     ...(levels.length
       ? levels.flatMap((l) => [
-          el('h2', { class: 'count-head' }, el('span', {}, titleOf(l.scope)), medalSlotsEl(l.medals)),
+          el('h2', { class: 'count-head' }, el('span', {}, titleOf(l.scope)), medalSlotsEl(l.medals, l.relays)),
           el('div', { class: 'list' }, l.meets.map(meetEl)),
         ])
       : [
@@ -1174,20 +1187,20 @@ function scrollToPicked(headEl) {
 }
 
 // Each metal gets a slot, empty or not, so a list's counts line up.
-function medalSlotsEl(medals) {
-  return el(
-    'span',
-    { class: 'medal-slots' },
-    medals.map((n, i) => el('span', { class: 'medal-slot' }, n ? [medalEl(i + 1), String(n)] : null)),
-  );
+// `relays`, when given and not all zero, adds a second row of the relay medals
+// as rings, in the same slots.
+function medalSlotsEl(medals, relays = null) {
+  const row = (counts, ring) =>
+    counts.map((n, i) => el('span', { class: 'medal-slot' }, n ? [medalEl(i + 1, ring), String(n)] : null));
+  return el('span', { class: 'medal-slots' }, row(medals, false), relays?.some(Boolean) ? row(relays, true) : null);
 }
 
 // Places one medal in its metal's slot of medalSlotsEl, with no count.
-function medalSlotEl(medal) {
+function medalSlotEl(medal, ring = false) {
   return el(
     'span',
     { class: 'medal-slots' },
-    [1, 2, 3].map((m) => el('span', { class: 'medal-slot' }, m === medal ? medalEl(m) : null)),
+    [1, 2, 3].map((m) => el('span', { class: 'medal-slot' }, m === medal ? medalEl(m, ring) : null)),
   );
 }
 
@@ -1267,7 +1280,7 @@ function medalistAllEl(boxes, keys, repaint) {
 // after the lines, such as a link to the athlete's years.
 function medalistRowEl(
   box,
-  { club = '', watched = false, tail = medalSlotsEl(box.medals), after = null },
+  { club = '', watched = false, tail = medalSlotsEl(box.medals, box.relays), after = null },
   lineEl,
   open,
   onToggle,
@@ -1319,9 +1332,14 @@ function medalistHeadEl(open, onToggle, main, tail) {
 }
 
 const MEDAL_FI = ['Kulta', 'Hopea', 'Pronssi'];
-// Draws a medal as a disc in its metal, named for a screen reader.
-function medalEl(medal) {
-  return el('span', { class: `medal medal-${medal}`, role: 'img', 'aria-label': MEDAL_FI[medal - 1] });
+// Draws a medal as a disc in its metal, named for a screen reader. A relay's
+// medal in a runner's box or on a runner's page is a ring (`ring`).
+function medalEl(medal, ring = false) {
+  return el('span', {
+    class: `medal medal-${medal}${ring ? ' medal-ring' : ''}`,
+    role: 'img',
+    'aria-label': `${MEDAL_FI[medal - 1]}${ring ? ', viesti' : ''}`,
+  });
 }
 
 export {

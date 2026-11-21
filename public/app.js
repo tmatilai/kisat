@@ -1,4 +1,12 @@
-import { loadDemo, loadElsewhere, pruneLapsStore, renderLog, setRenderCost, writeStore } from './app/data.js';
+import {
+  applyRelayNames,
+  loadDemo,
+  loadElsewhere,
+  pruneLapsStore,
+  renderLog,
+  setRenderCost,
+  writeStore,
+} from './app/data.js';
 import {
   JUOKSUT_ORIGIN,
   KISAT_ORIGIN,
@@ -288,6 +296,7 @@ document.addEventListener('visibilitychange', () => {
   if (currentRoute().view !== 'laps') render(true);
 });
 
+applyRelayNames();
 // Drops the counter's stored state a week after its last write (LAPS_TTL_MS).
 pruneLapsStore();
 // Temporary: a fragment link (#/c/…) opens at its path (docs/shims.md).
