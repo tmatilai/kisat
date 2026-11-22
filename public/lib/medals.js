@@ -1105,6 +1105,17 @@ function isNotableMeet(notable, id) {
   return (notable?.meets || []).some((n) => n.comps.some((c) => String(c) === String(id)));
 }
 
+// Sums clubYearTable's rows of the scopes in `scopeIds` per year, as [{year,
+// medals, total}] (docs/views.md, "The years").
+function clubYearSums(table, scopeIds) {
+  const on = new Set(scopeIds);
+  const rows = table.filter(({ scope }) => on.has(scope.id));
+  return (table[0]?.years || []).map(({ year }, i) => {
+    const medals = [0, 1, 2].map((m) => rows.reduce((n, r) => n + r.years[i].medals[m], 0));
+    return { year, medals, total: medals[0] + medals[1] + medals[2] };
+  });
+}
+
 // Returns the age chips over all of a club's years (medalSeasonAges).
 function clubYearAges(body) {
   return medalSeasonAges((body?.years || []).flatMap((y) => y.scopes.flatMap((s) => s.meets)));
@@ -1343,6 +1354,7 @@ export {
   clubSeasonMeets,
   clubYearAges,
   clubYearMedalists,
+  clubYearSums,
   clubYearTable,
   followedRows,
   isNotableMeet,

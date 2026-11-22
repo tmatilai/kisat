@@ -4,7 +4,7 @@
 entry is a meet that is held every year, and its `comps` lists the meets of each year:
 
 ```
-{ "id": "demo", "name": "Demon nuorten kisat", "comps": [90001, 91001] }
+{ "id": "demo", "name": "Demon nuorten kisat", "short": "DNK", "comps": [90001, 91001] }
 ```
 
 - **A meet is listed by its Tuloslista id**, because its name, organiser and town can change from
@@ -16,6 +16,7 @@ entry is a meet that is held every year, and its `comps` lists the meets of each
 - **One year's edition can be several meets.** Their medals are summed in the year's row.
 - **A notable meet's medals are its own places 1 to 3, counted over every club.**
 - **An entry's `id` must differ from every scope's id and from `seura`.**
+- **An entry's `short` is the meet's abbreviation**, which labels its chip on a club's years.
 
 ## Keeping notable.json
 

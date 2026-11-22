@@ -91,3 +91,5 @@ The championships sheet stores the chosen scopes per meet in the view state's `s
   meet with no such year gets no table. A meet's record lists every club with a result (`names`).
 - **Every meet of a championship's year is a row linking to its medal table**, so a meet that
   `defaultScopes` gets wrong is still visible.
+- **A club's "Kaikki mitalit" table sums the scopes that its chips pick.** A medal of a meet in two
+  scopes counts in each scope, because each scope awards its own title.

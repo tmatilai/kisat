@@ -1732,7 +1732,7 @@ async function handleMedalClub(orgId, env) {
       club: { id: String(club.id), name: club.name },
       scopes: [
         ...scopes.map(({ id, kind, name, short }) => ({ id, kind, name, short })),
-        ...(notable.meets || []).map(({ id, name }) => ({ id, kind: 'notable', name, short: null })),
+        ...(notable.meets || []).map(({ id, name, short }) => ({ id, kind: 'notable', name, short })),
       ],
       years,
     }),
@@ -1940,7 +1940,7 @@ async function handleMedalAthlete(asked, env, request) {
       id,
       scopes: [
         ...meetScopes(districts).map(({ id, kind, name, short }) => ({ id, kind, name, short })),
-        ...(notable.meets || []).map(({ id, name }) => ({ id, kind: 'notable', name, short: null })),
+        ...(notable.meets || []).map(({ id, name, short }) => ({ id, kind: 'notable', name, short })),
       ].filter((s) => used.has(s.id)),
       years,
     }),
