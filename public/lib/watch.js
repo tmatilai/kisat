@@ -171,7 +171,6 @@ function allocMatches(alloc, targets, team) {
 // [] where none match.
 function findAthleteAllocations(round, targets, team) {
   const found = [];
-  // They go in heat order (heatsInOrder), as they become the day list's lines.
   for (const h of heatsInOrder(round)) {
     for (const a of h.Allocations || []) {
       if (allocMatches(a, targets, team)) found.push({ heatIndex: h.Index, alloc: a });
@@ -183,17 +182,15 @@ function findAthleteAllocations(round, targets, team) {
 // Returns every match in one class's round: from its heats once drawn
 // (roundAllocated), and before that from `enrollments`, with no field size or
 // heat. `stripResults` clears the results of an earlier round's rows that stand
-// in for an undrawn round's field.
+// in for an undrawn round's field. Rows with a place come first, by place, and
+// the rest follow in heat and draw order.
 function matchedEntries(round, enrollments, targets, team, stripResults = false) {
   if (roundAllocated(round)) {
     const total = roundFieldSize(round);
     const heatCount = round.Heats.length;
-    return findAthleteAllocations(round, targets, team).map(({ alloc, heatIndex }) => ({
-      alloc,
-      total,
-      heatIndex,
-      heatCount,
-    }));
+    return findAthleteAllocations(round, targets, team)
+      .sort((a, b) => (a.alloc.ResultRank ?? Number.MAX_SAFE_INTEGER) - (b.alloc.ResultRank ?? Number.MAX_SAFE_INTEGER))
+      .map(({ alloc, heatIndex }) => ({ alloc, total, heatIndex, heatCount }));
   }
   return (enrollments || [])
     .filter((a) => allocMatches(a, targets, team))
