@@ -138,21 +138,23 @@ existing documentation is older and too terse. Don't copy its style.
 ### Words and sentences
 
 - **Write plain technical English** that a developer new to the repo understands on first reading.
-- **Use the standard engineering term**: duplicate, canonical, returns, merges, maps X to Y, stores,
-  calls. Don't invent a term such as "head" or "stands for". Don't give code a human verb such as
-  "answers", "says", "agrees", "gives" or "knows".
+  Every sentence has a subject and a verb and says one thing. A longer plain sentence beats a short
+  cryptic one.
+- **Use the standard engineering term, or the code's own name for the thing**: duplicate, canonical,
+  returns, merges, maps X to Y. Don't coin a term such as "head" or "link name": a new term needs a
+  definition, and the definition grows into a section.
 - **The subject is what acts**: a function, a route, the cron, the Worker or a person. An id, a key,
   a record or a field doesn't act. Code stores, maps, looks up or returns it.
-- **Don't use a metaphor verb** such as "joins", "reaches", "lands", "lives" or "goes quiet". Use
-  the verb for what the code does, such as stores, reads, maps or rebuilds.
+- **The verb is what the code does**, such as stores, reads, maps or rebuilds. Don't give code a
+  human verb such as "answers", "says" or "knows", or a metaphor verb such as "joins", "reaches",
+  "lands" or "lives".
 - **A bold opening is a plain sentence.** If a rule doesn't fit in one, keep the bold part short and
   explain the rule in the next sentence.
-- **Every sentence has a subject and a verb and says one thing.** A longer plain sentence beats a
-  short cryptic one.
 - **Name the thing.** Write "the sample rate", not "the rate". Refer to a function, field or setting
   by its name in backticks.
-- **Describe the code as it is.** Don't say what it replaced or how it came about: `git log` has
-  that. A measurement keeps its month and nothing more.
+- **Describe the code as it is.** Don't say what it replaced, how it came about or which
+  alternatives were weighed: `git log` and the commit message have that. A measurement keeps its
+  month and nothing more.
 - **Write for a reader with no context.** Don't mention a person, a machine, a path outside the
   repo, "the user" or the tool you used. In examples, use the demo's clubs and athletes, or invented
   names in their style, never a real club or person.
@@ -167,23 +169,23 @@ existing documentation is older and too terse. Don't copy its style.
     data files' formats;
   - constraints and traps: what must hold, and what breaks if it doesn't;
   - procedures that a person follows, such as deploying or updating a data file.
+- **A doc or a comment never describes what the code or a test already shows.** That includes case
+  handling, precedence, tiebreaks and fallbacks, and lists of functions, files or tests. Name a
+  function only where a rule is about it. A comment says why, or the constraint that holds.
 - **A measurement that can be taken again in minutes stays out of the docs**, such as the shape of
   an outside API's response, an outside page's layout, a timing or a size. Measure it again when it
   matters.
-- **A doc doesn't list functions, files or tests.** `grep` finds them. Name a function only where a
-  rule is about it.
-- **A comment or a doc never explains what the code does.** A comment says why, or the constraint
-  that holds, and never describes the next lines.
+- **A feature's docs go into the sections that already hold its contracts**, such as the route table
+  or a response body, usually a line in each. A new section needs a contract or a trap that no
+  section covers yet.
 - **State each fact once.** A code comment cites the doc's section, such as
   `(docs/backend.md, "A scope's year")`, instead of restating the rule. Code copied from elsewhere
   doesn't copy its comment.
-- **Say what a change does not cover** when a reader would assume it does.
+- **Say what a change does not cover** when the docs' own text implies that it does.
 - **New text goes in its own paragraph** or at the end of one.
-- **When a change drops or changes a claim, or renames something**, search the docs and comments for
-  the old claim or name.
-- **Improve the text you touch.** When a change touches a doc, a comment or the code it describes,
-  rewrite the lines that break these rules, and delete the lines that only repeat the code or
-  `git log`.
+- **A change keeps the text around it right.** Search the docs and comments for each claim the
+  change drops or changes, and each name it renames. Rewrite the lines it touches that break these
+  rules, and delete the lines that only repeat the code or `git log`.
 
 ### Examples
 
@@ -216,9 +218,8 @@ existing documentation is older and too terse. Don't copy its style.
 Read the added comments and doc lines together, as a developer new to the repo would.
 
 - Replace each word that only makes sense inside the repo.
-- Cut each line that repeats another line or the code.
+- Cut each line that repeats another line, the code or a test.
 - Rewrite each sentence that needs a second reading.
-- Fix each reference to a name the change renamed.
 
 ## Where to read next
 

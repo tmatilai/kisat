@@ -197,16 +197,18 @@ record per meet in place of the digest. The years run from `SEASON_FIRST_YEAR` t
 
 ### A club's years
 
-`GET /api/medalclub/:orgId` returns a club's medals in its scopes' championships and at the notable
-meets (`docs/notable.md`), for every year:
+`GET /api/medalclub/:club` returns a club's medals in its scopes' championships and at the notable
+meets (`docs/notable.md`), for every year. `:club` is as in the club page's URL
+(`docs/architecture.md`, "The route table").
 
 ```
-{club: {id, name},
+{club: {id, name, slug},
  scopes: [{id, kind, name, short}],
  years: [{year, scopes: [{id, meets, pending}]}]}
 ```
 
-`kind` is `maa`, `alue` or `piiri` for a championship, and `notable` for a notable meet, which has
+`slug` is the club's `NameShort` if the club page's URL carries it, and null otherwise. `kind` is
+`maa`, `alue` or `piiri` for a championship, and `notable` for a notable meet, which has
 `short: null`. A championship's `meets` have the same shape as in a scope's year. A notable meet's
 `meets` have the meet's own medals instead, and its classes in `ages`. Both include only the club's
 medals.

@@ -102,6 +102,7 @@ any other measurement goes.
 - **A club entered by hand at a meet gets a duplicate `Organization`.** Its `Name` differs from the
   canonical club's `Name` only in case, spacing, punctuation or a trailing "ry", and its `NameShort`
   usually differs too (2026-11).
+- **Unrelated clubs can share a `NameShort`**, such as schools and clubs entered by hand (2026-11).
 
 ## Field events
 

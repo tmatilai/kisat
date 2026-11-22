@@ -5,7 +5,7 @@ import { confirmSetting } from './public/lib/confirmation.js';
 import { cupBody, cupDetail, cupMode, cupSeasonMeets, cupSeasonRecord, cupSeasonRows } from './public/lib/cup.js';
 import { fiToIsoDay, isoDay, scheduleDays, shiftIsoDay } from './public/lib/dates.js';
 import { demoApiBody, demoSearchScope } from './public/lib/demo-api.js';
-import { clubScopes, duplicateClubs, meetScopes } from './public/lib/districts.js';
+import { clubBySlug, clubScopes, clubSlug, duplicateClubs, meetScopes } from './public/lib/districts.js';
 import {
   T4R_BASE,
   aloneEntries,
@@ -273,7 +273,7 @@ const API_ROUTES = [
     re: /^\/api\/medalseason\/([^/]+)\/([^/]+)$/,
     GET: (r, scope, year) => handleMedalSeason(scope, year, r.env, r.request, r.url),
   },
-  { re: /^\/api\/medalclub\/([^/]+)$/, GET: (r, orgId) => handleMedalClub(orgId, r.env) },
+  { re: /^\/api\/medalclub\/([^/]+)$/, GET: (r, club) => handleMedalClub(club, r.env) },
   { re: /^\/api\/medalathlete\/([^/]+)$/, GET: (r, id) => handleMedalAthlete(id, r.env, r.request) },
   { re: /^\/api\/cupseason\/([^/]+)$/, GET: (r, year) => handleCupSeason(year, r.env, r.request, r.url) },
   { re: /^\/api\/watch$/, POST: (r) => handleWatchCreate(r.env, r.request) },
@@ -1675,20 +1675,21 @@ async function handleMedalSeason(scopeId, yearParam, env, request, url) {
   });
 }
 
-// A club id as parseClubYearsHash (lib/routes.js) reads it. A made club's id
-// has letters.
+// A club id or slug as parseClubYearsHash (lib/routes.js) reads it. A
+// made club's id has letters.
 const CLUB_ID_RE = /^[\p{L}\p{N}_-]{1,64}$/u;
 
-// GET /api/medalclub/:orgId (docs/backend.md, "A club's years").
-async function handleMedalClub(orgId, env) {
-  if (!CLUB_ID_RE.test(orgId)) return new Response('Virheellinen seura.', { status: 400 });
+// GET /api/medalclub/:club (docs/backend.md, "A club's years").
+async function handleMedalClub(wanted, env) {
+  if (!CLUB_ID_RE.test(wanted)) return new Response('Virheellinen seura.', { status: 400 });
   const [orgs, index] = await Promise.all([env.ROSTER.get(ORGS_KEY, 'json'), env.ROSTER.get(MEETS_KEY, 'json')]);
   const clubs = orgIndexClubs(orgs);
-  const row = clubs.find((c) => String(c.id) === orgId);
+  const groups = duplicateClubs(districts, clubs);
+  const row = clubs.find((c) => String(c.id) === wanted) || clubBySlug(districts, clubs, wanted);
   if (!row) return new Response('Seuraa ei löytynyt.', { status: 404 });
-  const { canonical: club, ids: clubIds } = duplicateClubs(districts, clubs).get(orgId) || {
+  const { canonical: club, ids: clubIds } = groups.get(String(row.id)) || {
     canonical: row,
-    ids: [orgId],
+    ids: [String(row.id)],
   };
   const scopes = clubScopes(districts, { Name: club.name, NameShort: club.nameShort });
   const meets = meetIndexMeets(index);
@@ -1726,10 +1727,10 @@ async function handleMedalClub(orgId, env) {
       };
     }),
   }));
-  console.log(`medalclub ${orgId}: ${scopes.length} scopes, ${ids.length} meets read`);
+  console.log(`medalclub ${wanted}: ${scopes.length} scopes, ${ids.length} meets read`);
   return new Response(
     JSON.stringify({
-      club: { id: String(club.id), name: club.name },
+      club: { id: String(club.id), name: club.name, slug: clubSlug(districts, clubs, club, groups) },
       scopes: [
         ...scopes.map(({ id, kind, name, short }) => ({ id, kind, name, short })),
         ...(notable.meets || []).map(({ id, name, short }) => ({ id, kind: 'notable', name, short })),
