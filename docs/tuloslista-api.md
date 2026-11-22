@@ -110,6 +110,8 @@ any other measurement goes.
   reaches the automatic qualifying mark may stop early (2026-08).
 - **No field shows whether a meet gives every athlete the same number of attempts or cuts to the top
   eight** (2026-08).
+- **Each official marks a field event's DNS in their own way**: `DNS` in `Result` or in an attempt,
+  only passes (`-`) with `Result` `NH`, or no attempts at all, once the round is Official (2026-11).
 
 ## Combined events (moniottelu)
 

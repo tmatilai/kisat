@@ -229,7 +229,7 @@ test('scheduleEventIds/buildRoster', () => {
       'Ulkomaalainen Vieras',
     ].sort(),
   );
-  assert.equal(roster.athletes.length, 246);
+  assert.equal(roster.athletes.length, 249);
 
   // Every allocation joins an enrollment on its Id, the only way to read its
   // confirmation. (Break on purpose: give
@@ -324,6 +324,8 @@ test('scheduleEventIds/buildRoster', () => {
       'Aada Harjoitinen',
       'Iiro Vierainen',
       'Aatu Vierainen',
+      'Valtteri Demoinen',
+      'Kalle Näytteinen',
       // e5
       'Ville Mallinen',
       'Joonas Testinen',
@@ -391,6 +393,7 @@ test('scheduleEventIds/buildRoster', () => {
       'Veeti Demoinen',
       'Oiva Mallinen',
       'Lauri Simulainen',
+      'Joonas Mallinen',
       // e26-e29
       'Vilja Testinen',
       'Eelis Kokeinen',

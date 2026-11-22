@@ -176,7 +176,7 @@ test('sortResults', () => {
   // decides the tie.)
   assert.deepEqual(
     sortResults(DEMO_EVENTS.e4.Rounds[0].Heats[0].Allocations).map((a) => a.Id),
-    ['d1', 'd2', 'd5', 'd4', 'd3'],
+    ['d1', 'd2', 'd5', 'd4', 'd3', 'd7', 'd6'],
   );
 
   // The countback's second step is fewer failures below the bar. Horizontal
@@ -933,11 +933,11 @@ test('shared heats', () => {
       ['M15', 'N15'],
     );
     const [heat] = mergeHeats(det);
-    assert.equal(heat.rows.length, 6, 'both classes are in the merge all the same');
+    assert.equal(heat.rows.length, 7, 'both classes are in the merge all the same');
     assert.deepEqual(
       heat.rows.map((r) => r.lane),
-      [1, 1, 2, 2, 3, 3],
-      'every draw number is used twice — a lane is not what this is',
+      [1, 1, 2, 2, 3, 3, 4],
+      'the classes repeat each draw number — a lane is not what this is',
     );
     assert.equal(
       new Set(heat.rows.map((r) => r.label)).size,
@@ -950,9 +950,9 @@ test('shared heats', () => {
     // is better, so none parses as a time.
     assert.equal(heatPlaces(heat.rows).size, 0);
     assert.equal(
-      heat.rows.every((r) => r.alloc.Result),
-      true,
-      'every one of them has a result, or the line above proves nothing',
+      heat.rows.filter((r) => r.alloc.Result).length,
+      6,
+      'all but the DNS have a result, or the line above proves nothing',
     );
     // Two field classes numbered as one draw are not shared either, since the
     // category gate decides before the lanes are read. (Break on purpose:
@@ -1274,7 +1274,7 @@ test('name-cell asides', () => {
     bestsParts(a).map((b) => beatsMark(a.Result, b.value, etKorkeus.Category, resultWind(a, etKorkeus)));
   assert.deepEqual(
     korkeusRows.map(beatenCm),
-    [[true], [false, false], [], [], []],
+    [[true], [false, false], [], [], [], [], []],
     '190 passed a 1.88 m best; 195 did not pass a 1.98 m one, and only equalled the 1.95 m SB',
   );
   // The same bests written in centimetres give the same answers.

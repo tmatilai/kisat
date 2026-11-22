@@ -240,6 +240,7 @@ test('watchEntryAthleteIds/watchTargets/filterEventIds/watchGroups', () => {
       'b1-a',
       'c3-a',
       'd1-a',
+      'd6-a',
       'f1-0',
       'f1-1',
       'f1-3',
@@ -700,7 +701,7 @@ test('allocPosition/allocMark', () => {
   // (Break on purpose: mute on qualPending and the Korkeus, one heat still
   // being jumped, reads as final.)
   const korkeus = DEMO_EVENTS.e4.Rounds[0];
-  assert.deepEqual(position(korkeus, 'd1-a'), { text: '1/5', pending: true });
+  assert.deepEqual(position(korkeus, 'd1-a'), { text: '1/7', pending: true });
   // (Break on purpose: drop `heatCount > 1` and this reads "Erä 1/1".)
   assert.deepEqual(
     allocPosition({ ResultRank: null }, 5, 1, 1, korkeus),
@@ -726,6 +727,20 @@ test('allocPosition/allocMark', () => {
   assert.equal(allocMark(jumper('d2'), DEMO_EVENTS.e4), '1.90');
   assert.equal(markFormat(DEMO_EVENTS.e4)(jumper('d2').PB), '1.88');
   assert.equal(allocMark(jumper('d3'), DEMO_EVENTS.e4), 'NH');
+  // Each way an official marks a field event's DNS (docs/tuloslista-api.md,
+  // "Field events"). (Break on purpose: count a pass as a try, and d7 reads
+  // "NH".)
+  assert.equal(allocMark(jumper('d6'), DEMO_EVENTS.e4, korkeus), 'DNS', 'DNS in an attempt');
+  assert.equal(allocMark(jumper('d7'), DEMO_EVENTS.e4, korkeus), 'DNS', 'only passes, and NH');
+  assert.equal(
+    allocMark({ ...jumper('d7'), Result: null }, DEMO_EVENTS.e4, korkeus),
+    '',
+    'only passes in a round still running: still to jump',
+  );
+  const kolmiloikka = DEMO_EVENTS.e25.Rounds[0];
+  const y7 = kolmiloikka.Heats[0].Allocations.find((a) => a.Id === 'y7');
+  assert.equal(allocMark(y7, DEMO_EVENTS.e25, kolmiloikka), 'DNS', 'no attempts once the round is Official');
+  assert.equal(allocMark(y7, DEMO_EVENTS.e25, { ...kolmiloikka, Status: 'Progress' }), '', 'and before that, nothing');
   assert.equal(
     allocMark(DEMO_EVENTS.e1.Rounds[0].Heats[0].Allocations[0], DEMO_EVENTS.e1),
     '11,42',

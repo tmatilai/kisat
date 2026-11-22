@@ -27,6 +27,7 @@ import {
   bibNumbersUsed,
   displayRank,
   earlierMarks,
+  fieldResultText,
   heatFinishOrder,
   heatPlaces,
   heatWind,
@@ -1203,7 +1204,7 @@ function fieldLadderCards(allocs, hasResults, { targets, team, compId, round, bi
           compId,
           // The badge precedes the wind, as in fieldLadderTable's result cell.
           [
-            a.Result || '',
+            fieldResultText(a, round, false),
             qualBadgeEl(a, round),
             a.Wind ? el('span', { class: 'att-wind' }, a.Wind) : null,
             pointsEl(a, points),
@@ -1233,7 +1234,7 @@ function verticalJumpCards(allocs, hasResults, { targets, team, compId, round, b
           hasResults,
           bibs,
           compId,
-          [verticalMarkText(a.Result), qualBadgeEl(a, round), pointsEl(a, points)],
+          [fieldResultText(a, round, true), qualBadgeEl(a, round), pointsEl(a, points)],
           aside(a),
         ),
         heights.map((h) => ladderCardHeight((h / 100).toFixed(2), byHeight.get(h))),
@@ -1287,7 +1288,7 @@ function fieldLadderTable(allocs, hasResults, cols, t) {
             el(
               'td',
               { class: 'result' },
-              a.Result || '',
+              fieldResultText(a, round, false),
               qualBadgeEl(a, round),
               a.Wind ? el('span', { class: 'att-wind' }, a.Wind) : null,
               pointsEl(a, points),
@@ -1340,7 +1341,7 @@ function verticalJumpTable(allocs, hasResults, heights, t) {
               if (!pat) return el('td', { class: 'att' }, el('span', { class: 'att-empty' }, '·'));
               return el('td', { class: 'att' }, barPatternEl(pat));
             }),
-            el('td', { class: 'result' }, verticalMarkText(a.Result), qualBadgeEl(a, round), pointsEl(a, points)),
+            el('td', { class: 'result' }, fieldResultText(a, round, true), qualBadgeEl(a, round), pointsEl(a, points)),
           ),
         ),
       ),
