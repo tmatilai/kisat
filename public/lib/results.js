@@ -256,9 +256,11 @@ function officialRank(a) {
   return a.scopeRank === a.ResultRank ? null : a.ResultRank;
 }
 
-function allocMark(alloc, data) {
-  if (!alloc?.Result) return '';
-  return markFormat(data)(alloc.Result);
+function allocMark(alloc, data, round) {
+  if (data?.EventCategory === 'Field') {
+    return fieldResultText(alloc, round, data.EventSubCategory === 'VerticalJump');
+  }
+  return alloc?.Result ? markFormat(data)(alloc.Result) : '';
 }
 
 // Every number a row prints goes through markFormat. A vertical jump's numbers
@@ -389,6 +391,22 @@ function verticalJumpRow(allocation) {
     if (Number.isFinite(h)) byHeight.set(h, att.Line2 || '');
   }
   return byHeight;
+}
+
+// Says whether a field athlete did not start, in any of the ways an official
+// marks it (docs/tuloslista-api.md, "Field events"). A pass ("-") is not a
+// try. A row with a mark, or with no Result in an unfinished round, has
+// started or may still start.
+function fieldDidNotStart(alloc, round, vertical) {
+  const attempts = alloc?.Attempts || [];
+  if (attempts.some((att) => att.Line1 === 'DNS' || att.Line2 === 'DNS')) return true;
+  if (alloc?.Result ? fieldMark(alloc.Result) != null : resultPending(round)) return false;
+  return !attempts.some((att) => /[xo\d]/i.test((vertical ? att.Line2 : att.Line1) || ''));
+}
+
+function fieldResultText(alloc, round, vertical) {
+  if (fieldDidNotStart(alloc, round, vertical)) return 'DNS';
+  return vertical ? verticalMarkText(alloc?.Result) : alloc?.Result || '';
 }
 
 // Writes a mark in metres, whatever its unit (fieldMark). "NH" stays as is.
@@ -567,6 +585,7 @@ export {
   bibNumbersUsed,
   displayRank,
   earlierMarks,
+  fieldResultText,
   followedKey,
   heatFinishOrder,
   heatPlaces,

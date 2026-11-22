@@ -1167,6 +1167,8 @@ DEMO_EVENTS.e4 = {
     demoEnrollment('d3', 42, 'Aada Harjoitinen', DEMO_ORG_TEKI),
     demoEnrollment('d4', 44, 'Iiro Vierainen', DEMO_ORG_ULKV),
     demoEnrollment('d5', 45, 'Aatu Vierainen', DEMO_ORG_ULKV),
+    demoEnrollment('d6', 46, 'Valtteri Demoinen', DEMO_ORG_DEMU),
+    demoEnrollment('d7', 47, 'Kalle Näytteinen', DEMO_ORG_NAVA),
   ],
   // The bests are in metres and the Results in centimetres, as a vertical
   // jump's can be. d2's 190 passes its 1.88 and d1's
@@ -1247,6 +1249,21 @@ DEMO_EVENTS.e4 = {
               ['195', 'xxx'],
             ],
             { result: '190', ku: true, cup: 690 },
+          ),
+          // Two ways to mark a DNS (docs/tuloslista-api.md, "Field events").
+          demoFieldAlloc('d6', 6, 46, 'Valtteri Demoinen', 'Demon Urheilijat', 'DemU', [['180', 'DNS']]),
+          demoFieldAlloc(
+            'd7',
+            7,
+            47,
+            'Kalle Näytteinen',
+            'Näyteniemen Vauhti',
+            'NäVa',
+            [
+              ['180', '-'],
+              ['185', '-'],
+            ],
+            { result: 'NH' },
           ),
         ]),
       ],
@@ -2236,6 +2253,7 @@ DEMO_EVENTS.e25 = {
     demoEnrollment('y4', 74, 'Veeti Demoinen', DEMO_ORG_DEMU),
     demoEnrollment('y5', 75, 'Oiva Mallinen', DEMO_ORG_HARJ),
     demoEnrollment('y6', 76, 'Lauri Simulainen', DEMO_ORG_TEKI),
+    demoEnrollment('y7', 77, 'Joonas Mallinen', DEMO_ORG_HARJ),
   ],
   Rounds: [
     demoRound('r25', 'Loppukilpailu', 0, demoTs(13, 30), [
@@ -2282,6 +2300,9 @@ DEMO_EVENTS.e25 = {
           ],
           { result: '9.62', rank: 3, wind: '+0,1' },
         ),
+        // A DNS can be a row with no attempts in an Official round
+        // (docs/tuloslista-api.md, "Field events").
+        demoFieldAlloc('y7', 4, 77, 'Joonas Mallinen', 'Harjoituspiirin Urheilijat', 'HarjU', []),
       ]),
     ]),
   ],

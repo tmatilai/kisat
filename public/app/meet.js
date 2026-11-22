@@ -716,7 +716,7 @@ function watchAllocLine(label, { alloc, total, heatIndex, heatCount }, { data, r
   const legs = legCount > 1 ? relayLegParts(alloc, legCount, named) : [];
   const club = alloc.Organization?.NameShort || alloc.Organization?.Name || '';
   const position = allocPosition(alloc, total, heatIndex, heatCount, round);
-  const mark = allocMark(alloc, data);
+  const mark = allocMark(alloc, data, round);
   const athleteId = soleAthleteId(alloc);
   const name = athleteId ? athleteNameLink(compId, athleteId, alloc, { nested: true }) : alloc.Name || '';
   return el(

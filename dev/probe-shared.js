@@ -264,7 +264,7 @@ export default async function probe({ D, W, log, ok, groupKey, appJs, settle }) 
   const kolmiHeads = heads('h3');
   log(`kolmiloikka classes: ${kolmiHeads.join(' | ')}`);
   ok('both classes rendered', kolmiHeads.length === 2);
-  ok('three jumpers each', D.querySelectorAll('#app .ladder-card').length === 6);
+  ok('three jumpers in one class, four in the other', D.querySelectorAll('#app .ladder-card').length === 7);
 
   // A track start's two classes can each draw their own lanes from 1, so six
   // runners share four lanes (lanesAreOneDraw, lib/results.js).

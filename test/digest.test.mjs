@@ -17,7 +17,7 @@ test('buildDigest/scanDigest', () => {
 
   assert.equal(digest.v, DIGEST_VERSION);
   assert.deepEqual(digest.days, ['8.8.2026']);
-  assert.equal(digest.athletes.length, 245, '246 roster rows, and Ville Mallinen is two of them');
+  assert.equal(digest.athletes.length, 248, '249 roster rows, and Ville Mallinen is two of them');
 
   // A club is one team row, holding each relay it has a team in once and in
   // schedule order. (Break on purpose: key the merge on the event as well and
@@ -105,6 +105,7 @@ test('buildDigest/scanDigest', () => {
       ['Sofia Demoinen', 'club'],
       ['Topias Vauhtinen', 'club'],
       ['Tuuli Simulainen', 'club'],
+      ['Valtteri Demoinen', 'club'],
       ['Veera Mallinen', 'club'],
       ['Veeti Demoinen', 'club'],
       ['Venla Mallinen', 'club'],
@@ -192,7 +193,7 @@ test('buildDigest/scanDigest', () => {
       ['Demon Urheilijat', 'club'],
     ],
   );
-  assert.equal(both.length, 35, "her club's other entries are still there, once each");
+  assert.equal(both.length, 36, "her club's other entries are still there, once each");
 
   // A followed person's relay for a followed club is on the club's line alone,
   // so Tuomas, whose only entry it is, gets no line.
@@ -218,7 +219,7 @@ test('buildDigest/scanDigest', () => {
     { type: 'club', id: 1 },
     { type: 'club', id: 2 },
   ]);
-  assert.equal(everyone.length, 58);
+  assert.equal(everyone.length, 59);
   assert.deepEqual(
     everyone.slice(0, 2).map((l) => l.name),
     ['Demon Urheilijat', 'Mallikylän Vire'],

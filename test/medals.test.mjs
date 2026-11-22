@@ -525,9 +525,9 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
   assert.deepEqual(
     piiriEntries(schedule, everything, DEMO_DISTRICTS),
     [
-      ['demy', 69],
-      ['maly', 49],
-      [null, 23],
+      ['demy', 70],
+      ['maly', 50],
+      [null, 24],
     ],
     'a person once, a club in no piiri under null',
   );
@@ -2202,7 +2202,13 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
           ['Lauri Simulainen', 3, 2],
         ],
       ],
-      [null, [['Oiva Mallinen', 2, null]]],
+      [
+        null,
+        [
+          ['Oiva Mallinen', 2, null],
+          ['Joonas Mallinen', null, null],
+        ],
+      ],
     ],
     "M15 inside the alue's cover",
   );
