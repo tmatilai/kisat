@@ -474,14 +474,14 @@ function resultPending(round) {
   return round?.Status !== 'Official';
 }
 
-// Returns the place as ResultRank over the round's field ("3/28"), or before a
-// result the drawn heat where there are several (docs/views.md). resultPending
-// mutes it, as qualPending would miss a single-heat field event.
-function allocPosition(alloc, total, heatIndex, heatCount, round) {
+// Returns the place as ResultRank over the round's field ("3/28"), or before
+// the row has a mark (allocMark) the drawn heat where there are several.
+// resultPending mutes it, as qualPending would miss a single-heat field event.
+function allocPosition(alloc, total, heatIndex, heatCount, round, mark = '') {
   if (alloc?.ResultRank != null) {
     return { text: positionText(alloc.ResultRank, total), pending: resultPending(round) };
   }
-  if (heatIndex != null && heatCount > 1) return { text: `Erä ${heatIndex}/${heatCount}`, pending: false };
+  if (!mark && heatIndex != null && heatCount > 1) return { text: `Erä ${heatIndex}/${heatCount}`, pending: false };
   return { text: '', pending: false };
 }
 

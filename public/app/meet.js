@@ -715,8 +715,8 @@ async function groupLines(g, eventIds, targets, store, compId, startsAt) {
 function watchAllocLine(label, { alloc, total, heatIndex, heatCount }, { data, round }, { legCount, compId, named }) {
   const legs = legCount > 1 ? relayLegParts(alloc, legCount, named) : [];
   const club = alloc.Organization?.NameShort || alloc.Organization?.Name || '';
-  const position = allocPosition(alloc, total, heatIndex, heatCount, round);
   const mark = allocMark(alloc, data, round);
+  const position = allocPosition(alloc, total, heatIndex, heatCount, round, mark);
   const athleteId = soleAthleteId(alloc);
   const name = athleteId ? athleteNameLink(compId, athleteId, alloc, { nested: true }) : alloc.Name || '';
   return el(
