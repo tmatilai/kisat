@@ -696,6 +696,12 @@ test('allocPosition/allocMark', () => {
     'the rank over the whole round, muted while the round can move',
   );
   assert.deepEqual(position(semi, 'i3-a'), { text: 'Erä 2/2', pending: false }, 'before a result, the drawn heat');
+  // (Break on purpose: drop `!mark` from allocPosition and this reads "Erä 2/2".)
+  assert.deepEqual(
+    allocPosition({ ResultRank: null }, 6, 2, 2, semi, 'DNS'),
+    { text: '', pending: false },
+    'a mark with no rank, such as a DNS, leaves the heat behind',
+  );
   const karsinta = DEMO_EVENTS.e3.Rounds.find((r) => r.Id === 'r3q');
   assert.deepEqual(position(karsinta, 'c4-a'), { text: '1/4', pending: false }, 'an Official round is not muted');
   // (Break on purpose: mute on qualPending and the Korkeus, one heat still
