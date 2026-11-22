@@ -46,13 +46,44 @@ function duplicateClubs(districts, clubs) {
     if (rows.length < 2) continue;
     // The record a piiri lists is the federation's own.
     const unlisted = (c) => (listed.has(c.nameShort) ? 0 : 1);
-    rows.sort(
-      (a, b) => unlisted(a) - unlisted(b) || Number(a.id) - Number(b.id) || String(a.id).localeCompare(String(b.id)),
-    );
+    rows.sort((a, b) => unlisted(a) - unlisted(b) || clubIdOrder(a, b));
     const group = { canonical: rows[0], ids: rows.map((c) => String(c.id)) };
     for (const id of group.ids) out.set(id, group);
   }
   return out;
+}
+
+function clubIdOrder(a, b) {
+  return Number(a.id) - Number(b.id) || String(a.id).localeCompare(String(b.id));
+}
+
+// --- A club's slug, the NameShort its page's URL carries ---
+// Only a club that a piiri lists has a slug, because unrelated clubs can share
+// a NameShort (docs/tuloslista-api.md, "Categories, names and identity").
+
+// Returns the club record whose slug is `slug`, in any case, or null. It is
+// the canonical record: duplicate records share a name, and duplicateClubs
+// also prefers the listed record, then the lowest id.
+function clubBySlug(districts, clubs, slug) {
+  const key = String(slug ?? '')
+    .normalize('NFC')
+    .toLowerCase();
+  const piiri = (districts?.piirit || []).find((p) =>
+    (p.clubs || []).some((s) => s.normalize('NFC').toLowerCase() === key),
+  );
+  if (!piiri) return null;
+  const short = piiri.clubs.find((s) => s.normalize('NFC').toLowerCase() === key);
+  const names = new Set((piiri.names || []).map(clubNameKey));
+  const unnamed = (c) => (names.has(clubNameKey(c.name)) ? 0 : 1);
+  const found = (clubs || []).filter((c) => c.nameShort === short);
+  return found.sort((a, b) => unnamed(a) - unnamed(b) || clubIdOrder(a, b))[0] || null;
+}
+
+function clubSlug(districts, clubs, club, groups = duplicateClubs(districts, clubs)) {
+  const canonical = groups.get(String(club?.id))?.canonical || club;
+  if (!canonical?.nameShort) return null;
+  const found = clubBySlug(districts, clubs, canonical.nameShort);
+  return found && String(found.id) === String(canonical.id) ? canonical.nameShort : null;
 }
 
 // Proof-reads districts.json. It returns a line per problem, or [] if none.
@@ -591,8 +622,10 @@ export {
   SAUL_RE,
   SM_WORD_RE,
   closedPair,
+  clubBySlug,
   clubNameKey,
   clubScopes,
+  clubSlug,
   coverOfTicks,
   coverTicks,
   coverWords,

@@ -9,6 +9,7 @@ import { join, resolve } from 'node:path';
 
 // A listed meet's keys carry elsewhereTag, so the seeded keys compute it. A
 // tag spelled by hand would miss after a bump and send the route to a build.
+import districts from './public/data/districts.json' with { type: 'json' };
 import elsewhere from './public/data/elsewhere.json' with { type: 'json' };
 import { ALONE_ID_RE, elsewhereTag } from './public/lib/elsewhere.js';
 import { DIGEST_VERSION } from './public/lib/digest.js';
@@ -104,11 +105,14 @@ const SCAN_CALENDAR = {
 const STALE_BUILT_AT = Date.now() - 8 * 24 * 60 * 60 * 1000;
 // Only a build writes the club index (mergeOrgIndex, lib/indexes.js). The merge
 // stores its rows sorted by name.
+// Club 3 carries an abbreviation that districts.json lists, so it has a slug.
+const LISTED_SHORT = districts.piirit.find((p) => p.clubs.length).clubs[0];
 const ORG_INDEX = {
   v: 1,
   orgs: [
     ['1', 'Demon Urheilijat', 'DemU'],
     ['2', 'Malliseura', 'MalV'],
+    ['3', 'Testiseura', LISTED_SHORT],
   ],
 };
 
@@ -947,13 +951,14 @@ try {
   {
     const r = await api('/api/clubs');
     assert.equal(r.status, 200);
-    assert.equal(r.headers.get('x-clubs'), '2');
+    assert.equal(r.headers.get('x-clubs'), '3');
     const { clubs } = await r.json();
     assert.deepEqual(
       clubs,
       [
         { id: '1', name: 'Demon Urheilijat', nameShort: 'DemU' },
         { id: '2', name: 'Malliseura', nameShort: 'MalV' },
+        { id: '3', name: 'Testiseura', nameShort: LISTED_SHORT },
       ],
       'the picker gets objects, not the stored positional rows',
     );
@@ -1370,14 +1375,14 @@ try {
   }
   console.log('GET /api/cupseason/:year ok');
 
-  // --- GET /api/medalclub/:orgId: a club's medals in its scopes' years, off
+  // --- GET /api/medalclub/:club: a club's medals in its scopes' years, off
   // the stored records alone. ---
   {
     const r = await api('/api/medalclub/1');
     assert.equal(r.status, 200);
     assert.equal(r.headers.get('cache-control'), 'no-store');
     const body = await r.json();
-    assert.deepEqual(body.club, { id: '1', name: 'Demon Urheilijat' });
+    assert.deepEqual(body.club, { id: '1', name: 'Demon Urheilijat', slug: null });
     // (Break on purpose: answer every scope.)
     assert.deepEqual(
       body.scopes.map((s) => [s.id, s.kind]),
@@ -1422,12 +1427,19 @@ try {
       [['18978', [{ start: { EventName: 'T13 60m', Age: '13' }, medals: [['1', 1, 'a1']] }]]],
     );
     assert.deepEqual(notableOf('yag').pending, ['19614']);
+    // (Break on purpose: match the slug in its own case only.)
+    for (const club of ['3', LISTED_SHORT.toLowerCase()]) {
+      const listed = await api(`/api/medalclub/${encodeURIComponent(club)}`);
+      assert.equal(listed.status, 200, club);
+      assert.deepEqual((await listed.json()).club, { id: '3', name: 'Testiseura', slug: LISTED_SHORT }, club);
+    }
     assert.equal((await api('/api/medalclub/999')).status, 404, 'a club the index lacks');
+    assert.equal((await api('/api/medalclub/DemU')).status, 404, 'an abbreviation no piiri lists');
     assert.equal((await api('/api/medalclub/a%20b')).status, 400);
     assert.equal((await api('/api/medalclub/1', { method: 'POST' })).status, 405);
     assert.equal((await fetch(`${BASE}/api/medalclub/1`)).status, 403, 'the x-kisat-client gate covers this route too');
   }
-  console.log('GET /api/medalclub/:orgId ok');
+  console.log('GET /api/medalclub/:club ok');
 
   // --- GET /api/medalathlete/:id: an athlete's medals, read from the records
   // that the medalist index lists. ---

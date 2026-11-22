@@ -853,22 +853,26 @@ async function renderMedalClub({ club, medalists, year: wantedYear, ages }) {
   const state = viewStateFor(HOME_VIEW_KEY);
   const bar = filterBar(HOME_VIEW_KEY, state, { label: watchLabel(state.watchId) }, false);
   const url = `/api/medalclub/${encodeURIComponent(club)}`;
-  const data = await keptData(url, () => fetchJson(url).catch(() => null));
+  // A club the index lacks is false, which keptData keeps, unlike a failed
+  // fetch's null.
+  const data = await keptData(url, () => fetchJson(url).catch((e) => (e.status === 404 ? false : null)));
   if (seq !== renderSeq) return;
   if (!data) {
-    appEl.replaceChildren(bar, el('div', { class: 'notice error' }, 'Seuran mitalien haku epäonnistui.'));
+    const text = data === false ? 'Seuraa ei löytynyt.' : 'Seuran mitalien haku epäonnistui.';
+    appEl.replaceChildren(bar, el('div', { class: data === false ? 'notice' : 'notice error' }, text));
     return;
   }
   // The `medalists` argument of clubYearsHash, with the year from the address.
   const tab = medalists ? (wantedYear ?? true) : false;
-  // A duplicate record's id gets its canonical club (docs/backend.md, "The
-  // club index").
-  if (data.club.id !== club) {
-    club = data.club.id;
-    replaceAddress(`${MEDAL_SEASON_PAGE_PATH}${clubYearsHash(club, ages, tab)}`);
+  // The address names the canonical club (docs/backend.md, "The club index").
+  const link = data.club.slug || data.club.id;
+  if (link !== club) {
+    keepData(`/api/medalclub/${encodeURIComponent(link)}`, data);
+    replaceAddress(`${MEDAL_SEASON_PAGE_PATH}${clubYearsHash(link, ages, tab)}`);
   }
+  club = data.club.id;
   const tabLink = (label, to, current) =>
-    redrawTabEl(label, `${MEDAL_SEASON_PAGE_PATH}${clubYearsHash(club, ages, to)}`, current);
+    redrawTabEl(label, `${MEDAL_SEASON_PAGE_PATH}${clubYearsHash(link, ages, to)}`, current);
   bar.append(segControl('Näkymä', [tabLink('Vuodet', false, !medalists), tabLink('Mitalistit', true, medalists)]));
   if (medalists)
     bar.append(
@@ -878,6 +882,7 @@ async function renderMedalClub({ club, medalists, year: wantedYear, ages }) {
       ),
     );
   clubNames.set(club, data.club.name);
+  clubNames.set(link, data.club.name);
   titleEl.textContent = data.club.name;
   if (medalists && !medalYearOk(year, todayIso)) {
     appEl.replaceChildren(bar, el('div', { class: 'notice' }, `Vuoden ${year} mitaleita ei ole saatavilla.`));
@@ -887,7 +892,7 @@ async function renderMedalClub({ club, medalists, year: wantedYear, ages }) {
   const chipAges = clubYearAges(data);
   const shown = ages.filter((a) => chipAges.includes(a));
   const cover = shown.length ? { ages: shown, events: null } : null;
-  const go = (next) => navigate(`${MEDAL_SEASON_PAGE_PATH}${clubYearsHash(club, next, tab)}`, { redraw: true });
+  const go = (next) => navigate(`${MEDAL_SEASON_PAGE_PATH}${clubYearsHash(link, next, tab)}`, { redraw: true });
   appEl.replaceChildren(
     bar,
     el(
@@ -896,15 +901,15 @@ async function renderMedalClub({ club, medalists, year: wantedYear, ages }) {
       chipAges.length ? ageChips(chipAges, shown, go) : null,
       medalists
         ? clubMedalistsEls(data, clubYearMedalists(data, year, cover), { year, ages, shown, chipAges, club })
-        : clubYearsEls(clubYearTable(data, cover), ages, club),
+        : clubYearsEls(clubYearTable(data, cover), ages, club, link),
     ),
   );
 }
 
 // Draws the sum of the chosen scopes' medals, then a table per scope.
-function clubYearsEls(table, ages, club) {
+function clubYearsEls(table, ages, club, link) {
   return [
-    clubAllEl(table, ages, club),
+    clubAllEl(table, ages, club, link),
     ...table.flatMap(({ scope, years }) =>
       scope.kind === 'notable'
         ? notableYearsEls(scope, years, ages, club)
@@ -938,7 +943,7 @@ const clubAllOff = new Map();
 
 // Draws the sum of a club's medals per year over the scopes its chips pick. A
 // chip redraws the sum alone. A scope with no medal in any year has no chip.
-function clubAllEl(table, ages, club) {
+function clubAllEl(table, ages, club, link) {
   const rows = table.filter(({ years }) => years.some((y) => y.total));
   const off = clubAllOff.get(club) || new Set();
   clubAllOff.set(club, off);
@@ -975,7 +980,7 @@ function clubAllEl(table, ages, club) {
         (y) =>
           el(
             'a',
-            { class: 'year-link', href: `${MEDAL_SEASON_PAGE_PATH}${clubYearsHash(club, ages, y.year)}` },
+            { class: 'year-link', href: `${MEDAL_SEASON_PAGE_PATH}${clubYearsHash(link, ages, y.year)}` },
             String(y.year),
           ),
       ),

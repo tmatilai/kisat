@@ -10,6 +10,8 @@ import {
   coversStart,
   defaultScopes,
   districtProblems,
+  clubBySlug,
+  clubSlug,
   duplicateClubs,
   meetScopes,
   scopeTree,
@@ -643,4 +645,38 @@ test('duplicateClubs', () => {
   // (Break on purpose: drop the check for an empty key.)
   assert.equal(duplicates.has('30'), false, 'a name of punctuation alone');
   assert.equal(duplicates.has('20'), false, 'a club with one record');
+});
+
+test('clubBySlug, clubSlug', () => {
+  const clubs = [
+    { id: '12', name: 'Demon-Urheilijat', nameShort: 'DemU' },
+    { id: '3', name: 'Demon Urheilijat', nameShort: 'DemU' },
+    { id: '7', name: 'Testilän Kisa ry', nameShort: 'Falken' },
+    { id: '40', name: 'Testilän Kisa', nameShort: 'TeKi' },
+    { id: '2', name: 'Joku Muu Seura', nameShort: 'MalV' },
+    { id: '8', name: 'Mallikylän Vire', nameShort: 'MalV' },
+    { id: '9', name: 'Toinen Seura', nameShort: 'NäVa' },
+    { id: '20', name: 'Kisalan Veikot', nameShort: 'KisVe' },
+  ];
+  const by = (slug) => clubBySlug(DEMO_DISTRICTS, clubs, slug)?.id ?? null;
+  const slug = (id) =>
+    clubSlug(
+      DEMO_DISTRICTS,
+      clubs,
+      clubs.find((c) => c.id === id),
+    );
+  // (Break on purpose: compare the case.)
+  assert.equal(by('DemU'), '3');
+  assert.equal(by('demu'), '3', 'a typed name in its own case');
+  assert.equal(slug('12'), 'DemU', "a duplicate record has its canonical club's slug");
+  assert.equal(slug('7'), 'TeKi', "a hand-made record's own abbreviation is not its slug");
+  assert.equal(by('Falken'), null);
+  // (Break on purpose: drop the piiri's names.)
+  assert.equal(by('MalV'), '8', 'the record whose name the piiri lists');
+  assert.equal(slug('2'), null, "a record that carries another club's abbreviation");
+  assert.equal(by('näva'), '9', 'a record the piiri names no one else for');
+  // (Break on purpose: give every club its abbreviation.)
+  assert.equal(slug('20'), null, 'a club no piiri lists');
+  assert.equal(by('KisVe'), null);
+  assert.equal(by(''), null);
 });
