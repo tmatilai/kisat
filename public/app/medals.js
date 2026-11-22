@@ -9,6 +9,7 @@ import {
   clubMedalists,
   clubYearAges,
   clubYearMedalists,
+  clubYearSums,
   clubYearTable,
   followedRows,
   medalAges,
@@ -895,25 +896,93 @@ async function renderMedalClub({ club, medalists, year: wantedYear, ages }) {
       chipAges.length ? ageChips(chipAges, shown, go) : null,
       medalists
         ? clubMedalistsEls(data, clubYearMedalists(data, year, cover), { year, ages, shown, chipAges, club })
-        : clubYearTable(data, cover).flatMap(({ scope, years }) =>
-            scope.kind === 'notable'
-              ? notableYearsEls(scope, years, ages, club)
-              : [
-                  el('h2', {}, championshipTitle(scope)),
-                  clubYearsTableEl(years, (y) =>
-                    el(
-                      'a',
-                      {
-                        class: 'year-link',
-                        href: `${MEDAL_SEASON_PAGE_PATH}${seasonHash(scope.id, y.year, ages, club)}`,
-                      },
-                      String(y.year),
-                    ),
-                  ),
-                ],
-          ),
+        : clubYearsEls(clubYearTable(data, cover), ages, club),
     ),
   );
+}
+
+// Draws the sum of the chosen scopes' medals, then a table per scope.
+function clubYearsEls(table, ages, club) {
+  return [
+    clubAllEl(table, ages, club),
+    ...table.flatMap(({ scope, years }) =>
+      scope.kind === 'notable'
+        ? notableYearsEls(scope, years, ages, club)
+        : [
+            el('h2', {}, championshipTitle(scope)),
+            clubYearsTableEl(years, (y) =>
+              el(
+                'a',
+                {
+                  class: 'year-link',
+                  href: `${MEDAL_SEASON_PAGE_PATH}${seasonHash(scope.id, y.year, ages, club)}`,
+                },
+                String(y.year),
+              ),
+            ),
+          ],
+    ),
+  ];
+}
+
+const SCOPE_ABBR = { maa: 'SM', alue: 'AM', piiri: 'PM' };
+
+// A club has one scope of each championship kind, so the kind's abbreviation
+// names it.
+function scopeChipLabel(scope) {
+  return SCOPE_ABBR[scope.kind] ?? scope.short ?? scope.name;
+}
+
+// The scopes left out of a club's sum, per club, until the page reloads.
+const clubAllOff = new Map();
+
+// Draws the sum of a club's medals per year over the scopes its chips pick. A
+// chip redraws the sum alone. A scope with no medal in any year has no chip.
+function clubAllEl(table, ages, club) {
+  const rows = table.filter(({ years }) => years.some((y) => y.total));
+  const off = clubAllOff.get(club) || new Set();
+  clubAllOff.set(club, off);
+  const box = el('section', { class: 'club-all' });
+  const paint = () => {
+    const on = rows.filter(({ scope }) => !off.has(scope.id));
+    box.replaceChildren(
+      el('h2', {}, 'Kaikki mitalit'),
+      el(
+        'div',
+        { class: 'cover-chips no-print' },
+        rows.map(({ scope }) => {
+          const pressed = !off.has(scope.id);
+          return el(
+            'button',
+            {
+              class: `chip chip-toggle${pressed ? ' on' : ''}`,
+              'aria-pressed': String(pressed),
+              onclick: () => {
+                if (pressed) off.add(scope.id);
+                else off.delete(scope.id);
+                paint();
+              },
+            },
+            scopeChipLabel(scope),
+          );
+        }),
+      ),
+      clubYearsTableEl(
+        clubYearSums(
+          table,
+          on.map(({ scope }) => scope.id),
+        ),
+        (y) =>
+          el(
+            'a',
+            { class: 'year-link', href: `${MEDAL_SEASON_PAGE_PATH}${clubYearsHash(club, ages, y.year)}` },
+            String(y.year),
+          ),
+      ),
+    );
+  };
+  paint();
+  return box;
 }
 
 // Draws a club's medalists of one year per scope: a heading with the club's
@@ -997,6 +1066,7 @@ function notableYearsEls(scope, years, ages, club) {
 }
 
 function clubYearsTableEl(years, yearCell) {
+  const max = Math.max(0, ...years.map((y) => y.total));
   return wrap(
     el(
       'table',
@@ -1010,6 +1080,7 @@ function clubYearsTableEl(years, yearCell) {
           el('th', {}, 'Vuosi'),
           [1, 2, 3].map((m) => el('th', { class: 'num' }, medalEl(m))),
           el('th', { class: 'num' }, 'Yht'),
+          el('th', { class: 'medal-bar-cell', 'aria-hidden': 'true' }),
         ),
       ),
       el(
@@ -1027,10 +1098,23 @@ function clubYearsTableEl(years, yearCell) {
             ),
             y.medals.map((n) => el('td', { class: 'num' }, n ? String(n) : '')),
             el('td', { class: 'num' }, String(y.total)),
+            el('td', { class: 'medal-bar-cell', 'aria-hidden': 'true' }, medalBarEl(y.medals, max)),
           ),
         ),
       ),
     ),
+  );
+}
+
+// Draws a year's medals as a bar of gold, silver and bronze, at a width
+// relative to the table's largest year.
+function medalBarEl(medals, max) {
+  return el(
+    'div',
+    { class: 'medal-bar' },
+    max
+      ? medals.map((n, i) => (n ? el('span', { class: `medal-${i + 1}`, style: `width:${(100 * n) / max}%` }) : null))
+      : null,
   );
 }
 

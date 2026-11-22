@@ -32,6 +32,7 @@ import {
   clubSeasonMeets,
   clubYearAges,
   clubYearMedalists,
+  clubYearSums,
   clubYearTable,
   followedRows,
   isNotableMeet,
@@ -2254,11 +2255,17 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
 
 // A notable meet's id names a table of a club's years beside the scopes', and
 // a meet counts in one entry alone. (Break on purpose: name an entry `sm`, list
-// a meet twice, or drop the row's `sm: false` from elsewhere.json.)
+// a meet twice, drop an entry's `short`, or drop the row's `sm: false` from
+// elsewhere.json.)
 test('notable.json: each meet once, under an id no scope takes', () => {
   const ids = notable.meets.map((n) => n.id);
   const comps = notable.meets.flatMap((n) => n.comps);
   assert.equal(new Set(ids).size, ids.length);
+  assert.deepEqual(
+    notable.meets.filter((n) => typeof n.short !== 'string' || !n.short),
+    [],
+    'every entry has a `short`',
+  );
   const alone = new Set(elsewhere.meets.filter((m) => m.id != null && m.sm === false).map((m) => m.id));
   assert.deepEqual(
     comps.filter((c) => !Number.isInteger(c) && !alone.has(c)),
@@ -2541,4 +2548,17 @@ test("an athlete's years: the medalist index and the lines", () => {
     record.starts.filter((s) => !at(s.start.EventName).link).map((s) => s.start.EventName),
     [],
   );
+});
+
+test("a club's years: the sums of the chosen scopes", () => {
+  const row = (year, medals) => ({ year, medals, total: medals[0] + medals[1] + medals[2] });
+  const table = [
+    { scope: { id: 'sm' }, years: [row(2026, [1, 0, 2]), row(2025, [0, 0, 0])] },
+    { scope: { id: 'demy' }, years: [row(2026, [3, 1, 0]), row(2025, [2, 2, 1])] },
+    { scope: { id: 'avoimet' }, years: [row(2026, [5, 5, 5]), row(2025, [0, 1, 0])] },
+  ];
+  // (Break on purpose: sum every scope, or drop a year.)
+  assert.deepEqual(clubYearSums(table, ['sm', 'demy']), [row(2026, [4, 1, 2]), row(2025, [2, 2, 1])]);
+  assert.deepEqual(clubYearSums(table, []), [row(2026, [0, 0, 0]), row(2025, [0, 0, 0])]);
+  assert.deepEqual(clubYearSums([], ['sm']), []);
 });

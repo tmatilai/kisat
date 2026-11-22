@@ -1,6 +1,6 @@
 {
   "meets": [
-    { "id": "tjig", "name": "Tampere Junior Indoor Games", "comps": [16672, 18978] },
-    { "id": "yag", "name": "Youth Athletics Games", "comps": ["yag-2025", 19614, 19616] }
+    { "id": "tjig", "name": "Tampere Junior Indoor Games", "short": "TJIG", "comps": [16672, 18978] },
+    { "id": "yag", "name": "Youth Athletics Games", "short": "YAG", "comps": ["yag-2025", 19614, 19616] }
   ]
 }
