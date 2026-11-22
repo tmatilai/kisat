@@ -613,6 +613,13 @@ test('matchedEntries', () => {
   assert.equal(allocated[0].total, 3, 'field size comes from roundFieldSize once a round exists');
   assert.equal(allocated[0].heatIndex, 1);
   assert.equal(allocated[0].heatCount, 1, 'M Kuula has just the one heat');
+  // e4 lists d2 before d1, and d3 before d6. (Break on purpose: drop the sort,
+  // and d2 comes first.)
+  assert.deepEqual(
+    matchedEntries(DEMO_EVENTS.e4.Rounds[0], null, ids(['d6-a', 'd3-a', 'd2-a', 'd1-a'])).map((m) => m.alloc.Id),
+    ['d1', 'd2', 'd3', 'd6'],
+    'by place, then the rows with no place in draw order',
+  );
 
   const unallocated = matchedEntries(null, DEMO_EVENTS.e6.Enrollments, ids(['g1-a']));
   assert.equal(unallocated.length, 1);
