@@ -406,6 +406,8 @@ test('watchEntryAthleteIds/watchTargets/filterEventIds/watchGroups', () => {
       'e56',
       'e57',
       'e58',
+      'e60',
+      'e61',
     ]),
   );
   // Without the club's own team the relay drops out. (Break on purpose: match
@@ -439,6 +441,8 @@ test('watchEntryAthleteIds/watchTargets/filterEventIds/watchGroups', () => {
       'e56',
       'e57',
       'e58',
+      'e60',
+      'e61',
     ]),
     "a club's athlete in somebody else's team does not pull that team's relay in — the rest of the club's " +
       'own individual entries still match',

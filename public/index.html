@@ -746,6 +746,30 @@
       .att-empty {
         color: var(--line);
       }
+      /* An attempt still to come, numbered with its place in the order
+         (attemptNext, app/event.js). The outline sets it apart from a mark,
+         and the athlete whose turn it is gets a filled one. It has no hue,
+         because a red foul can be next to it. */
+      .att-next {
+        display: inline-block;
+        min-width: 16px;
+        padding: 0 4px;
+        border: 1px solid var(--text);
+        border-radius: 8px;
+        font-size: 11px;
+        line-height: 14px;
+        font-weight: 600;
+        color: var(--text);
+        text-align: center;
+      }
+      .att-next.att-now {
+        background: var(--text);
+        color: var(--card);
+      }
+      .att-x + .att-next,
+      .att-mark + .att-next {
+        margin-left: 3px;
+      }
       /* Below 700px, main's own split, a ladder does not fit even scrolled.
          fieldLadderTable and verticalJumpTable (app/event.js) also render
          cards, and one of the two shows. */

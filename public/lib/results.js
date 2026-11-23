@@ -417,6 +417,214 @@ function fieldResultText(alloc, round, vertical) {
   return vertical ? verticalMarkText(alloc?.Result) : alloc?.Result || '';
 }
 
+// --- The order of a field heat's next attempts ---
+
+const ATTEMPT_ORDER_COUNT = 3;
+const MAX_ATTEMPTS = 6;
+
+// Returns the next three attempts of a field heat in progress as a Map from a
+// row's Id to { n, slot }. `n` is the attempt's place in the order. `slot` is
+// its column: the attempt's index in a throw or a horizontal jump, and the bar
+// in cm in a vertical jump. The order starts at the athlete whose turn it is,
+// read from ActiveAllocationId (docs/tuloslista-api.md, "Field events"). That
+// athlete is first until their attempt has a result. If the heat has no
+// ActiveAllocationId and the round is `live`, the order starts after the latest
+// attempt. In a multi-event `leg`, each athlete has three attempts in a throw
+// or a horizontal jump, and other meets give more (2026-11).
+function fieldAttemptOrder(heat, vertical, { leg = false, live = false } = {}) {
+  const rows = heat?.Allocations || [];
+  const active = rows.find((a) => a.AllocId != null && a.AllocId === heat?.ActiveAllocationId);
+  const index = heat?.ActiveAllocationAttemptIndex ?? -1;
+  let next = [];
+  if (active && index >= 0) {
+    next = vertical
+      ? firstAttempts(verticalAttemptWalk(rows, active, index))
+      : roundAttempts(rows, activeCandidates(rows, active, index), leg ? 3 : MAX_ATTEMPTS);
+  } else if (live && vertical) {
+    const last = lastOverBar(rows);
+    if (last) next = firstAttempts(verticalAttemptWalk(rows, last.active, last.index));
+  } else if (live) {
+    next = roundAttempts(rows, latestCandidates(rows), leg ? 3 : MAX_ATTEMPTS);
+  }
+  return new Map(next.map(({ row, slot }, i) => [row.Id, { n: i + 1, slot }]));
+}
+
+function firstAttempts(walk) {
+  const out = [];
+  for (const step of walk) {
+    if (out.length === ATTEMPT_ORDER_COUNT) break;
+    out.push(step);
+  }
+  return out;
+}
+
+const attemptFilled = (att) => Boolean(att?.Line1);
+const byDraw = (a, b) => (a.Position ?? 0) - (b.Position ?? 0);
+
+// The two orders of the rounds after the third. Only the rows with a
+// ReverseOrderRank continue, taken as the top eight. Meets use either the
+// reverse order of ranking or the draw order (2026-11). No ReverseOrderRank
+// has been seen during a meet (2026-11). Without one, every row continues in
+// draw order, as in a meet of four attempts each.
+const LATER_ORDERS = ['reversed', 'draw'];
+
+// Returns the rows that take part in round `slot` of a throw or a horizontal
+// jump, in the order that `later` names (LATER_ORDERS).
+function roundOrder(rows, slot, later) {
+  const ranked = rows.filter((a) => a.ReverseOrderRank != null);
+  if (slot < 3 || !ranked.length) return [...rows].sort(byDraw);
+  if (later === 'draw') return ranked.sort(byDraw);
+  return ranked.sort((a, b) => b.ReverseOrderRank - a.ReverseOrderRank || byDraw(a, b));
+}
+
+// Says whether the row's athlete is still to have their attempt in round
+// `slot`. An entered pass ("-") counts as an attempt.
+const attemptDue = (row, slot) =>
+  !attemptFilled(row.Attempts?.[slot]) &&
+  (slot === 0 || attemptFilled(row.Attempts?.[slot - 1])) &&
+  !markedDidNotStart(row);
+// Says whether the row has a throw or a jump in round `slot`, a mark or a foul.
+const attemptMarked = (row, slot) =>
+  attemptFilled(row.Attempts?.[slot]) && !['-', 'DNS'].includes(row.Attempts[slot].Line1);
+
+// Counts the rows that contradict `order` if it is the turn of the athlete at
+// `at` in round `slot`: the rows before them that are still to have their
+// attempt, and the rows after them that have had it.
+function orderMisfit(order, at, slot) {
+  const before = order.slice(0, at).filter((row) => attemptDue(row, slot)).length;
+  return before + order.slice(at + 1).filter((row) => attemptMarked(row, slot)).length;
+}
+
+// Returns a candidate { later, active, index, misfit } for each order in
+// LATER_ORDERS: the order, the athlete whose turn it is, the attempt's index,
+// and the order's orderMisfit. In the first three rounds, both orders are the
+// draw order, so both fit.
+function activeCandidates(rows, active, index) {
+  return LATER_ORDERS.map((later) => {
+    const order = roundOrder(rows, index, later);
+    const at = order.indexOf(active);
+    const misfit = index < 3 ? 0 : at < 0 ? null : orderMisfit(order, at, index);
+    return { later, active, index, misfit };
+  });
+}
+
+// Returns the candidates, as activeCandidates does, for a heat with no
+// ActiveAllocationId. A candidate's athlete is the one who had the latest
+// attempt in that order. Of the athletes with an attempt in the latest round,
+// it is the one whose place in the order contradicts the fewest rows, so that
+// an athlete who is away, or one who had their attempt before their turn, does
+// not move the order. Of two that fit equally well, the later one in the order
+// is taken. Before the first attempt, the order starts at the top of the draw.
+function latestCandidates(rows) {
+  const slots = rows.flatMap((row) => (row.Attempts || []).map((_, i) => i).filter((i) => attemptMarked(row, i)));
+  if (!slots.length) return LATER_ORDERS.map((later) => ({ later, active: null, index: 0, misfit: 0 }));
+  const slot = Math.max(...slots);
+  return LATER_ORDERS.map((later) => {
+    const order = roundOrder(rows, slot, later);
+    let best = null;
+    order.forEach((row, at) => {
+      if (!attemptMarked(row, slot)) return;
+      const misfit = orderMisfit(order, at, slot);
+      if (!best || misfit <= best.misfit) best = { later, active: row, index: slot, misfit };
+    });
+    return best || { later, active: null, index: slot, misfit: null };
+  });
+}
+
+// Returns the next attempts of a throw or a horizontal jump, in the order of
+// the candidates with the lowest `misfit`. Where two orders fit equally well, it
+// returns only the attempts that both orders give.
+function roundAttempts(rows, picks, attempts) {
+  const fitting = picks.filter((p) => p.misfit != null);
+  if (!fitting.length) return [];
+  const best = Math.min(...fitting.map((p) => p.misfit));
+  const [first, ...others] = fitting
+    .filter((p) => p.misfit === best)
+    .map((p) => firstAttempts(roundAttemptWalk(rows, p.active, p.index, attempts, p.later)));
+  const agreed = first.findIndex((step, i) => others.some((w) => w[i]?.row !== step.row || w[i]?.slot !== step.slot));
+  return agreed < 0 ? first : first.slice(0, agreed);
+}
+
+// Yields { row, slot } for each attempt still to come, round by round, from
+// the athlete `active` in round `index`. It skips a row with no attempt in the
+// previous round, as its athlete is away until the official calls them.
+function* roundAttemptWalk(rows, active, index, attempts, later) {
+  for (let slot = index; slot < attempts; slot++) {
+    const order = roundOrder(rows, slot, later);
+    const from = slot === index ? Math.max(0, order.indexOf(active)) : 0;
+    for (const row of order.slice(from)) {
+      if (attemptDue(row, slot)) yield { row, slot };
+    }
+  }
+}
+
+// Counts a row's failures below the bar `bar` since its last clearance. The
+// failures before a pass still count.
+function failuresBefore(row, bar) {
+  const below = (row.Attempts || []).filter((att) => Number(att.Line1) < bar);
+  let n = 0;
+  for (const att of below.reverse()) {
+    const p = att.Line2 || '';
+    if (p.includes('o')) break;
+    n += (p.match(/x/g) || []).length;
+  }
+  return n;
+}
+
+// Returns the bar in cm of the athlete `active` at attempt `index`. Before
+// their first try at a bar, they have no entry at it. The bar is then the
+// lowest one above their entries that another athlete has an entry at, or null
+// if there is none.
+function activeBar(rows, active, index) {
+  const own = Number(active.Attempts?.[Math.floor(index / 3)]?.Line1);
+  if (Number.isFinite(own)) return own;
+  const top = Math.max(0, ...(active.Attempts || []).map((att) => Number(att.Line1)).filter(Number.isFinite));
+  const above = verticalJumpHeights(rows).filter((h) => h > top);
+  return above.length ? above[0] : null;
+}
+
+// Returns the row and the attempt index of the latest try in a vertical jump
+// with no ActiveAllocationId, in the form that verticalAttemptWalk takes. The
+// latest try is at the highest bar with a try. Each round of tries at a bar
+// follows the draw order, so the latest try is by the last athlete in the draw
+// among those with the most tries at the bar.
+function lastOverBar(rows) {
+  const tries = rows.flatMap((row) =>
+    (row.Attempts || []).flatMap((att, entry) =>
+      /[xo]/i.test(att.Line2 || '') ? [{ row, entry, bar: Number(att.Line1), length: att.Line2.length }] : [],
+    ),
+  );
+  const bar = Math.max(...tries.map((t) => t.bar).filter(Number.isFinite));
+  const atBar = tries.filter((t) => t.bar === bar);
+  if (!atBar.length) return null;
+  const length = Math.max(...atBar.map((t) => t.length));
+  const last = atBar
+    .filter((t) => t.length === length)
+    .sort((a, b) => byDraw(a.row, b.row))
+    .at(-1);
+  return { active: last.row, index: last.entry * 3 + length - 1 };
+}
+
+// Yields { row, slot } for each try still to come at the bar of the athlete
+// `active` (docs/tuloslista-api.md, "Field events"). Every athlete takes their
+// first try at the bar, in draw order, before anyone takes a second. It stops
+// at the end of the bar, as the grid has no column for the next one.
+function* verticalAttemptWalk(rows, active, index) {
+  const bar = activeBar(rows, active, index);
+  if (bar == null) return;
+  const pattern = (row) => (row.Attempts || []).find((att) => Number(att.Line1) === bar)?.Line2 || '';
+  const ordered = [...rows].sort(byDraw);
+  const tryIndex = index % 3;
+  for (let t = tryIndex; t < 3; t++) {
+    const from = t === tryIndex ? ordered.indexOf(active) : 0;
+    for (const row of ordered.slice(from)) {
+      const p = pattern(row);
+      const due = p.length === t && /^x*$/.test(p) && failuresBefore(row, bar) + t < 3 && !markedDidNotStart(row);
+      if (due) yield { row, slot: bar };
+    }
+  }
+}
+
 // Writes a mark in metres, whatever its unit (fieldMark). "NH" stays as is.
 function verticalMarkText(mark) {
   if (!mark) return '';
@@ -593,6 +801,7 @@ export {
   bibNumbersUsed,
   displayRank,
   earlierMarks,
+  fieldAttemptOrder,
   fieldResultText,
   followedKey,
   heatFinishOrder,

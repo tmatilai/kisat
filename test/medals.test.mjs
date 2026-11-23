@@ -525,9 +525,9 @@ test('isFinalRound/medalFor/followedRows/medalistBoxes/medalTable', () => {
   assert.deepEqual(
     piiriEntries(schedule, everything, DEMO_DISTRICTS),
     [
-      ['demy', 70],
-      ['maly', 50],
-      [null, 24],
+      ['demy', 74],
+      ['maly', 60],
+      [null, 27],
     ],
     'a person once, a club in no piiri under null',
   );

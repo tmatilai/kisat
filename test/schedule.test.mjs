@@ -667,7 +667,7 @@ test('demo fixture', () => {
   const groups = groupRounds(schedule[day]);
   // Several categories share a start, so there are fewer starts than rows. A
   // multi-event's legs are ordinary starts here (combinedEventStarts).
-  assert.equal(groups.length, 42, 'the demo starts, across Track/Field/Relay');
+  assert.equal(groups.length, 44, 'the demo starts, across Track/Field/Relay');
   assert.ok(groups.some((g) => g.category === 'Track'));
   assert.ok(groups.some((g) => g.category === 'Field'));
   assert.ok(groups.some((g) => g.category === 'Relay'));
@@ -832,7 +832,7 @@ test('demo fixture', () => {
     );
   }
 
-  assert.equal(demoResponse(`${API}/competition/${DEMO_ID}`)[Object.keys(schedule)[0]].length, 57);
+  assert.equal(demoResponse(`${API}/competition/${DEMO_ID}`)[Object.keys(schedule)[0]].length, 59);
   // The home page does not list the demo, but its properties still answer.
   assert.equal(demoResponse(`${API}/competition/${DEMO_ID}/properties`).Competition.Id, DEMO_ID);
   // democup is the club cup, which the demo meet is not. Each answers only for

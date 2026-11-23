@@ -911,6 +911,26 @@ const DEMO_STARTS = [
     status: 'Unallocated',
     ts: demoTs(16, 15),
   },
+  // A throw and a vertical jump in progress, whose heats give the athlete in
+  // turn (fieldAttemptOrder, lib/results.js).
+  {
+    eventId: 'e60',
+    roundId: 'r60',
+    event: 'T15 Kuula',
+    round: 'Loppukilpailu',
+    category: 'Field',
+    status: 'Progress',
+    ts: demoTs(16, 30),
+  },
+  {
+    eventId: 'e61',
+    roundId: 'r61',
+    event: 'P15 Korkeus',
+    round: 'Loppukilpailu',
+    category: 'Field',
+    status: 'Progress',
+    ts: demoTs(16, 30),
+  },
 ];
 
 // Every event carries Enrollments unless nobody entered it, as the API keeps
@@ -3199,6 +3219,351 @@ DEMO_EVENTS.e52 = {
       [demoHeat(1, [demoRunner('st3', 3, 743, 'Eetu Pukkinen', 'Testilän Kisa', 'TeKi')], 'NM')],
       {},
       'Allocated',
+    ),
+  ],
+};
+
+// Adds the two fields that fieldAttemptOrder reads to a field row: the AllocId
+// that a heat's ActiveAllocationId refers to, and the ReverseOrderRank of the
+// rounds after the third.
+function demoFieldLive(alloc, allocId, reverseOrderRank = null) {
+  return { ...alloc, AllocId: allocId, ReverseOrderRank: reverseOrderRank };
+}
+
+// The fourth round follows ReverseOrderRank from 8 down to 1. The two rows
+// without one finished after three rounds. ku10 and ku3 have thrown, and it is
+// ku5's turn. ku9 entered her pass before her turn, so ku1 follows ku5.
+DEMO_EVENTS.e60 = {
+  Name: 'T15 Kuula',
+  EventCategory: 'Field',
+  EventSubCategory: 'Throw',
+  EventType: { Category: 'Field', SubCategory: 'Throw', Name: 'Kuula' },
+  Enrollments: [
+    demoEnrollment('ku1', 621, 'Ella Kokeinen', DEMO_ORG_MALV),
+    demoEnrollment('ku2', 622, 'Pinja Testinen', DEMO_ORG_TEKI),
+    demoEnrollment('ku3', 623, 'Iida Mallinen', DEMO_ORG_MALV),
+    demoEnrollment('ku4', 624, 'Hilma Näytteinen', DEMO_ORG_NAVA),
+    demoEnrollment('ku5', 625, 'Venla Esimerkkinen', DEMO_ORG_HARJ),
+    demoEnrollment('ku6', 626, 'Kaisla Demoinen', DEMO_ORG_NAVA),
+    demoEnrollment('ku7', 627, 'Lumi Harjoitinen', DEMO_ORG_HARJ),
+    demoEnrollment('ku8', 628, 'Helmi Simulainen', DEMO_ORG_NAVA),
+    demoEnrollment('ku9', 629, 'Minea Mittainen', DEMO_ORG_TEKI),
+    demoEnrollment('ku10', 630, 'Oona Vauhtinen', DEMO_ORG_NAVA),
+  ],
+  Rounds: [
+    demoRound(
+      'r60',
+      'Loppukilpailu',
+      0,
+      demoTs(16, 30),
+      [
+        {
+          ...demoHeat(1, [
+            demoFieldLive(
+              demoFieldAlloc(
+                'ku4',
+                4,
+                624,
+                'Hilma Näytteinen',
+                'Näyteniemen Vauhti',
+                'NäVa',
+                [['11.40'], ['11.85'], ['x']],
+                {
+                  result: '11.85',
+                  rank: 1,
+                },
+              ),
+              9604,
+              1,
+            ),
+            demoFieldLive(
+              demoFieldAlloc(
+                'ku7',
+                7,
+                627,
+                'Lumi Harjoitinen',
+                'Harjoituspiirin Urheilijat',
+                'HarjU',
+                [['10.88'], ['11.20'], ['11.02']],
+                {
+                  result: '11.20',
+                  rank: 2,
+                },
+              ),
+              9607,
+              2,
+            ),
+            demoFieldLive(
+              demoFieldAlloc('ku2', 2, 622, 'Pinja Testinen', 'Testilän Kisa', 'TeKi', [['x'], ['10.95'], ['10.71']], {
+                result: '10.95',
+                rank: 3,
+              }),
+              9602,
+              3,
+            ),
+            demoFieldLive(
+              demoFieldAlloc('ku1', 1, 621, 'Ella Kokeinen', 'Mallikylän Vire', 'MalV', [['10.12'], ['x'], ['10.40']], {
+                result: '10.40',
+                rank: 4,
+              }),
+              9601,
+              4,
+            ),
+            demoFieldLive(
+              demoFieldAlloc(
+                'ku9',
+                9,
+                629,
+                'Minea Mittainen',
+                'Testilän Kisa',
+                'TeKi',
+                [['10.31'], ['x'], ['x'], ['-']],
+                {
+                  result: '10.31',
+                  rank: 5,
+                },
+              ),
+              9609,
+              5,
+            ),
+            demoFieldLive(
+              demoFieldAlloc(
+                'ku5',
+                5,
+                625,
+                'Venla Esimerkkinen',
+                'Harjoituspiirin Urheilijat',
+                'HarjU',
+                [['9.77'], ['10.02'], ['9.90']],
+                {
+                  result: '10.02',
+                  rank: 6,
+                },
+              ),
+              9605,
+              6,
+            ),
+            demoFieldLive(
+              demoFieldAlloc(
+                'ku10',
+                10,
+                630,
+                'Oona Vauhtinen',
+                'Näyteniemen Vauhti',
+                'NäVa',
+                [['9.88'], ['9.50'], ['x'], ['9.91']],
+                {
+                  result: '9.91',
+                  rank: 7,
+                },
+              ),
+              9610,
+              7,
+            ),
+            demoFieldLive(
+              demoFieldAlloc(
+                'ku3',
+                3,
+                623,
+                'Iida Mallinen',
+                'Mallikylän Vire',
+                'MalV',
+                [['9.60'], ['x'], ['9.44'], ['x']],
+                {
+                  result: '9.60',
+                  rank: 8,
+                },
+              ),
+              9603,
+              8,
+            ),
+            demoFieldLive(
+              demoFieldAlloc(
+                'ku6',
+                6,
+                626,
+                'Kaisla Demoinen',
+                'Näyteniemen Vauhti',
+                'NäVa',
+                [['9.41'], ['9.12'], ['x']],
+                {
+                  result: '9.41',
+                  rank: 9,
+                },
+              ),
+              9606,
+            ),
+            demoFieldLive(
+              demoFieldAlloc(
+                'ku8',
+                8,
+                628,
+                'Helmi Simulainen',
+                'Näyteniemen Vauhti',
+                'NäVa',
+                [['x'], ['9.05'], ['8.87']],
+                {
+                  result: '9.05',
+                  rank: 10,
+                },
+              ),
+              9608,
+            ),
+          ]),
+          ActiveAllocationId: 9605,
+          ActiveAllocationAttemptIndex: 3,
+        },
+      ],
+      {},
+      'Progress',
+    ),
+  ],
+};
+
+// The bar is at 160. It is kj5's turn for his first try there, and he has no
+// entry at 160 yet. kj6 starts at 160, and kj7 has one failure from 155. kj1
+// failed once at 160 and has his second try after them. kj2 cleared 160, kj4
+// passed it and kj3 is out.
+DEMO_EVENTS.e61 = {
+  Name: 'P15 Korkeus',
+  EventCategory: 'Field',
+  EventSubCategory: 'VerticalJump',
+  EventType: { Category: 'Field', SubCategory: 'VerticalJump', Name: 'Korkeus' },
+  Enrollments: [
+    demoEnrollment('kj1', 631, 'Arttu Kokeinen', DEMO_ORG_MALV),
+    demoEnrollment('kj2', 632, 'Veeti Testinen', DEMO_ORG_TEKI),
+    demoEnrollment('kj3', 633, 'Joona Mallinen', DEMO_ORG_MALV),
+    demoEnrollment('kj4', 634, 'Onni Näytteinen', DEMO_ORG_NAVA),
+    demoEnrollment('kj5', 635, 'Vilho Esimerkkinen', DEMO_ORG_HARJ),
+    demoEnrollment('kj6', 636, 'Lenni Demoinen', DEMO_ORG_NAVA, { sb: '1.68', pb: '1.72' }),
+    demoEnrollment('kj7', 637, 'Aarni Mittainen', DEMO_ORG_TEKI),
+  ],
+  Rounds: [
+    demoRound(
+      'r61',
+      'Loppukilpailu',
+      0,
+      demoTs(16, 30),
+      [
+        {
+          ...demoHeat(1, [
+            demoFieldLive(
+              demoFieldAlloc(
+                'kj2',
+                2,
+                632,
+                'Veeti Testinen',
+                'Testilän Kisa',
+                'TeKi',
+                [
+                  ['150', 'o'],
+                  ['155', 'xo'],
+                  ['160', 'o'],
+                ],
+                {
+                  result: '160',
+                  rank: 1,
+                },
+              ),
+              9612,
+            ),
+            demoFieldLive(
+              demoFieldAlloc(
+                'kj1',
+                1,
+                631,
+                'Arttu Kokeinen',
+                'Mallikylän Vire',
+                'MalV',
+                [
+                  ['150', 'o'],
+                  ['155', 'o'],
+                  ['160', 'x'],
+                ],
+                {
+                  result: '155',
+                  rank: 2,
+                },
+              ),
+              9611,
+            ),
+            demoFieldLive(
+              demoFieldAlloc(
+                'kj4',
+                4,
+                634,
+                'Onni Näytteinen',
+                'Näyteniemen Vauhti',
+                'NäVa',
+                [
+                  ['155', 'o'],
+                  ['160', '-'],
+                ],
+                {
+                  result: '155',
+                  rank: 2,
+                },
+              ),
+              9614,
+            ),
+            demoFieldLive(
+              demoFieldAlloc(
+                'kj5',
+                5,
+                635,
+                'Vilho Esimerkkinen',
+                'Harjoituspiirin Urheilijat',
+                'HarjU',
+                [
+                  ['150', 'o'],
+                  ['155', 'xxo'],
+                ],
+                {
+                  result: '155',
+                  rank: 4,
+                },
+              ),
+              9615,
+            ),
+            demoFieldLive(
+              demoFieldAlloc(
+                'kj7',
+                7,
+                637,
+                'Aarni Mittainen',
+                'Testilän Kisa',
+                'TeKi',
+                [
+                  ['150', 'o'],
+                  ['155', 'x-'],
+                ],
+                {
+                  result: '150',
+                  rank: 5,
+                },
+              ),
+              9617,
+            ),
+            demoFieldLive(
+              demoFieldAlloc('kj3', 3, 633, 'Joona Mallinen', 'Mallikylän Vire', 'MalV', [['150', 'xxx']], {
+                result: 'NH',
+              }),
+              9613,
+            ),
+            demoFieldLive(
+              demoFieldAlloc('kj6', 6, 636, 'Lenni Demoinen', 'Näyteniemen Vauhti', 'NäVa', [], {
+                sb: '1.68',
+                pb: '1.72',
+              }),
+              9616,
+            ),
+          ]),
+          ActiveAllocationId: 9615,
+          ActiveAllocationAttemptIndex: 6,
+        },
+      ],
+      {},
+      'Progress',
     ),
   ],
 };

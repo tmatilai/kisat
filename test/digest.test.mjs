@@ -17,7 +17,7 @@ test('buildDigest/scanDigest', () => {
 
   assert.equal(digest.v, DIGEST_VERSION);
   assert.deepEqual(digest.days, ['8.8.2026']);
-  assert.equal(digest.athletes.length, 248, '249 roster rows, and Ville Mallinen is two of them');
+  assert.equal(digest.athletes.length, 265, '266 roster rows, and Ville Mallinen is two of them');
 
   // A club is one team row, holding each relay it has a team in once and in
   // schedule order. (Break on purpose: key the merge on the event as well and
@@ -141,11 +141,15 @@ test('buildDigest/scanDigest', () => {
       'Aada Vesinen',
       'Aaro Vauhtinen',
       'Alisa Mittainen',
+      'Arttu Kokeinen',
+      'Ella Kokeinen',
       'Elsa Vireinen',
+      'Iida Mallinen',
       'Iida Mittainen',
       'Iiris Mallinen',
       'Ilari Simulainen',
       'Jesse Mittainen',
+      'Joona Mallinen',
       'Milja Mittainen',
       'Minea Mallinen',
       'Nea Harjoitinen',
@@ -219,7 +223,7 @@ test('buildDigest/scanDigest', () => {
     { type: 'club', id: 1 },
     { type: 'club', id: 2 },
   ]);
-  assert.equal(everyone.length, 59);
+  assert.equal(everyone.length, 63);
   assert.deepEqual(
     everyone.slice(0, 2).map((l) => l.name),
     ['Demon Urheilijat', 'Mallikylän Vire'],

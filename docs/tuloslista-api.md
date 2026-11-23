@@ -112,6 +112,11 @@ any other measurement goes.
   eight** (2026-08).
 - **Each official marks a field event's DNS in their own way**: `DNS` in `Result` or in an attempt,
   only passes (`-`) with `Result` `NH`, or no attempts at all, once the round is Official (2026-11).
+- **A heat's `ActiveAllocationId` refers to a row's `AllocId`, not its `Id`.** Tuloslista's own live
+  screen reads it, with `ActiveAllocationAttemptIndex`, as the athlete whose turn it is and their
+  attempt. In a vertical jump, the index counts three per entry in that athlete's `Attempts[]`. Both
+  fields are `0` and `-1` once the heat is over. At one meet, they were `0` and `-1` during every
+  heat as well (2026-11).
 
 ## Combined events (moniottelu)
 
