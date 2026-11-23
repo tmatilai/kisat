@@ -202,9 +202,11 @@ function verticalCountback(alloc) {
   return [at.Line2.length, failures];
 }
 
-// Sorts a class's results with ranked athletes first, then unranked ones with a
-// result, such as guests, by that result and a vertical jump's countback. The
-// rest go in lane or draw order.
+// Orders a class's rows as a results list, both during the round and after it.
+// Ranked rows come first. A row with a result but no rank, such as a guest's,
+// follows by that result, with a vertical jump's countback deciding a tie. Rows
+// still without a result keep their lane or draw order, and rows marked DNS go
+// last, as they will not get one.
 function sortResults(allocations) {
   return [...allocations].sort((a, b) => {
     const ra = a.ResultRank ?? Infinity;
@@ -219,8 +221,8 @@ function sortResults(allocations) {
       if (ca[0] !== cb[0]) return ca[0] - cb[0];
       if (ca[1] !== cb[1]) return ca[1] - cb[1];
     }
-    const ha = a.Result ? 0 : 1;
-    const hb = b.Result ? 0 : 1;
+    const ha = markedDidNotStart(a) ? 2 : a.Result ? 0 : 1;
+    const hb = markedDidNotStart(b) ? 2 : b.Result ? 0 : 1;
     if (ha !== hb) return ha - hb;
     return (a.Position ?? 0) - (b.Position ?? 0);
   });
@@ -402,6 +404,12 @@ function fieldDidNotStart(alloc, round, vertical) {
   if (attempts.some((att) => att.Line1 === 'DNS' || att.Line2 === 'DNS')) return true;
   if (alloc?.Result ? fieldMark(alloc.Result) != null : resultPending(round)) return false;
   return !attempts.some((att) => /[xo\d]/i.test((vertical ? att.Line2 : att.Line1) || ''));
+}
+
+// Says whether an official marked the row DNS in any of their ways
+// (docs/tuloslista-api.md, "Field events").
+function markedDidNotStart(a) {
+  return a.Result === 'DNS' || (a.Attempts || []).some((att) => att.Line1 === 'DNS' || att.Line2 === 'DNS');
 }
 
 function fieldResultText(alloc, round, vertical) {

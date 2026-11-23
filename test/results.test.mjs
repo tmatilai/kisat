@@ -236,6 +236,15 @@ test('sortResults', () => {
   assert.deepEqual(order(['11,50', '11,20']), ['11,20', '11,50'], 'a time: the quicker one leads');
   assert.deepEqual(order(['11.50', '11.20']), ['11.50', '11.20'], 'a field mark: the longer one leads');
   assert.deepEqual(order(['DNS', '11,20']), ['11,20', 'DNS'], 'nothing parseable stays behind a result');
+  assert.deepEqual(
+    sortResults([
+      { Id: 'dns', Position: 1, Result: 'DNS' },
+      { Id: 'due', Position: 2, Result: null },
+      { Id: 'out', Position: 3, Result: null, Attempts: [{ Line1: 'DNS' }] },
+    ]).map((a) => a.Id),
+    ['due', 'dns', 'out'],
+    'a row marked DNS goes behind one still to have its turn',
+  );
 });
 
 // --- totalResults: a multi-heat round read as one ranked list ---
