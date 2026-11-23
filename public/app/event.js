@@ -27,6 +27,7 @@ import {
   bibNumbersUsed,
   displayRank,
   earlierMarks,
+  fieldAttemptOrder,
   fieldResultText,
   heatFinishOrder,
   heatPlaces,
@@ -555,7 +556,13 @@ function categorySections(
       // Column counts and bib use are decided over the whole round, so its heat
       // tables line up.
       const allRoundAllocs = heats.flatMap((h) => h.Allocations || []);
-      const cols = isField && !isVertical ? attemptColumns(allRoundAllocs) : 0;
+      // Each heat has its own athlete in turn, so each heat has its own order.
+      const orderOptions = { leg: Boolean(d.data?.RootId), live: d.round?.Status === 'Progress' };
+      const attemptOrder = new Map(
+        isField ? heats.flatMap((h) => [...fieldAttemptOrder(h, isVertical, orderOptions)]) : [],
+      );
+      const nextCol = Math.max(0, ...[...attemptOrder.values()].map((o) => (isVertical ? 0 : o.slot + 1)));
+      const cols = isField && !isVertical ? Math.max(attemptColumns(allRoundAllocs), nextCol) : 0;
       const heights = isField && isVertical ? verticalJumpHeights(allRoundAllocs) : [];
       const bibs = bibNumbersUsed(allRoundAllocs);
       if (
@@ -577,7 +584,7 @@ function categorySections(
         const hasResults = allocs.some((a) => a.Result);
         const aside = asideFor(hasResults);
         if (heading) parts.push(el('h3', {}, `${heading} `, grouping ? null : heatChip(hasResults), windSpan(wind)));
-        const t = context(allocs, { bibs, aside });
+        const t = context(allocs, { bibs, aside, attemptOrder });
         if (isField && isVertical) parts.push(verticalJumpTable(allocs, hasResults, heights, t));
         else if (isField) parts.push(fieldLadderTable(allocs, hasResults, cols, t));
         else parts.push(trackTable(allocs, hasResults, t));
@@ -955,8 +962,8 @@ const SHUTTLE_ORDER = { label: 'Radat', text: shuttleLaneText };
 
 // Gives what the tables of one class share, over the defaults. A row's own data
 // is read off the row, as the name cell's is (AGENTS.md, "Every table uses
-// the same name cell"). Whether bib numbers show is asked over
-// allocs.
+// the same name cell"). Bib numbers show if `allocs` use them, unless
+// `t.bibs` is set.
 function tableContext(allocs, t = {}) {
   return {
     legCount: 0,
@@ -970,6 +977,7 @@ function tableContext(allocs, t = {}) {
     order: PLAIN_ORDER,
     mark: PLAIN_MARK,
     confirmCol: false,
+    attemptOrder: new Map(),
     ...t,
     bibs: t.bibs ?? bibNumbersUsed(allocs),
   };
@@ -1127,8 +1135,23 @@ function attemptMarkParts(att) {
   };
 }
 
+// Draws an attempt still to come as its place in the order (fieldAttemptOrder,
+// lib/results.js).
+function attemptNext(n) {
+  return el('span', { class: n === 1 ? 'att-next att-now' : 'att-next', 'aria-label': `${n}. vuorossa` }, String(n));
+}
+
+// Returns a row's place in the order if its next attempt is in column `slot`,
+// and null otherwise.
+function nextAt(attemptOrder, a, slot) {
+  const o = attemptOrder.get(a.Id);
+  return o?.slot === slot ? o.n : null;
+}
+
 // Draws one attempt cell. A horizontal jump shows its wind reading under it.
-function attemptCell(att) {
+// `next` is the attempt's place in the order, if the attempt is still to come.
+function attemptCell(att, next = null) {
+  if (next && !att?.Line1) return el('td', { class: 'att' }, attemptNext(next));
   if (!att) return el('td', { class: 'att' }, el('span', { class: 'att-empty' }, '·'));
   const { cls, text } = attemptMarkParts(att);
   return el(
@@ -1139,8 +1162,12 @@ function attemptCell(att) {
   );
 }
 
-// A phone card shows the same attempt as a chip labelled with its number.
-function ladderCardAttempt(label, att) {
+// Draws an attempt as a chip of a phone card, labelled with the attempt's
+// number, as attemptCell draws it in the table.
+function ladderCardAttempt(label, att, next = null) {
+  if (next && !att?.Line1) {
+    return el('span', { class: 'att-item' }, el('span', { class: 'att-n' }, label), attemptNext(next));
+  }
   const { cls, text } = attemptMarkParts(att);
   return el(
     'span',
@@ -1156,9 +1183,16 @@ function barPatternEl(pattern) {
   return el('span', { class: pattern.includes('o') ? 'att-mark' : 'att-x' }, pattern);
 }
 
-// A vertical jump card shows a bar's pattern as a chip labelled with the height.
-function ladderCardHeight(label, pattern) {
-  return el('span', { class: 'att-item' }, el('span', { class: 'att-n' }, label), barPatternEl(pattern));
+// Draws a bar's pattern as a chip of a vertical jump card, labelled with the
+// height. The bar of the athlete's next try may have no pattern yet.
+function ladderCardHeight(label, pattern, next = null) {
+  return el(
+    'span',
+    { class: 'att-item' },
+    el('span', { class: 'att-n' }, label),
+    pattern ? barPatternEl(pattern) : null,
+    next ? attemptNext(next) : null,
+  );
 }
 
 // A ladder row at phone width is a head line over that athlete's attempts. A
@@ -1188,13 +1222,17 @@ function ladderCardHead(a, hasResults, bibs, compId, resultChildren, aside = nul
 }
 
 // Draws throws and horizontal jumps as phone cards. `data-n` lets a container
-// query fit a card's attempts on one row where there is room (index.html).
-function fieldLadderCards(allocs, hasResults, { targets, team, compId, round, bibs, aside, points }) {
+// query fit a card's attempts on one row where there is room (index.html). A
+// card gets a chip for the athlete's next attempt, so its place in the order
+// shows.
+function fieldLadderCards(allocs, hasResults, { targets, team, compId, round, bibs, aside, points, attemptOrder }) {
   return el(
     'div',
     { class: 'ladder-stack' },
     allocs.map((a) => {
-      const attempts = a.Attempts || [];
+      const next = attemptOrder.get(a.Id);
+      const attempts = [...(a.Attempts || [])];
+      if (next && next.slot >= attempts.length) attempts[next.slot] = null;
       return ladderCard(
         rowClass(a, targets, team),
         ladderCardHead(
@@ -1211,22 +1249,23 @@ function fieldLadderCards(allocs, hasResults, { targets, team, compId, round, bi
           ],
           aside(a),
         ),
-        attempts.map((att, n) => ladderCardAttempt(String(n + 1), att)),
+        attempts.map((att, n) => ladderCardAttempt(String(n + 1), att, nextAt(attemptOrder, a, n))),
         { class: 'ladder-card-attempts rounds', 'data-n': String(attempts.length) },
       );
     }),
   );
 }
 
-// Vertical jump cards list only the heights each athlete tried
-// (verticalJumpRow, lib/results.js).
-function verticalJumpCards(allocs, hasResults, { targets, team, compId, round, bibs, aside, points }) {
+// Draws vertical jumps as phone cards. A card lists only the bars its athlete
+// tried (verticalJumpRow, lib/results.js), and the bar of their next try.
+function verticalJumpCards(allocs, hasResults, { targets, team, compId, round, bibs, aside, points, attemptOrder }) {
   return el(
     'div',
     { class: 'ladder-stack' },
     allocs.map((a) => {
       const byHeight = verticalJumpRow(a);
-      const heights = [...byHeight.keys()].sort((x, y) => x - y);
+      const next = attemptOrder.get(a.Id);
+      const heights = [...new Set([...byHeight.keys(), ...(next ? [next.slot] : [])])].sort((x, y) => x - y);
       return ladderCard(
         rowClass(a, targets, team),
         ladderCardHead(
@@ -1237,24 +1276,27 @@ function verticalJumpCards(allocs, hasResults, { targets, team, compId, round, b
           [fieldResultText(a, round, true), qualBadgeEl(a, round), pointsEl(a, points)],
           aside(a),
         ),
-        heights.map((h) => ladderCardHeight((h / 100).toFixed(2), byHeight.get(h))),
+        heights.map((h) => ladderCardHeight((h / 100).toFixed(2), byHeight.get(h), nextAt(attemptOrder, a, h))),
       );
     }),
   );
 }
 
-// A ladder heat with no result and no attempt yet is drawn as a start list,
-// decided per heat.
-function ladderStarted(allocs, hasResults) {
-  return hasResults || allocs.some((a) => (a.Attempts || []).length);
+// Says whether a heat has a result, an attempt or an athlete in the order of
+// attempts. A heat without them is drawn as a start list, even when another
+// heat of the round is not.
+function ladderStarted(allocs, hasResults, attemptOrder) {
+  return hasResults || allocs.some((a) => (a.Attempts || []).length || attemptOrder.has(a.Id));
 }
 
 // Draws throws and horizontal jumps as a grid of attempts. Pass `cols` from
 // every heat of the round so the heats line up. A row may hold fewer attempts
 // than there are columns.
 function fieldLadderTable(allocs, hasResults, cols, t) {
-  if (!ladderStarted(allocs, hasResults)) return startListTable(allocs, { ...t, order: FIELD_ORDER, legCount: 0 });
-  const { targets, team, compId, round, bibs, aside, points } = t;
+  if (!ladderStarted(allocs, hasResults, t.attemptOrder)) {
+    return startListTable(allocs, { ...t, order: FIELD_ORDER, legCount: 0 });
+  }
+  const { targets, team, compId, round, bibs, aside, points, attemptOrder } = t;
   const table = wrap(
     el(
       'table',
@@ -1282,7 +1324,7 @@ function fieldLadderTable(allocs, hasResults, cols, t) {
             el('td', { class: 'num' }, ladderRankText(a, hasResults)),
             bibs ? el('td', { class: 'num' }, a.Number || '') : null,
             nameCell(a, 0, compId, aside(a)),
-            Array.from({ length: cols }, (_, i2) => attemptCell((a.Attempts || [])[i2])),
+            Array.from({ length: cols }, (_, i2) => attemptCell((a.Attempts || [])[i2], nextAt(attemptOrder, a, i2))),
             // The badge goes before the wind. .att-wind is a block, so a badge
             // after it would wrap onto a third line.
             el(
@@ -1304,10 +1346,10 @@ function fieldLadderTable(allocs, hasResults, cols, t) {
 // Draws vertical jumps as a grid with a column per height anyone tried. Pass
 // `heights` from every heat of the round (verticalJumpHeights, lib/results.js).
 function verticalJumpTable(allocs, hasResults, heights, t) {
-  if (!ladderStarted(allocs, hasResults)) {
+  if (!ladderStarted(allocs, hasResults, t.attemptOrder)) {
     return startListTable(allocs, { ...t, order: FIELD_ORDER, legCount: 0, mark: verticalMarkText });
   }
-  const { targets, team, compId, round, bibs, aside, points } = t;
+  const { targets, team, compId, round, bibs, aside, points, attemptOrder } = t;
   const rows = allocs.map((a) => ({ a, byHeight: verticalJumpRow(a) }));
   const table = wrap(
     el(
@@ -1338,6 +1380,8 @@ function verticalJumpTable(allocs, hasResults, heights, t) {
             nameCell(a, 0, compId, aside(a)),
             heights.map((h) => {
               const pat = byHeight.get(h);
+              const next = nextAt(attemptOrder, a, h);
+              if (next) return el('td', { class: 'att' }, pat ? barPatternEl(pat) : null, attemptNext(next));
               if (!pat) return el('td', { class: 'att' }, el('span', { class: 'att-empty' }, '·'));
               return el('td', { class: 'att' }, barPatternEl(pat));
             }),

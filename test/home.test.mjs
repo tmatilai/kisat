@@ -204,8 +204,8 @@ test('scheduleEventIds/buildRoster', () => {
   const eventIds = scheduleEventIds(schedule);
   assert.equal(
     eventIds.length,
-    53,
-    '57 schedule rows, e3/e9/e10 each shared by their own rounds -> 53 distinct EventIds',
+    55,
+    '59 schedule rows, e3/e9/e10 each shared by their own rounds -> 55 distinct EventIds',
   );
   // No multi-event root is among them. A root is on no day's schedule, so a
   // follower's entry is on the legs (buildDigest collapses them).
@@ -229,7 +229,7 @@ test('scheduleEventIds/buildRoster', () => {
       'Ulkomaalainen Vieras',
     ].sort(),
   );
-  assert.equal(roster.athletes.length, 249);
+  assert.equal(roster.athletes.length, 266);
 
   // Every allocation joins an enrollment on its Id, the only way to read its
   // confirmation. (Break on purpose: give
@@ -488,6 +488,24 @@ test('scheduleEventIds/buildRoster', () => {
       'Sofia Demoinen',
       'Iiris Mallinen',
       'Venla Testinen',
+      // e60-e61
+      'Ella Kokeinen',
+      'Pinja Testinen',
+      'Iida Mallinen',
+      'Hilma Näytteinen',
+      'Venla Esimerkkinen',
+      'Kaisla Demoinen',
+      'Lumi Harjoitinen',
+      'Helmi Simulainen',
+      'Minea Mittainen',
+      'Oona Vauhtinen',
+      'Arttu Kokeinen',
+      'Veeti Testinen',
+      'Joona Mallinen',
+      'Onni Näytteinen',
+      'Vilho Esimerkkinen',
+      'Lenni Demoinen',
+      'Aarni Mittainen',
     ].sort(),
     'every individual entrant, and nobody entered e8, e11, e19 or e55',
   );

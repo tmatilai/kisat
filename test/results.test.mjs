@@ -12,6 +12,7 @@ import {
   bibNumbersUsed,
   displayRank,
   earlierMarks,
+  fieldAttemptOrder,
   heatFinishOrder,
   heatPlaces,
   heatWind,
@@ -487,6 +488,293 @@ test('verticalJumpHeights/verticalJumpRow', () => {
   assert.equal(rowA.get(180), 'o');
   assert.equal(rowB.get(180), undefined, 'b never attempted 180 — must read as missing, not a foul');
   assert.equal(rowB.get(190), 'o');
+});
+
+// --- fieldAttemptOrder: the next three attempts of a field heat in progress ---
+test('fieldAttemptOrder', () => {
+  const heatOf = (eventId) => DEMO_EVENTS[eventId].Rounds[0].Heats[0];
+  const named = (heat, order) =>
+    [...order].map(([id, o]) => [heat.Allocations.find((a) => a.Id === id).Name, o.n, o.slot]);
+
+  // Round 4 follows ReverseOrderRank from 8 down to 1. ku9 entered her pass
+  // before her turn. ku6 and ku8 have no ReverseOrderRank, so they have
+  // finished.
+  const throwHeat = heatOf('e60');
+  assert.deepEqual(named(throwHeat, fieldAttemptOrder(throwHeat, false)), [
+    ['Venla Esimerkkinen', 1, 3],
+    ['Ella Kokeinen', 2, 3],
+    ['Pinja Testinen', 3, 3],
+  ]);
+
+  // Once the attempt of the athlete in turn has a result, the order starts
+  // after them.
+  const thrown = {
+    ...throwHeat,
+    Allocations: throwHeat.Allocations.map((a) =>
+      a.Id === 'ku5' ? { ...a, Attempts: [...a.Attempts, { Line1: '10.20', Line2: null }] } : a,
+    ),
+  };
+  assert.deepEqual(
+    named(thrown, fieldAttemptOrder(thrown, false)).map(([name, n]) => [name, n]),
+    [
+      ['Ella Kokeinen', 1],
+      ['Pinja Testinen', 2],
+      ['Lumi Harjoitinen', 3],
+    ],
+  );
+
+  // In the first three rounds, the order is the draw order, and it continues
+  // into the next round. A row with no attempt in the previous round is
+  // skipped, as its athlete is away.
+  const draw = (id, pos, marks) => ({
+    Id: id,
+    AllocId: pos,
+    Position: pos,
+    Attempts: marks.map((m) => ({ Line1: m })),
+  });
+  const early = {
+    ActiveAllocationId: 3,
+    ActiveAllocationAttemptIndex: 1,
+    Allocations: [
+      draw('a', 1, ['9.10', 'x']),
+      draw('b', 2, ['x']),
+      draw('c', 3, ['8.80', '9.02']),
+      draw('d', 4, ['9.30', '-']),
+      draw('e', 5, ['8.75']),
+    ],
+  };
+  assert.deepEqual(
+    [...fieldAttemptOrder(early, false)].map(([id, o]) => [id, o.n, o.slot]),
+    [
+      ['e', 1, 1],
+      ['a', 2, 2],
+      ['c', 3, 2],
+    ],
+    'b missed round 2, and d passed it',
+  );
+
+  // In round 4, an athlete who has already thrown rules out an order that puts
+  // them later. At the start of the round, the athlete in turn decides the
+  // order.
+  const eight = (id, pos, rank, marks) => ({ ...draw(id, pos, marks), ReverseOrderRank: rank });
+  const topRows = (fourth) => [
+    eight('a', 1, 2, ['9.10', 'x', '9.20', ...fourth]),
+    eight('b', 2, 1, ['9.40', '9.31', 'x']),
+    eight('c', 3, 3, ['8.80', '9.02', 'x']),
+    draw('d', 4, ['8.10', 'x', 'x']),
+  ];
+  const ids = (heat) => [...fieldAttemptOrder(heat, false)].map(([id, o]) => [id, o.n, o.slot]);
+  assert.deepEqual(
+    ids({ ActiveAllocationId: 2, ActiveAllocationAttemptIndex: 3, Allocations: topRows(['9.05']) }),
+    [
+      ['b', 1, 3],
+      ['c', 2, 3],
+      ['a', 3, 4],
+    ],
+    'a has thrown before b, so the order is the draw',
+  );
+  assert.deepEqual(
+    ids({ ActiveAllocationId: 3, ActiveAllocationAttemptIndex: 3, Allocations: topRows([]) }),
+    [
+      ['c', 1, 3],
+      ['a', 2, 3],
+      ['b', 3, 3],
+    ],
+    'c, ranked last of the three, opens round 4, so the order is reversed',
+  );
+  const neither = [
+    eight('a', 1, 1, ['9.40', '9.31', 'x']),
+    eight('b', 2, 3, ['8.80', '9.02', 'x']),
+    eight('c', 3, 2, ['9.10', 'x', '9.20', '9.05']),
+  ];
+  assert.deepEqual(
+    ids({ ActiveAllocationId: 1, ActiveAllocationAttemptIndex: 3, Allocations: neither }),
+    [['a', 1, 3]],
+    'c has thrown out of either order, so only the athlete in turn is numbered',
+  );
+
+  // Without a ReverseOrderRank, everyone continues in draw order, as in a meet
+  // of four attempts each.
+  const third = {
+    ActiveAllocationId: 2,
+    ActiveAllocationAttemptIndex: 2,
+    Allocations: [draw('a', 1, ['9.10', 'x', '9.20']), draw('b', 2, ['x', '9.00']), draw('c', 3, ['8.80', '9.02'])],
+  };
+  assert.deepEqual(
+    [...fieldAttemptOrder(third, false)].map(([id, o]) => [id, o.n, o.slot]),
+    [
+      ['b', 1, 2],
+      ['c', 2, 2],
+      ['a', 3, 3],
+    ],
+  );
+  assert.deepEqual(
+    [...fieldAttemptOrder(third, false, { leg: true })].map(([id, o]) => [id, o.n]),
+    [
+      ['b', 1],
+      ['c', 2],
+    ],
+    "a multi-event leg's three attempts end there",
+  );
+
+  // The bar is 160, where kj5 has no entry yet. Every athlete's first try at
+  // 160 comes before kj1's second.
+  const barHeat = heatOf('e61');
+  assert.deepEqual(named(barHeat, fieldAttemptOrder(barHeat, true)), [
+    ['Vilho Esimerkkinen', 1, 160],
+    ['Lenni Demoinen', 2, 160],
+    ['Aarni Mittainen', 3, 160],
+  ]);
+
+  // An athlete with two failures from the bars below is out after one more,
+  // unless a clearance came after those failures. Every athlete takes a try
+  // before anyone takes the next one, and a row marked DNS has no turn.
+  const bar = (id, pos, tries) => ({
+    Id: id,
+    AllocId: pos,
+    Position: pos,
+    Attempts: tries.map(([h, p]) => ({ Line1: h, Line2: p })),
+  });
+  const tries = {
+    ActiveAllocationId: 3,
+    ActiveAllocationAttemptIndex: 3,
+    Allocations: [
+      bar('a', 1, [
+        ['150', 'o'],
+        ['155', 'xx-'],
+        ['160', 'x'],
+      ]),
+      bar('b', 2, [
+        ['155', 'xxo'],
+        ['160', 'x'],
+      ]),
+      bar('c', 3, [
+        ['155', 'o'],
+        ['160', 'o'],
+      ]),
+      bar('d', 4, [['155', 'o']]),
+      { ...bar('e', 5, []), Result: 'DNS' },
+    ],
+  };
+  assert.deepEqual(
+    [...fieldAttemptOrder(tries, true)].map(([id, o]) => [id, o.n]),
+    [
+      ['d', 1],
+      ['b', 2],
+    ],
+  );
+
+  // In a heat in progress with no ActiveAllocationId, the order starts after
+  // the latest attempt.
+  const unnamed = (rows) => ({ ActiveAllocationId: 0, ActiveAllocationAttemptIndex: -1, Allocations: rows });
+  const guessed = (heat, vertical = false) =>
+    [...fieldAttemptOrder(heat, vertical, { live: true })].map(([id, o]) => [id, o.n, o.slot]);
+  const dnsFirst = unnamed([draw('a', 1, ['DNS']), draw('b', 2, []), draw('c', 3, []), draw('d', 4, [])]);
+  assert.deepEqual(
+    guessed(dnsFirst),
+    [
+      ['b', 1, 0],
+      ['c', 2, 0],
+      ['d', 3, 0],
+    ],
+    'a row marked DNS has no turn',
+  );
+  assert.equal(fieldAttemptOrder(dnsFirst, false).size, 0, 'only a round in progress is numbered');
+  assert.deepEqual(
+    guessed(
+      unnamed([
+        draw('a', 1, ['9.10']),
+        draw('b', 2, []),
+        draw('c', 3, ['8.80']),
+        draw('d', 4, ['x']),
+        draw('e', 5, []),
+        draw('f', 6, []),
+      ]),
+    ),
+    [
+      ['e', 1, 0],
+      ['f', 2, 0],
+      ['a', 3, 1],
+    ],
+    'b is away',
+  );
+  assert.deepEqual(
+    guessed(
+      unnamed([
+        draw('a', 1, ['9.10']),
+        draw('b', 2, ['x']),
+        draw('c', 3, ['8.80']),
+        draw('d', 4, []),
+        draw('e', 5, []),
+        draw('f', 6, ['9.30']),
+      ]),
+    ),
+    [
+      ['d', 1, 0],
+      ['e', 2, 0],
+      ['a', 3, 1],
+    ],
+    'f jumped before her turn',
+  );
+  assert.deepEqual(
+    guessed(
+      unnamed([
+        draw('a', 1, ['9.10']),
+        draw('b', 2, ['x']),
+        draw('c', 3, []),
+        draw('d', 4, ['8.80']),
+        draw('e', 5, []),
+      ]),
+    ).map(([id]) => id),
+    ['e', 'a', 'b'],
+    'c being away and d jumping before her turn fit equally well, and the later athlete wins',
+  );
+  assert.deepEqual(
+    guessed(
+      unnamed([
+        bar('a', 1, [
+          ['150', 'o'],
+          ['160', 'x'],
+        ]),
+        bar('b', 2, [
+          ['150', 'o'],
+          ['160', 'x'],
+        ]),
+        bar('c', 3, [['150', 'o']]),
+        bar('d', 4, [
+          ['150', 'o'],
+          ['160', 'x'],
+        ]),
+      ]),
+      true,
+    ),
+    [
+      ['a', 1, 160],
+      ['b', 2, 160],
+      ['d', 3, 160],
+    ],
+    "d's try at the highest bar is the latest, and c is away",
+  );
+  assert.deepEqual(
+    guessed({ ...tries, ActiveAllocationId: 0, ActiveAllocationAttemptIndex: -1 }, true).map(([id, n]) => [id, n]),
+    [
+      ['d', 1],
+      ['b', 2],
+    ],
+    'the first tries at 160 end with c',
+  );
+  assert.equal(
+    fieldAttemptOrder({ ...tries, ActiveAllocationId: 0 }, true).size,
+    0,
+    'nor is a vertical jump that is not in progress',
+  );
+
+  // A finished heat names nobody.
+  assert.equal(fieldAttemptOrder(heatOf('e2'), false).size, 0);
+  assert.equal(
+    fieldAttemptOrder({ ...throwHeat, ActiveAllocationId: 0, ActiveAllocationAttemptIndex: -1 }, false).size,
+    0,
+  );
 });
 
 // --- verticalMarkText: both spellings of a bar read the same, and a code
