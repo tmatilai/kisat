@@ -42,7 +42,13 @@
 
 ## The refresh
 
-- **A refresh keeps the scroll position down the page and across each ladder.**
+- **A refresh keeps the first row or heading below the header at the same height on the screen**,
+  not the pixel offset. It finds that row again by the heading above it and its index under that
+  heading. So a row added above the reader under the same heading moves the page by one row, and a
+  table that re-sorts keeps the same places in view, not the same athletes.
+- **A refresh keeps each table's horizontal scroll** while the number of tables stays the same.
+- **A refresh reads the reader's place on each scroll until it replaces the view**, so a reader who
+  scrolls while the data loads stays where they scrolled.
 - **A failed refresh leaves the view on screen**, but replaces the loading indicator of a render it
   overtook.
 

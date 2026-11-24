@@ -455,20 +455,13 @@ async function renderGroup(compId, groupKey, licence = null) {
     parts.push(...sections.parts);
   }
 
-  // The scroll offsets are read before the swap, so a refresh keeps each
-  // ladder's horizontal position (docs/views.md, "The refresh"). If the
-  // number of tables changed, they open as on a first visit.
-  const wasScrolledTo = [...appEl.querySelectorAll('.ladder-views > .tbl-wrap')].map((w) => w.scrollLeft);
   appEl.classList.toggle('wide', needsWide);
   appEl.replaceChildren(...parts);
-  // A ladder opens scrolled to its Result column. Its sticky identity columns
-  // keep the names in view. scrollWidth is only known once the table is in the
-  // document.
-  const wraps = [...appEl.querySelectorAll('.ladder-views > .tbl-wrap')];
-  const keep = wasScrolledTo.length === wraps.length;
-  wraps.forEach((w, i) => {
-    w.scrollLeft = keep ? wasScrolledTo[i] : w.scrollWidth;
-  });
+  // A ladder opens scrolled to its Result column, and a refresh then puts back
+  // the reader's column (restorePlace, app/shell.js). Its sticky identity
+  // columns keep the names in view. scrollWidth is only known once the table
+  // is in the document.
+  for (const w of appEl.querySelectorAll('.ladder-views > .tbl-wrap')) w.scrollLeft = w.scrollWidth;
 }
 
 // Renders a start one class at a time, each under its own heading and status

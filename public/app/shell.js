@@ -216,6 +216,62 @@ function saveScroll() {
   if (scrollKey) scrollPositions.set(scrollKey, wantedScroll());
 }
 
+// The headings and rows that a refresh keeps the reader's place by
+// (docs/views.md, "The refresh").
+const PLACE_ANCHORS = 'h2, h3, tbody > tr, .ladder-card, .list > .row';
+
+// Yields each anchor that shows, with its key: the heading above it, counted
+// among the headings of the same text, and its index under that heading. A
+// heading's key is its first child's text, because its status chip changes
+// during a meet. At one width a ladder shows either its table or its cards, and
+// the other stays in the document unseen.
+function* placeAnchors() {
+  const seen = new Map();
+  let heading = '';
+  let index = 0;
+  for (const node of appEl.querySelectorAll(PLACE_ANCHORS)) {
+    const rect = node.getBoundingClientRect();
+    if (!rect.width && !rect.height) continue;
+    if (node.tagName === 'H2' || node.tagName === 'H3') {
+      const text = `${node.tagName} ${node.firstChild?.textContent.trim() ?? ''}`;
+      seen.set(text, (seen.get(text) ?? 0) + 1);
+      heading = `${text} ${seen.get(text)}`;
+      index = 0;
+    } else index += 1;
+    yield { key: `${heading}|${index}`, rect };
+  }
+}
+
+// Returns the reader's place for a refresh to keep. A reader at the top, or
+// held at a position the page can't show yet (wantedScroll), keeps the
+// position alone.
+function readPlace() {
+  const y = wantedScroll();
+  const lefts = [...appEl.querySelectorAll('.tbl-wrap')].map((w) => w.scrollLeft);
+  if (y <= 0 || y !== window.scrollY) return { key: null, offset: 0, y, lefts };
+  const top = document.querySelector('header')?.getBoundingClientRect().bottom ?? 0;
+  for (const a of placeAnchors()) if (a.rect.bottom > top) return { key: a.key, offset: a.rect.top, y, lefts };
+  return { key: null, offset: 0, y, lefts };
+}
+
+// Puts the reader back at their place after a refresh has replaced the view.
+function restorePlace(place) {
+  const wraps = [...appEl.querySelectorAll('.tbl-wrap')];
+  if (wraps.length === place.lefts.length) {
+    wraps.forEach((w, i) => {
+      w.scrollLeft = place.lefts[i];
+    });
+  }
+  if (place.key) {
+    for (const a of placeAnchors()) {
+      if (a.key !== place.key) continue;
+      if (a.rect.top !== place.offset) window.scrollBy(0, a.rect.top - place.offset);
+      return;
+    }
+  }
+  if (place.y !== window.scrollY) window.scrollTo(0, place.y);
+}
+
 // Keeps the browser from racing render()'s own restore on back and forward.
 history.scrollRestoration = 'manual';
 
@@ -642,11 +698,13 @@ export {
   openLayer,
   openMenu,
   openSheet,
+  readPlace,
   render,
   renderFillStatus,
   renderSeq,
   rendering,
   replaceAddress,
+  restorePlace,
   runLeaves,
   saveScroll,
   scanTodayIso,
