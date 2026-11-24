@@ -10,6 +10,21 @@ any other measurement goes.
 - **Nothing is keyed on a person.** No endpoint lists a meet's entrants or looks up an athlete
   (2026-08).
 
+## Caching
+
+- **Only a results document can be revalidated.** `/results/{comp}/{eventId}` carries
+  `Last-Modified` and an `ETag`, and returns 304 to `If-None-Match`. The schedule, `/properties` and
+  a 404 carry neither, so each fetch of them returns the whole response (2026-11).
+- **The CDN serves a copy up to 29 s old, whatever the request's `Cache-Control` says.** Its
+  responses carry `cache-control: public, max-age=29` and no `Age`, so the page cannot tell how old
+  a copy is (2026-11).
+- **The page can read `Last-Modified` but not the `ETag`.** The responses carry no
+  `access-control-expose-headers`, and only `Last-Modified` is CORS-safelisted. A `no-cache` fetch
+  revalidates with the `ETag` by itself, and the page gets a 200 with the cached body. Sending
+  `If-None-Match` from the page would add a CORS preflight to each request (2026-11).
+- **A results document's `Last-Modified` is its last write.** A field event's document was written
+  up to three hours after the round's start, and a correction the next day (2026-11).
+
 ## The listing
 
 - **It serves a live window and ignores every parameter.** The window runs from about a month back
@@ -122,6 +137,8 @@ any other measurement goes.
 
 - **The root round's `Status` is `Unallocated`, however far the multi-event has progressed**
   (2026-09).
+- **Tuloslista rewrites the root with each leg's results**, so the root's `Last-Modified` is its
+  latest leg's (2026-11).
 - **While a multi-event is in progress, its later legs are not yet drawn** (2026-08).
 - **Before the first leg is scored, the root ranks every athlete 1 with a total of `"0"`**
   (2026-08).

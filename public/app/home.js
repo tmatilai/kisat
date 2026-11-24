@@ -51,9 +51,9 @@ import {
 // --- The front page (/) ---
 
 // Fetches the real days of the listed meets from /calendar.json (docs/home.md,
-// "Dates and sorting"). fetchJson sends no-store and home re-renders on every
-// visibilitychange, so a plain fetch lets the browser's cache answer the
-// repeats.
+// "Dates and sorting"). fetchJson revalidates every request and home re-renders
+// on every visibilitychange, so a plain fetch lets the browser's cache serve
+// the repeats.
 const CALENDAR_TIMEOUT_MS = 3000;
 
 async function fetchCalendarDays(dayIso) {

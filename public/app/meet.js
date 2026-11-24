@@ -150,14 +150,14 @@ async function renderComp(compId, wantedDate) {
 // render, so they share each document.
 async function loadDay(compId, day, { state, schedule, props, runOnly }) {
   const { groups, multiEvents, targets, eventIds, listFiltered, narrowed } = day;
-  const store = eventStoreFor(compId, schedule);
+  const store = eventStoreFor(compId, schedule, listFiltered ? eventIds : new Set());
   const startsAt = confirmStartAt(schedule);
   // Only Ratalajit loads the hurdle settings, since only its rows carry the
   // day's lines (docs/hurdles.md, "The day's lines"). The settings and the counts load a document per category of each
   // start still to come.
   const [multiLines, withLines, hurdleSubs, countPairs, multiConfirm] = await Promise.all([
     listFiltered
-      ? Promise.all(multiEvents.map((m) => combinedWatchLines(compId, m, eventIds, targets, schedule)))
+      ? Promise.all(multiEvents.map((m) => combinedWatchLines(compId, m, eventIds, targets, store)))
       : multiEvents.map(() => []),
     listFiltered && groups.length
       ? Promise.all(
@@ -550,9 +550,9 @@ function cupWatchLine(club, total, status) {
 // Lists the followed athletes' standings on a multi-event's row. The root is
 // fetched only where one of its legs is a followed EventId. A failed fetch
 // costs the lines and not the section.
-async function combinedWatchLines(compId, m, eventIds, targets, schedule) {
+async function combinedWatchLines(compId, m, eventIds, targets, store) {
   if (!m.legs.some((l) => eventIds.has(l.eventId))) return [];
-  const root = await loadCombinedRoot(compId, m.legs, schedule).catch(() => null);
+  const root = await loadCombinedRoot(store, m.legs).catch(() => null);
   const rows = combinedTotals(root);
   return rows
     .filter((a) => allocMatches(a, targets, null))

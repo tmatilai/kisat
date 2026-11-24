@@ -28,6 +28,7 @@ import {
   activeWatchSeen,
   cupMeetSeen,
   fetchJson,
+  fetchRoster,
   fetchSchedule,
   forgetWatch,
   forgetWatchEditToken,
@@ -113,7 +114,7 @@ function closeFocusFilter(compId) {
 // gets a notice and keeps local state, as the failure may be temporary.
 async function resolveFilter(compId, state) {
   if (state.focus?.kind === 'club') {
-    const roster = await fetchJson(`/api/roster/${compId}`).catch(() => null);
+    const roster = await fetchRoster(compId);
     const found = roster?.organizations?.find((o) => String(o.id) === state.focus.id);
     const label = found?.name || state.focus.name || 'Seura';
     if (!found) {
@@ -130,7 +131,7 @@ async function resolveFilter(compId, state) {
     return { kind: 'club', label, roster, entries, targets: focusTargets(state.focus, roster) };
   }
   if (state.focus) {
-    const roster = await fetchJson(`/api/roster/${compId}`).catch(() => null);
+    const roster = await fetchRoster(compId);
     const found = roster?.athletes.find((a) => String(a.id) === state.focus.id);
     if (!found) {
       return {
@@ -152,10 +153,7 @@ async function resolveFilter(compId, state) {
     };
   }
   if (state.watchId) {
-    const [watch, roster] = await Promise.all([
-      loadActiveWatch(state.watchId),
-      fetchJson(`/api/roster/${compId}`).catch(() => null),
-    ]);
+    const [watch, roster] = await Promise.all([loadActiveWatch(state.watchId), fetchRoster(compId)]);
     if (!watch) {
       const label = watchLabel(state.watchId);
       return {
@@ -961,7 +959,7 @@ async function activateFocusLink(compId, kind, id) {
   setBack('/');
   setHelp(null);
 
-  const roster = await fetchJson(`/api/roster/${compId}`).catch(() => null);
+  const roster = await fetchRoster(compId);
   if (seq !== renderSeq) return;
   const found =
     kind === 'club'
@@ -1200,7 +1198,7 @@ function addToWatchButton(compId, athleteId) {
       onclick: async () => {
         btn.disabled = true;
         btn.textContent = 'Ladataan…';
-        const roster = await fetchJson(`/api/roster/${compId}`).catch(() => null);
+        const roster = await fetchRoster(compId);
         btn.disabled = false;
         const entry = roster ? watchEntryForAthlete(roster, athleteId) : null;
         if (!entry) {

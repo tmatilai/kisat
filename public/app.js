@@ -53,8 +53,9 @@ import { meetGone } from './lib/schedule.js';
 // "The route table"). Every route change goes through navigate or
 // replaceAddress (app/shell.js), or arrives as a popstate.
 
-const SCHEDULE_REFRESH_MS = 60_000;
-const GROUP_REFRESH_MS = 25_000;
+// (docs/views.md, "The refresh")
+const LIVE_REFRESH_MS = 25_000;
+const STANDINGS_REFRESH_MS = 60_000;
 
 let refreshTimer = null;
 // Says whether a view is on screen rather than the loader. A refresh that
@@ -281,10 +282,10 @@ function scheduleRefresh() {
   // The lap counter must get no timer, since no tile may move mid-race
   // (docs/juoksut.md). dev/probe-laps.js asserts it.
   const ms =
-    route.view === 'group' || route.view === 'combined'
-      ? GROUP_REFRESH_MS
-      : route.view === 'comp' || route.view === 'medals' || route.view === 'cup'
-        ? SCHEDULE_REFRESH_MS
+    route.view === 'group' || route.view === 'combined' || route.view === 'comp'
+      ? LIVE_REFRESH_MS
+      : route.view === 'medals' || route.view === 'cup'
+        ? STANDINGS_REFRESH_MS
         : null;
   // A hidden tab gets no timer until the visibilitychange listener arms it.
   if (ms && !document.hidden) refreshTimer = setInterval(refreshTick, ms);
@@ -333,4 +334,4 @@ if (analyticsSiteToken) {
 }
 
 // The probes in dev/ reach these through the runner (dev/AGENTS.md).
-export { GROUP_REFRESH_MS, SCHEDULE_REFRESH_MS, refreshTick, refreshTimer };
+export { LIVE_REFRESH_MS, STANDINGS_REFRESH_MS, refreshTick, refreshTimer };

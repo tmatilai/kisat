@@ -427,8 +427,41 @@ function roundDetails(entries, store) {
   return Promise.all(entries.map(async (e) => roundDetail(e, await store.get(e.round.EventId))));
 }
 
+// --- How long a fetched event document stays in use (docs/views.md, "The refresh") ---
+
+const MINUTE_MS = 60_000;
+const SOON_MS = 15 * MINUTE_MS;
+// Ends the live window of a round that never gets a result.
+const LATE_MS = 120 * MINUTE_MS;
+const RECENT_MS = 5 * MINUTE_MS;
+const FOLLOWED_MAX_MS = 2 * MINUTE_MS;
+const FINISHED_MAX_MS = 5 * MINUTE_MS;
+const UNFOLLOWED_MIN_MS = 2 * MINUTE_MS;
+const DOC_MAX_AGE_MS = 10 * MINUTE_MS;
+
+// Returns how long a fetched event document stays in use, in ms, or 0 when
+// every refresh fetches it. `modifiedAt` is its Last-Modified in ms. `followed`
+// is true when the view shows a followed entrant's line from the document.
+function docMaxAge(schedule, eventId, { modifiedAt = null, followed = false } = {}, now = Date.now()) {
+  const quiet = modifiedAt == null ? Infinity : Math.max(0, now - modifiedAt);
+  const backoff = quiet / 10;
+  if (!followed) return Math.min(DOC_MAX_AGE_MS, Math.max(UNFOLLOWED_MIN_MS, backoff));
+  if (quiet < RECENT_MS) return 0;
+  const rows = Object.values(schedule || {})
+    .flatMap((day) => (Array.isArray(day) ? day : []))
+    .filter((r) => r.EventId === eventId);
+  const open = rows.filter((r) => r.Status !== 'Official');
+  const live = open.some((r) => {
+    const startsAt = tsKey(r.BeginDateTimeWithTZ);
+    return r.Status === 'Progress' || (startsAt - now < SOON_MS && now - startsAt < LATE_MS);
+  });
+  if (live) return 0;
+  return Math.min(rows.length && !open.length ? FINISHED_MAX_MS : FOLLOWED_MAX_MS, backoff);
+}
+
 export {
   API,
+  DOC_MAX_AGE_MS,
   HEAT_STATUS_FI,
   RUN_CATEGORIES,
   STATUS_FI,
@@ -440,6 +473,7 @@ export {
   compareCategories,
   countLine,
   defaultResultView,
+  docMaxAge,
   eventStore,
   fieldMayChange,
   filedStart,

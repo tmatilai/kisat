@@ -148,7 +148,7 @@ export default async function probe({ frame, W, log, ok, wait, groupKey, appJs, 
     '...where a class with no published row says so rather than guessing',
     box().textContent.includes('Tuntematon sarja'),
   );
-  // The refresh rebuilds this <details> every GROUP_REFRESH_MS, and a box the
+  // The refresh rebuilds this <details> every LIVE_REFRESH_MS, and a box the
   // reader opened stays open (keptOpen, app/shell.js). A new node shows the
   // fold was restored. (Break on purpose: drop `open:` from hurdleShell.)
   const before = box();

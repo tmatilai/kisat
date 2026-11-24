@@ -53,11 +53,13 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
   ok('a start already run carries no lines', !lineEls('400m aidat').length && !lineEls('4x100m aitaviesti').length);
   // The checks below mark those two as not run, since the fixture has no
   // other undrawn class and no second sekaviesti. The sheet restores them.
+  // Only a refresh fetches the schedule every time (docs/views.md, "The
+  // refresh"), so each change to the fixture's schedule is followed by one.
   const runState = (status) => {
     for (const s of demoJs.DEMO_STARTS) if (s.eventId === 'e7' || s.eventId === 'e50') s.status = status;
   };
   runState('Allocated');
-  await appJs.render();
+  await appJs.render(true);
   await settle();
   // In the 400 m start one class is drawn, one has no published row and one
   // is undrawn. The undrawn line leads with the height, having no lanes.
@@ -166,7 +168,7 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
   for (let i = starts.length - 1; i >= 0; i--) {
     if (starts[i].eventId === 'e48' || starts[i].eventId === 'e49') cut.unshift(...starts.splice(i, 1));
   }
-  await appJs.render();
+  await appJs.render(true);
   await settle();
   ok(
     'a one-class start is one line with no class prefix',
@@ -176,7 +178,7 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
   // With no line naming the class, the row names it itself.
   ok('...and the row names the class itself again', subs('60m aidat')[0] === 'M17');
   starts.push(...cut);
-  await appJs.render();
+  await appJs.render(true);
   await settle();
   ok('...and the fixture is whole again', lines('60m aidat').length === 3);
 
@@ -248,7 +250,7 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
   // The paper holds every start of the day, run or not, so this restores the
   // two run starts.
   runState('Official');
-  await appJs.render();
+  await appJs.render(true);
   await settle();
   // The paper is a row of the schedule's title menu on a day with a hurdle
   // start.
@@ -298,7 +300,7 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
   // hurdleSubs and a day run to the end loses its paper.)
   const was = demoJs.DEMO_STARTS.map((s) => s.status);
   for (const s of demoJs.DEMO_STARTS) if (libJs.isHurdleStart(s.event)) s.status = 'Official';
-  await appJs.render();
+  await appJs.render(true);
   await settle();
   ok(
     '...and keeps it once every hurdle start of the day has run',
@@ -307,7 +309,7 @@ export default async function probe({ frame, W, log, ok, wait, appJs, demoJs, li
   demoJs.DEMO_STARTS.forEach((s, i) => {
     s.status = was[i];
   });
-  await appJs.render();
+  await appJs.render(true);
   await settle();
   // The bar holds the toggle and the kenttä pick on one row at phone width,
   // so the select carries no visible word. One row measures about 37 px.

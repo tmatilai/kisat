@@ -38,13 +38,12 @@ import {
   medalsPath,
   seasonHash,
 } from '../lib/routes.js';
-import { reconcileStatuses, scheduleStatuses } from '../lib/schedule.js';
 import { SEARCH_MIN_CHARS } from '../lib/search.js';
 import { filterEventIds, watchAthletes, watchClubs, watchTargets } from '../lib/watch.js';
 import {
   HOME_VIEW_KEY,
+  eventStoreFor,
   fetchCompProps,
-  fetchEventDoc,
   fetchJson,
   fetchSchedule,
   listedRow,
@@ -91,8 +90,8 @@ import {
 // lib/districts.js).
 const onlyNote = (l) => (l.only ? `Mitalit lasketaan vain sarjaan ${l.only}` : null);
 
-// The medal page costs one results fetch per followed event and one root fetch
-// per followed multi-event.
+// The medal page reads one results document per followed event and one root
+// per followed multi-event, each at its own pace (docs/views.md, "The refresh").
 async function renderMedals(compId, ages = [], club = null) {
   const seq = renderSeq;
   setScrollKey(`medals:${compId}`);
@@ -301,34 +300,16 @@ async function renderMedals(compId, ages = [], club = null) {
   const multiDay = Object.keys(schedule).length > 1;
 
   if (followed && eventIds.size) {
-    // Results are reconciled with the schedule (reconcileStatuses). An event
-    // that does not answer is left out, as on the day list.
-    const statusById = scheduleStatuses(schedule);
-    const results = (
-      await Promise.all(
-        [...eventIds].map(async (eventId) => {
-          try {
-            return { eventId, data: reconcileStatuses(await fetchEventDoc(compId, schedule, eventId), statusById) };
-          } catch {
-            return null;
-          }
-        }),
-      )
-    ).filter(Boolean);
+    // An event whose fetch fails is left out, as on the day list.
+    const store = eventStoreFor(compId, schedule, eventIds);
+    const fetchAll = async (ids) =>
+      (await Promise.all(ids.map(async (eventId) => ({ eventId, ...(await store.get(eventId)) })))).filter(
+        (r) => !r.error,
+      );
+    const results = await fetchAll([...eventIds]);
     // A followed multi-event's line is its root's standing, not its legs'
     // (followedRows, lib/medals.js).
-    const rootIds = [...new Set(results.map((r) => r.data?.RootId).filter(Boolean))];
-    const roots = (
-      await Promise.all(
-        rootIds.map(async (eventId) => {
-          try {
-            return { eventId, data: await fetchEventDoc(compId, schedule, eventId) };
-          } catch {
-            return null;
-          }
-        }),
-      )
-    ).filter(Boolean);
+    const roots = await fetchAll([...new Set(results.map((r) => r.data?.RootId).filter(Boolean))]);
     if (seq !== renderSeq) return;
 
     // The followed lines count medals under the tables' scopes and chips
