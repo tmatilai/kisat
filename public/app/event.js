@@ -45,10 +45,11 @@ import {
   verticalJumpRow,
   verticalMarkText,
 } from '../lib/results.js';
-import { dayPath, hurdleSheetPath } from '../lib/routes.js';
+import { dayPath, hurdleSheetPath, startPath } from '../lib/routes.js';
 import {
   HEAT_STATUS_FI,
   betterStatus,
+  classEntry,
   defaultResultView,
   filedStart,
   hasEarlierRound,
@@ -158,7 +159,7 @@ function soleHeatWind(d) {
 // Renders a start's page. Its highlighting and class filter read the meet's
 // stored view state, as the schedule view does (docs/architecture.md,
 // "View state").
-async function renderGroup(compId, groupKey, licence = null) {
+async function renderGroup(compId, groupKey, licence = null, classLabel = null) {
   const seq = renderSeq;
   setScrollKey(`group:${compId}:${groupKey}`);
   setBack(`/c/${compId}`);
@@ -452,6 +453,7 @@ async function renderGroup(compId, groupKey, licence = null) {
       startsAt,
       order,
       scopeChoice: scopeChoice && { ...scopeChoice, schedule },
+      spotted: classEntry(detailed, classLabel),
     });
     needsWide = sections.needsWide;
     parts.push(...sections.parts);
@@ -498,6 +500,7 @@ function categorySections(
     startsAt,
     order = PLAIN_ORDER,
     scopeChoice = null,
+    spotted = null,
   },
 ) {
   const parts = [];
@@ -510,7 +513,7 @@ function categorySections(
       parts.push(
         el(
           'h3',
-          { class: 'cat-head' },
+          { class: d === spotted ? 'cat-head spotted' : 'cat-head' },
           `${d.data?.Name || d.schedRound.EventName}${roundName} `,
           statusChip(detailStatus(d)),
           windSpan(soleHeatWind(d)),
@@ -669,7 +672,7 @@ function categorySections(
           st.status,
           tables.flatMap(([heading, rows]) => [
             heading,
-            combinedStandingsTable(rows, st.legs, targets, compId, st.scored, d.schedRound.EventId),
+            combinedStandingsTable(rows, st.legs, targets, compId, st.scored, d.schedRound.EventId, d.label),
           ]),
         ),
       );
@@ -743,7 +746,7 @@ function standingsWidth(numLegs, name = LADDER_NAME_MIN_PX) {
 // Draws the standings as a ladder table with one column per leg, in contest
 // order (combinedLegColumns, lib/combined.js). Before anything is scored every
 // rank is 1., so with `scored` false the Sija column prints a dash.
-function combinedStandingsTable(rows, legs, targets, compId, scored = true, hereLegId = null) {
+function combinedStandingsTable(rows, legs, targets, compId, scored = true, hereLegId = null, classLabel = null) {
   const leader = combinedLeaderPoints(rows);
   const openLeg = hereLegId != null ? legs.findIndex((l) => String(l.id) === String(hereLegId)) : latestLegIndex(legs);
   return wrap(
@@ -769,7 +772,7 @@ function combinedStandingsTable(rows, legs, targets, compId, scored = true, here
               // A heading links to its leg, except on that leg's own page
               // (hereLegId).
               l.key && String(l.id) !== String(hereLegId)
-                ? el('a', { class: 'leg-link', href: `/c/${compId}/g/${encodeURIComponent(l.key)}` }, l.label)
+                ? el('a', { class: 'leg-link', href: startPath(compId, l.key, classLabel) }, l.label)
                 : l.label,
               legStateEl(l.status),
             ),
@@ -1545,10 +1548,10 @@ async function renderCombined(compId, key, licence = null) {
   } else if (byScope) {
     for (const t of scopeTables) {
       parts.push(el('h3', {}, t.scope?.short || 'Muut'));
-      parts.push(combinedStandingsTable(t.allocs, legs, targets, compId, scored));
+      parts.push(combinedStandingsTable(t.allocs, legs, targets, compId, scored, null, start.classLabel));
     }
   } else {
-    parts.push(combinedStandingsTable(rows, legs, targets, compId, scored));
+    parts.push(combinedStandingsTable(rows, legs, targets, compId, scored, null, start.classLabel));
   }
   parts.push(el('h2', {}, 'Osalajit'));
   parts.push(
@@ -1560,7 +1563,7 @@ async function renderCombined(compId, key, licence = null) {
           'a',
           {
             class: 'row',
-            href: `/c/${compId}/g/${encodeURIComponent(roundGroupKey(l.round))}`,
+            href: startPath(compId, roundGroupKey(l.round), start.classLabel),
           },
           el('div', { class: 'row-time' }, timeFmt.format(parseTs(l.ts))),
           el(

@@ -8,6 +8,8 @@ Shared links depend on the URL shapes below. `parseRoute` (`lib/routes.js`) maps
 - `/c/<compId>[/d/<YYYY-MM-DD>]`: a meet's day list.
 - `/c/<compId>/g/<groupKey>[#/urheilija/<id>]`: one start. The fragment highlights one athlete as
   followed, and the page opens at the athlete's class.
+- `/c/<compId>/g/<groupKey>#/sarja/<class>`: one start, opened at the heading of one class.
+  `<class>` is the class label from the event name, such as `N17` or `Mixed 15`.
 - `/c/<compId>/g/<groupKey>/laps`: the lap counter (`docs/lap-counter.md`).
 - `/c/<compId>/o/<label>[#/urheilija/<id>]`: a multi-event's standings, identified by the
   multi-event's label. The fragment highlights one athlete as followed, and the page opens at the

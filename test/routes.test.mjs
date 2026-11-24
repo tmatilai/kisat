@@ -27,6 +27,7 @@ import {
   TABLE_TAB_VIEWS,
   anchorMoved,
   athleteYearsHash,
+  classHash,
   clubYearsHash,
   compViewMode,
   compViewSetMode,
@@ -48,6 +49,7 @@ import {
   medalsPath,
   menuAnchorPos,
   parseAthleteYearsHash,
+  parseClassHash,
   parseClubYearsHash,
   parseLinkHash,
   parseRoute,
@@ -62,6 +64,7 @@ import {
   siteAssetPath,
   siteMeta,
   siteMode,
+  startPath,
   tablePageHash,
   watchLink,
 } from '../public/lib/routes.js';
@@ -447,6 +450,28 @@ test('parseRoute', () => {
   });
   assert.equal(parseRoute('/c/20354/g/k', '#/urheilija/62940230').athlete, '62940230');
   assert.equal(parseRoute('/c/20354/o/M%2010-ottelu', '#/urheilija/62940230').athlete, '62940230');
+  // A leg link opens its start at the multi-event's class. A class label can
+  // hold a space. (Break on purpose: drop the class fragment from the group
+  // route.)
+  const legLink = new URL(startPath('20354', '2026-08-15T10:00|5-ottelu Pituus', 'Mixed 15'), 'https://x');
+  assert.equal(legLink.hash, '#/sarja/Mixed%2015');
+  assert.deepEqual(parseRoute(legLink.pathname, legLink.hash), {
+    view: 'group',
+    compId: '20354',
+    key: '2026-08-15T10:00|5-ottelu Pituus',
+    classLabel: 'Mixed 15',
+  });
+  assert.equal(startPath('20354', 'k'), '/c/20354/g/k', 'no class, no fragment');
+  // Neither fragment reads as the other.
+  assert.equal(parseRoute('/c/20354/g/k', '#/urheilija/62940230').classLabel, undefined);
+  assert.equal(parseAthleteYearsHash(classHash('M40')), null);
+  assert.deepEqual(parseClassHash(classHash('M40')), { classLabel: 'M40' });
+  assert.equal(parseClassHash('#/sarja/M40%2Fx'), null, 'a slash in the class');
+  assert.equal(parseClassHash('#/sarja/%E0'), null, 'a broken escape');
+  assert.equal(parseClassHash('#/sarja'), null);
+  // The class fragment belongs to a start alone.
+  assert.equal(parseRoute('/c/20354/o/M%2010-ottelu', classHash('M10')).classLabel, undefined);
+  assert.equal(parseRoute('/c/20354', classHash('M10')).view, 'comp');
   assert.equal(parseRoute('/c/20354/mitalit/x').view, 'home');
   assert.equal(parseRoute('/c/20354/cup/d/2026-08-08').view, 'home', 'no day on it');
   assert.equal(parseRoute('/c/cup').view, 'comp', 'a competition is still a competition');

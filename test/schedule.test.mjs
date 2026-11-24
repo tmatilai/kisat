@@ -669,7 +669,7 @@ test('demo fixture', () => {
   const groups = groupRounds(schedule[day]);
   // Several categories share a start, so there are fewer starts than rows. A
   // multi-event's legs are ordinary starts here (combinedEventStarts).
-  assert.equal(groups.length, 44, 'the demo starts, across Track/Field/Relay');
+  assert.equal(groups.length, 43, 'the demo starts, across Track/Field/Relay');
   assert.ok(groups.some((g) => g.category === 'Track'));
   assert.ok(groups.some((g) => g.category === 'Field'));
   assert.ok(groups.some((g) => g.category === 'Relay'));

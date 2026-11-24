@@ -11,15 +11,16 @@ import {
 
 // --- Combined events (moniottelu) ---
 
-// Reads an EventName as a multi-event's leg { label, kind, discipline }, or
-// null where it is no leg. parseEventName has collapsed the double space.
+// Reads an EventName as a multi-event's leg { label, kind, discipline,
+// classLabel }, or null where it is no leg. parseEventName has collapsed the
+// double space.
 const MULTI_EVENT_RE = /^(\d+-ottelu)\s+(.+)$/;
 
 function multiEventLeg(eventName) {
   const p = parseEventName(eventName);
   const m = MULTI_EVENT_RE.exec(p.event);
   if (!m) return null;
-  return { label: [p.label, m[1]].filter(Boolean).join(' '), kind: m[1], discipline: m[2] };
+  return { label: [p.label, m[1]].filter(Boolean).join(' '), kind: m[1], discipline: m[2], classLabel: p.label };
 }
 
 // Says whether a multi-event has started (combinedEventStatus). A drawn leg has
@@ -39,7 +40,9 @@ function combinedEventStarts(schedule) {
     for (const r of rounds) {
       const leg = multiEventLeg(r.EventName);
       if (!leg) continue;
-      if (!map.has(leg.label)) map.set(leg.label, { key: leg.label, label: leg.label, legs: [], dates: [] });
+      if (!map.has(leg.label)) {
+        map.set(leg.label, { key: leg.label, label: leg.label, classLabel: leg.classLabel, legs: [], dates: [] });
+      }
       const start = map.get(leg.label);
       start.legs.push({
         eventId: r.EventId,

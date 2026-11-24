@@ -88,7 +88,7 @@ const RENDERS = {
   comp: (m, r) => m.renderComp(r.compId, r.date),
   cup: (m, r, isRefresh) => m.renderCup(r.compId, r.club, isRefresh),
   cupSeason: (m, r) => m.renderCupSeason(r),
-  group: (m, r) => m.renderGroup(r.compId, r.key, r.athlete),
+  group: (m, r) => m.renderGroup(r.compId, r.key, r.athlete, r.classLabel),
   home: (m) => m.renderHome(),
   hurdleSheet: (m, r) => m.renderHurdleSheet(r.compId, r.date),
   hurdleTable: (m, r) => m.renderHurdleTable(r),
@@ -178,9 +178,9 @@ async function renderRoute(isRefresh = false) {
     viewShown = true;
     // The position is restored once the content is in, as the placeholder would
     // clamp it. A view not seen this session opens at the top, or, when its link
-    // names an athlete, at that athlete's class.
+    // names an athlete or a class, at that class.
     if (isRefresh) restorePlace(place);
-    else if (route.athlete && !scrollPositions.has(scrollKey)) openAtSpotted();
+    else if ((route.athlete || route.classLabel) && !scrollPositions.has(scrollKey)) openAtSpotted();
     else window.scrollTo(0, (scrollKey && scrollPositions.get(scrollKey)) || 0);
     setUpdated(true, note ?? flash);
     (window.requestIdleCallback ?? setTimeout)(prefetchModules);
@@ -206,19 +206,20 @@ async function renderRoute(isRefresh = false) {
   }
 }
 
-// Scrolls a start to the class heading (h3.cat-head) above the row of the
-// athlete its link names, the row with the class `spotted` (rowClass,
-// app/event.js). A start with no class heading scrolls to the nearest heading
-// above the row, such as its heat's, or to the row itself.
+// Scrolls a start to the class heading that its link names, or to the class
+// heading above the row of the athlete that its link names. The heading or the
+// row has the class `spotted` (renderGroup, rowClass, app/event.js). Without a
+// class heading, the start scrolls to the nearest heading above the row, such
+// as its heat's, or to the row itself.
 function openAtSpotted() {
-  const row = appEl.querySelector('.spotted');
+  const spotted = appEl.querySelector('.spotted');
   const before = (selector) =>
     [...appEl.querySelectorAll(selector)]
-      .filter((h) => h.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING)
+      .filter((h) => h.compareDocumentPosition(spotted) & Node.DOCUMENT_POSITION_FOLLOWING)
       .pop();
-  const head = row ? before('h3.cat-head') || before('h3') : null;
+  const head = !spotted || spotted.matches('h3') ? spotted : before('h3.cat-head') || before('h3') || spotted;
   const header = document.querySelector('header');
-  const top = row ? (head || row).getBoundingClientRect().top + window.scrollY - (header?.offsetHeight || 0) - 8 : 0;
+  const top = head ? head.getBoundingClientRect().top + window.scrollY - (header?.offsetHeight || 0) - 8 : 0;
   window.scrollTo(0, Math.max(0, top));
 }
 
