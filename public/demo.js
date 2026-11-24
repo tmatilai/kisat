@@ -4811,6 +4811,23 @@ function demoBody(url) {
   return demoApiBody(url, DEMO_API) || demoResponse(url);
 }
 
+// Maps a round's id to the time of a write that a probe simulates.
+const DEMO_WRITES = new Map();
+
+// Returns a demo results document's Last-Modified, which Tuloslista sends
+// with each results document (docs/tuloslista-api.md, "Caching"). Without it,
+// the demo's Uusimmat would show no times.
+function demoModifiedAt(doc, now = Date.now()) {
+  const writes = (doc?.Rounds || []).map((r) => DEMO_WRITES.get(r.Id)).filter((t) => t != null);
+  if (writes.length) return Math.max(...writes);
+  // A round's marks are written from its start on.
+  const begins = (doc?.Rounds || [])
+    .filter((r) => (r.Heats || []).some((h) => (h.Allocations || []).some((a) => a.Result || a.Attempts?.length)))
+    .map((r) => Date.parse(r.BeginDateTimeWithTZ))
+    .filter((t) => t <= now);
+  return begins.length ? Math.min(now, Math.max(...begins) + 20 * 60_000) : null;
+}
+
 export {
   DEMO_ID,
   DEMO_COMP_NAME,
@@ -4834,9 +4851,11 @@ export {
   DEMO_ROAD_EVENTS,
   DEMO_ROAD_SCHEDULE,
   DEMO_API,
+  DEMO_WRITES,
   demoBody,
   demoLicense,
   demoMeet,
+  demoModifiedAt,
   demoEvents,
   demoSchedule,
   demoResponse,

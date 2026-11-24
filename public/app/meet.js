@@ -2,8 +2,17 @@ import { combinedCounts, combinedStarted, combinedTotals } from '../lib/combined
 import { confirmCount, confirmRows, confirmSetting, confirmStartAt, watchConfirmations } from '../lib/confirmation.js';
 import { dateRange, parseTs, scheduleDays } from '../lib/dates.js';
 import { meetDay } from '../lib/day.js';
+import {
+  latestAge,
+  latestFingerprint,
+  latestFresh,
+  latestLineKey,
+  latestStarts,
+  latestUnseen,
+  updateLatest,
+} from '../lib/latest.js';
 import { allocMark, allocPosition, relayInfo, relayLegParts, roundAllocated } from '../lib/results.js';
-import { compViewMode, dayPath, isDemoId, medalsPath, startPath } from '../lib/routes.js';
+import { athleteYearsHash, dayPath, isDemoId, medalsPath, startPath } from '../lib/routes.js';
 import {
   countLine,
   fieldMayChange,
@@ -15,15 +24,18 @@ import {
 } from '../lib/schedule.js';
 import { allocMatches, matchedEntries } from '../lib/watch.js';
 import {
+  eventModifiedAt,
   eventStoreFor,
   fetchCompProps,
   fetchMeetBody,
   fetchSchedule,
+  latestSnapshot,
   listedRow,
   loadCombinedRoot,
   officialMenuRows,
   rememberComp,
   setCupMeetSeen,
+  storeLatest,
   updateViewState,
   viewStateFor,
 } from './data.js';
@@ -39,6 +51,7 @@ import {
   qualBadgeEl,
   relayLegEls,
   resolveFilter,
+  shownCompMode,
   soleAthleteId,
 } from './follow.js';
 import {
@@ -140,15 +153,16 @@ async function renderComp(compId, wantedDate) {
     });
   }
 
-  const loaded = await loadDay(compId, day, { state, schedule, props, runOnly });
+  const latestOffered = day.listFiltered && date === today;
+  const loaded = await loadDay(compId, day, { state, schedule, props, runOnly, latestOffered });
   if (seq !== renderSeq) return;
-  appEl.replaceChildren(...drawDay(compId, day, loaded, { state, filter, cup, trackPick, allDays }));
+  appEl.replaceChildren(...drawDay(compId, day, loaded, { state, filter, cup, trackPick, allDays, latestOffered }));
 }
 
 // Loads what the day list draws besides the schedule: the followed lines, the
 // hurdle lines, the counts and the confirmations. One store serves the whole
 // render, so they share each document.
-async function loadDay(compId, day, { state, schedule, props, runOnly }) {
+async function loadDay(compId, day, { state, schedule, props, runOnly, latestOffered }) {
   const { groups, multiEvents, targets, eventIds, listFiltered, narrowed } = day;
   const store = eventStoreFor(compId, schedule, listFiltered ? eventIds : new Set());
   const startsAt = confirmStartAt(schedule);
@@ -192,16 +206,36 @@ async function loadDay(compId, day, { state, schedule, props, runOnly }) {
     confirmSetting(props),
     confirmParts.some((r) => r.confirmsHere),
   );
-  return { multiLines, withLines, hurdleSubs, countPairs, multiConfirm, varmistus };
+  const latest = latestOffered ? trackLatest(compId, day.date, withLines, shownCompMode(state, true)) : null;
+  return { multiLines, withLines, hurdleSubs, countPairs, multiConfirm, varmistus, latest };
+}
+
+// Updates the meet day's Uusimmat snapshot in every mode, so that a change
+// found in Seuratut shows the dot on Uusimmat.
+function trackLatest(compId, date, withLines, mode) {
+  const dayKey = `${compId}:${date}`;
+  const starts = withLines.filter((r) => r.items.length);
+  const now = Date.now();
+  let snapshot = updateLatest(
+    latestSnapshot(dayKey),
+    starts.flatMap((r) => r.items),
+    now,
+  );
+  if (mode === 'latest' && !document.hidden) snapshot = { ...snapshot, seenAt: now };
+  storeLatest(dayKey, snapshot);
+  return { starts, snapshot, now };
 }
 
 // Draws the day list's sections in their order: the filter bar, the class and
 // discipline filter, the notices, the day's confirmations, the cup's row,
 // Ottelut, the day tabs and the list (docs/views.md, "The day list").
-function drawDay(compId, day, loaded, { state, filter, cup, trackPick, allDays }) {
+function drawDay(compId, day, loaded, { state, filter, cup, trackPick, allDays, latestOffered }) {
   const { dates, date, choices, pick, narrowed, groups, multiEvents, targets, emptyHere, listFiltered } = day;
-  const { multiLines, withLines, hurdleSubs, countPairs, multiConfirm, varmistus } = loaded;
-  const sections = [filterBar(compId, state, filter, listFiltered, trackPick)];
+  const { multiLines, withLines, hurdleSubs, countPairs, multiConfirm, varmistus, latest } = loaded;
+  const mode = shownCompMode(state, latestOffered);
+  const sections = [
+    filterBar(compId, state, filter, listFiltered, trackPick, latest && { unseen: latestUnseen(latest.snapshot) }),
+  ];
   const pickBox = dayFilterBox(compId, choices, pick, state.counts);
   if (pickBox) sections.push(pickBox);
   if (filter?.notice) sections.push(el('div', { class: 'notice' }, filter.notice));
@@ -214,11 +248,14 @@ function drawDay(compId, day, loaded, { state, filter, cup, trackPick, allDays }
       ),
     );
   }
-  if (varmistus) sections.push(confirmSection(compId, varmistus));
+  // Uusimmat leaves out the sections above the list, so that the newest change
+  // is at the top of the page.
+  const latestShown = mode === 'latest';
+  if (varmistus && !latestShown) sections.push(confirmSection(compId, varmistus));
 
   // The cup's row sits above Ottelut and the day tabs, because it belongs to no
   // day. A followed club gets a line under it, matched on club ids alone.
-  if (cup?.cup) {
+  if (cup?.cup && !latestShown) {
     const followed = targets?.clubIds?.size ? cup.clubs.filter((c) => targets.clubIds.has(String(c.id))) : [];
     // The phase comes from the Worker, because only its fan-out sees a category
     // nobody entered (meetPhase, lib/schedule.js).
@@ -244,11 +281,11 @@ function drawDay(compId, day, loaded, { state, filter, cup, trackPick, allDays }
     if (!hurdles && !counts?.lines.length) return null;
     return { lines: [...(hurdles?.lines || []), ...(counts?.lines || [])], named: !!hurdles?.named || !!counts?.named };
   };
-  const watchedOnly = listFiltered && compViewMode(state) === 'watched';
+  const watchedOnly = listFiltered && mode !== 'all';
   const multiRows = multiEvents
     .map((m, i) => ({ m, lines: multiLines[i], sub: multiConfirm[i] || null }))
     .filter((r) => !watchedOnly || r.lines.length);
-  if (multiRows.length) {
+  if (multiRows.length && !latestShown) {
     // Ottelut folds in a details.fold, whose summary is the section's h2.
     sections.push(
       el(
@@ -273,7 +310,7 @@ function drawDay(compId, day, loaded, { state, filter, cup, trackPick, allDays }
 
   // A one-day meet has no day tabs. Its list takes a heading when the cup's row
   // or Ottelut sits above it.
-  if (dates.length > 1)
+  if (!latestShown && dates.length > 1)
     sections.push(
       el(
         'div',
@@ -291,7 +328,7 @@ function drawDay(compId, day, loaded, { state, filter, cup, trackPick, allDays }
         ),
       ),
     );
-  else if (cup?.cup || multiRows.length) sections.push(el('h2', {}, 'Aikataulu'));
+  else if (!latestShown && (cup?.cup || multiRows.length)) sections.push(el('h2', {}, 'Aikataulu'));
 
   if (!groups.length) {
     // Only a narrowing can empty a day, because byDate holds no empty day.
@@ -310,8 +347,15 @@ function drawDay(compId, day, loaded, { state, filter, cup, trackPick, allDays }
         groups.map((g) => plainGroupRow(compId, g, subsFor(g))),
       ),
     );
+  } else if (latestShown) {
+    const rows = latestRows(compId, latest);
+    sections.push(
+      rows.length
+        ? el('div', { class: 'list' }, rows)
+        : el('div', { class: 'notice' }, 'Ei vielä seurannan tuloksia tänä päivänä.'),
+    );
   } else {
-    if (compViewMode(state) === 'watched') {
+    if (mode === 'watched') {
       // Seuratut keeps only the starts where groupLines found somebody followed
       // in the round.
       const rows = withLines.filter((r) => r.lines.length > 0);
@@ -433,9 +477,16 @@ function countRowLines(counts) {
 // (docs/views.md, "The day list"). Classes in different phases get a status
 // chip each (groupStatuses). catsNamedBelow never drops those chips, only the
 // class line.
-function rowHeadParts(g, catsNamedBelow = false) {
+function rowHeadParts(g, catsNamedBelow = false, age = null) {
   const statuses = groupStatuses(g.entries);
   const mixed = statuses.length > 1;
+  const ageEl = age ? el('span', { class: 'row-age' }, age) : null;
+  const labels = catsNamedBelow
+    ? ''
+    : g.entries
+        .map((e) => e.label)
+        .filter(Boolean)
+        .join(', ');
   return [
     el('div', { class: 'row-time' }, timeFmt.format(parseTs(g.ts))),
     el(
@@ -456,17 +507,11 @@ function rowHeadParts(g, catsNamedBelow = false) {
             statuses.map((s) =>
               el('span', { class: 'row-cat-status' }, s.labels.filter(Boolean).join(', '), statusChip(s.status)),
             ),
+            ageEl,
           )
-        : catsNamedBelow
-          ? null
-          : el(
-              'div',
-              { class: 'row-sub' },
-              g.entries
-                .map((e) => e.label)
-                .filter(Boolean)
-                .join(', '),
-            ),
+        : labels || age
+          ? el('div', { class: 'row-sub' }, labels, labels && age ? ' · ' : null, ageEl)
+          : null,
     ),
     mixed ? null : statusChip(g.status),
   ];
@@ -615,6 +660,34 @@ function watchedGroupRow(compId, { g, lines, provisional, classLabel }, extraCla
   );
 }
 
+// Draws Uusimmat's rows. A row with a fresh change is tinted, and its other
+// lines are dimmed, so that the changed line stands out. The row's class line
+// gives the age of the newest change, and its link highlights that change's
+// athlete.
+function latestRows(compId, { starts, snapshot, now }) {
+  const lines = snapshot.lines;
+  return latestStarts(starts, snapshot).map(({ g, items, at }) => {
+    const fresh = items.filter((x) => latestFresh(lines[x.key], now));
+    if (fresh.length) for (const x of items) if (!fresh.includes(x)) x.line.classList.add('latest-old');
+    const newest = items.find((x) => at != null && lines[x.key]?.at === at) || items[0];
+    // The fragment takes a licence (docs/architecture.md, "The route table").
+    const licence = newest.alloc.Athletes?.length === 1 ? newest.alloc.Athletes[0].LicenseId : null;
+    return el(
+      'a',
+      {
+        class: `row watch-day-row${fresh.length ? ' watched' : ''}`,
+        href: `/c/${compId}/g/${encodeURIComponent(g.key)}${licence ? athleteYearsHash(licence) : ''}`,
+      },
+      el('div', { class: 'row-head' }, rowHeadParts(g, false, at == null ? null : latestAge(at, now))),
+      el(
+        'div',
+        { class: 'watch-row-athletes' },
+        items.map((x) => x.line),
+      ),
+    );
+  });
+}
+
 // --- The followed athletes' lines ---
 
 // Draws the day's confirmation list, folded under its count (docs/views.md,
@@ -664,7 +737,7 @@ function confirmSection(compId, v) {
 // (docs/views.md, "The day list").
 async function groupLines(g, eventIds, targets, store, compId, startsAt) {
   const relevant = g.entries.filter((e) => eventIds.has(e.round.EventId));
-  if (!relevant.length) return { lines: [], confirmable: [], confirmsHere: false, provisional: false };
+  if (!relevant.length) return { lines: [], items: [], confirmable: [], confirmsHere: false, provisional: false };
   const detailed = await roundDetails(relevant, store);
   const perCategory = await Promise.all(
     detailed.map(async (d) => {
@@ -680,9 +753,17 @@ async function groupLines(g, eventIds, targets, store, compId, startsAt) {
       // The last argument strips the earlier round's results from the borrowed
       // rows, which would otherwise read as this round's.
       const line = { legCount, compId, named: targets?.namedAthleteIds };
-      const lines = matchedEntries(d.round, enrollments, targets, team, prevField != null).map((m) =>
-        watchAllocLine(g.entries.length > 1 ? d.label : '', m, d, line),
-      );
+      const modifiedAt = eventModifiedAt(compId, d.schedRound.EventId);
+      // trackLatest reads the items.
+      const items = matchedEntries(d.round, enrollments, targets, team, prevField != null).map((m) => ({
+        key: latestLineKey(d.schedRound, m.alloc),
+        fp: latestFingerprint(m.alloc, allocMark(m.alloc, d.data, d.round)),
+        modifiedAt,
+        g,
+        alloc: m.alloc,
+        line: watchAllocLine(g.entries.length > 1 ? d.label : '', m, d, line),
+      }));
+      const lines = items.map((x) => x.line);
       const { rows: confirmable, confirmsHere } = await confirmRows(
         d,
         g.event,
@@ -694,6 +775,7 @@ async function groupLines(g, eventIds, targets, store, compId, startsAt) {
       return {
         classLabel: d.label,
         lines,
+        items,
         confirmable,
         confirmsHere,
         // True only where an undrawn round gave a line and its field can
@@ -706,6 +788,7 @@ async function groupLines(g, eventIds, targets, store, compId, startsAt) {
     // The row opens its start at the first class with a followed line.
     classLabel: g.entries.length > 1 ? perCategory.find((c) => c.lines.length)?.classLabel : null,
     lines: perCategory.flatMap((c) => c.lines),
+    items: perCategory.flatMap((c) => c.items),
     confirmable: perCategory.flatMap((c) => c.confirmable),
     confirmsHere: perCategory.some((c) => c.confirmsHere),
     provisional: perCategory.some((c) => c.provisional),

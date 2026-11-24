@@ -1,5 +1,6 @@
 import { tickedScopes } from '../lib/districts.js';
 import { ALONE_ID_RE, elsewhereRow, graftApplies, officialUrl, olProperties, olSchedule } from '../lib/elsewhere.js';
+import { putLatest } from '../lib/latest.js';
 import { normalizeRenderLog } from '../lib/render-log.js';
 import { compViewSetMode, compViewState, compViewUpdate, isDemoId } from '../lib/routes.js';
 import {
@@ -37,7 +38,11 @@ async function loadDemo(compId) {
 async function fetchJson(url, opts = {}) {
   // A demo meet answers without the network (demoBody).
   const offline = demo?.demoBody(url);
-  if (offline) return offline;
+  if (offline) {
+    const modified = demo.demoModifiedAt(offline);
+    if (modified != null) lastModified.set(url, modified);
+    return offline;
+  }
   const headers = { ...opts.headers };
   if (url.startsWith('/api/')) headers['x-kisat-client'] = '1';
   // The request counts toward the render that was current when it started,
@@ -72,6 +77,10 @@ async function fetchJson(url, opts = {}) {
 
 // Maps a URL to its response's Last-Modified in ms.
 const lastModified = new Map();
+
+function eventModifiedAt(compId, eventId) {
+  return lastModified.get(`${API}/results/${compId}/${eventId}`) ?? null;
+}
 
 // Swaps fetchJson for a stub. A probe in dev/ calls appJs.setFetchJson(stub)
 // and puts the original back the same way, since assigning appJs.fetchJson
@@ -255,6 +264,15 @@ function pruneLapsStore() {
     }
     if (!state?.t || state.t < cutoff) localStorage.removeItem(key);
   }
+}
+
+// The Uusimmat snapshots (docs/architecture.md, "View state").
+const LATEST_KEY = 'kisatLatest';
+function latestSnapshot(dayKey) {
+  return readStore(LATEST_KEY)?.[dayKey] ?? null;
+}
+function storeLatest(dayKey, snapshot) {
+  writeStore(LATEST_KEY, putLatest(readStore(LATEST_KEY), dayKey, snapshot, Date.now()));
 }
 
 function renderLog() {
@@ -489,6 +507,7 @@ export {
   activeWatchSeen,
   applyRelayNames,
   cupMeetSeen,
+  eventModifiedAt,
   eventStoreFor,
   fetchCompProps,
   fetchEventDoc,
@@ -499,6 +518,7 @@ export {
   followTargets,
   forgetWatch,
   forgetWatchEditToken,
+  latestSnapshot,
   listedRow,
   loadActiveWatch,
   loadCombinedRoot,
@@ -524,6 +544,7 @@ export {
   setRenderCost,
   setViewCats,
   setViewMode,
+  storeLatest,
   updateViewState,
   viewStateFor,
   watchEditToken,

@@ -30,6 +30,7 @@ const OFFLINE = {
   'probe-varmistus': '',
   'probe-refresh': 'w=700&h=300',
   'probe-pace': '',
+  'probe-latest': '',
   'probe-layers': 'url=c/demo',
   'probe-ladder': '',
   'probe-measure': 'url=c/demo',

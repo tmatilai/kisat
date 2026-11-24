@@ -6,6 +6,21 @@
   is dropped from `Seuratut` only when `matchedEntries` is empty for every class. Otherwise an
   athlete who ran only the heats would keep the semifinal in the list.
 
+## Uusimmat
+
+`Uusimmat` is a mode of the day list on the meet's current day. It lists the starts with followed
+lines, the start with the newest change first.
+
+- **The page finds a change by comparing a render with the previous one**, because no result in the
+  API has a time. So each device has its own list, and a time is known only for changes this device
+  saw happen.
+- **A change seen late gets the event's `Last-Modified` as its time.** That is the event document's
+  last write, which can be a later attempt by another athlete or a correction. On a device's first
+  render of a day, every line gets that time, and none is marked as new.
+- **A change is the competitor's own mark, attempts or qualification, never the place**, which moves
+  whenever another athlete in the round competes.
+- **The multi-event standings in `Ottelut` are not in `Uusimmat`.** The legs are.
+
 ## An undrawn round
 
 - **Code that shows an undrawn round's field checks `!roundAllocated`, then tries

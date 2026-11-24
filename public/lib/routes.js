@@ -549,7 +549,7 @@ const COMP_VIEW_MAX = 10;
 const SCOPES_MAX = 5;
 
 function normalizeMode(mode) {
-  return mode === 'all' ? 'all' : 'watched';
+  return mode === 'all' || mode === 'latest' ? mode : 'watched';
 }
 
 // Reads Juoksut mode's category toggle, which defaults to the track.

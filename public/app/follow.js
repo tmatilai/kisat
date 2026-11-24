@@ -183,10 +183,18 @@ async function resolveFilter(compId, state) {
   return null;
 }
 
-// The schedule view's filter row carries the chip and the watched/all toggle
+const LATEST_LABEL = 'Uusimmat';
+
+function shownCompMode(state, latestOffered) {
+  const mode = compViewMode(state);
+  return mode === 'latest' && !latestOffered ? 'watched' : mode;
+}
+
+// The schedule view's filter row carries the chip and the mode toggle
 // (docs/architecture.md, "The filter bar"). Home passes filterActive false and
 // no track picker, so only the chip renders there.
-function filterBar(compId, state, filter, filterActive, trackPick = null) {
+// `latest`, as { unseen }, offers Uusimmat (docs/views.md, "Uusimmat").
+function filterBar(compId, state, filter, filterActive, trackPick = null, latest = null) {
   const bar = el('div', { class: 'filter-bar' });
   // Juoksut mode has no follow-lists (viewStateFor), so this slot picks
   // categories. The meet's track picker goes at the far end of the same row.
@@ -254,13 +262,20 @@ function filterBar(compId, state, filter, filterActive, trackPick = null) {
   if (filterActive) {
     // The toggle shows the quick-filter's own mode while one is set, and the
     // Watch's otherwise (compViewMode, lib/routes.js).
-    const mode = compViewMode(state);
+    const mode = shownCompMode(state, !!latest);
     const setMode = (m) => () => {
       setViewMode(compId, m);
       render();
     };
     bar.append(
       segControl('Näytä', [
+        latest
+          ? {
+              label: [LATEST_LABEL, latest.unseen ? el('span', { class: 'seg-dot', 'aria-label': 'uutta' }) : null],
+              pressed: mode === 'latest',
+              onclick: setMode('latest'),
+            }
+          : null,
         { label: 'Seuratut', pressed: mode === 'watched', onclick: setMode('watched') },
         { label: 'Koko päivä', pressed: mode === 'all', onclick: setMode('all') },
       ]),
@@ -1473,5 +1488,6 @@ export {
   relayLegEls,
   resolveFilter,
   scopeTitle,
+  shownCompMode,
   soleAthleteId,
 };

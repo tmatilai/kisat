@@ -4,8 +4,9 @@
 //   dev/probe.html?probe=probe-pace
 export default async function probe({ W, log, ok, groupKey, appJs, settle }) {
   // The clock stands at 06:00, before every demo start, so only a round in
-  // progress is live. The demo sends no Last-Modified, so every other document
-  // counts as quiet since long ago.
+  // progress is live. No demo document has a Last-Modified before its round's
+  // start (demoModifiedAt, demo.js), so every other document counts as quiet
+  // since long ago.
   const day = new W.Date();
   day.setHours(6, 0, 0, 0);
   let clock = day.getTime();
