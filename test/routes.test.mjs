@@ -1042,6 +1042,7 @@ test('compViewState/compViewUpdate', () => {
     defaults,
     'an unknown mode normalizes to watched, not passed through',
   );
+  assert.equal(compViewState([{ compId: 'c1', mode: 'latest' }], 'c1').mode, 'latest', 'Uusimmat');
   assert.equal(
     compViewState([{ compId: '#home', recentOpen: 'yes' }], '#home').recentOpen,
     false,

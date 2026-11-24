@@ -136,6 +136,8 @@ or a start can't lose the state, and a start reads the same stored state. The st
 - `kisatRelayNames`: `{hide: true}` while the `Juoksijat` chip hides the relay runners' names on
   every view.
 - `kisatRenderLog`: the render log ("What a render cost").
+- `kisatLatest`: the `Uusimmat` snapshot of each meet day (`docs/views.md`, "Uusimmat"). It is
+  derived data.
 
 Juoksut mode's own keys are in `docs/juoksut.md` and `docs/lap-counter.md`, "Storage".
 

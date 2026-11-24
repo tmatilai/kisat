@@ -273,6 +273,9 @@
         color: var(--muted);
         overflow-wrap: anywhere;
       }
+      .row-age {
+        white-space: nowrap;
+      }
       /* A chip per category group where a start's categories differ in phase
          (rowHeadParts, app/meet.js). It wraps, as two pairs do not fit a
          phone. */
@@ -1549,6 +1552,16 @@
         padding: 9px 12px;
         cursor: pointer;
       }
+      /* The dot on Uusimmat for a change not yet seen (latestUnseen). */
+      .seg-dot {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        margin-left: 5px;
+        border-radius: 50%;
+        background: var(--warn-text);
+        vertical-align: 2px;
+      }
       .seg a.seg-btn {
         text-decoration: none;
       }
@@ -1692,6 +1705,10 @@
       }
       .scan-pending {
         margin-top: 10px;
+      }
+      /* The lines of a tinted Uusimmat row that did not change. */
+      .watch-row-athlete.latest-old {
+        opacity: 0.5;
       }
       .watch-row-athletes {
         display: flex;
@@ -3039,6 +3056,7 @@
     <link rel="modulepreload" href="/lib/elsewhere.js" />
     <link rel="modulepreload" href="/lib/home.js" />
     <link rel="modulepreload" href="/lib/indexes.js" />
+    <link rel="modulepreload" href="/lib/latest.js" />
     <link rel="modulepreload" href="/lib/render-log.js" />
     <link rel="modulepreload" href="/lib/results.js" />
     <link rel="modulepreload" href="/lib/routes.js" />
