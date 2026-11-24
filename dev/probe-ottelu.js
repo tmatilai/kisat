@@ -1,7 +1,7 @@
 // Verifies the multi-events end to end (docs/views.md, "Multi-events"). It
 // checks the Ottelut section on the schedule view, the standings page, a
-// leg's own start with its points, a multi-event not yet started, and a leg
-// link that opens a shared start at the multi-event's class. The
+// leg's own start with its points, a multi-event not yet started, and the
+// leg links and followed rows that open a shared start at one class. The
 // logic is lib/combined.js's (combinedEventStarts, combinedLegColumns), and
 // app/event.js draws it (renderCombined, combinedStandingsTable, pointsEl).
 //
@@ -427,6 +427,23 @@ export default async function probe({ frame, D, W, log, ok, wait, groupKey, appJ
   log(`the revisit: scrollY ${W.scrollY}`);
   ok('a revisit opens where the reader left the start', W.scrollY === 0);
   frame.height = frameHeight;
+
+  // A followed row on the day list opens its start at the followed class.
+  // ot1 is in the T11 3-ottelu. (Break on purpose: leave `classLabel` out of
+  // groupLines' result, and the Kuula row links the bare start.)
+  await go('/c/demo#/a/ot1-a');
+  const followedRows = [...[...D.querySelectorAll('#app > .list')].pop().children];
+  log(
+    `followed rows: ${followedRows.map((r) => `${text(r.querySelector('.row-title'))} -> ${r.getAttribute('href')}`).join(' | ')}`,
+  );
+  const kuulaRow = followedRows.find((r) => /Kuula/.test(text(r.querySelector('.row-title'))));
+  ok('the shared Kuula start opens at T11', kuulaRow?.getAttribute('href').endsWith('#/sarja/T11'));
+  // (Break on purpose: drop the test of the start's class count from
+  // groupLines.)
+  ok(
+    'and a start of one class links no class',
+    followedRows.length === 3 && followedRows.filter((r) => r.getAttribute('href').includes('#')).length === 1,
+  );
 
   // A key that names nothing gets an answer and not an error page.
   await go('/c/demo/o/N17%207-ottelu');

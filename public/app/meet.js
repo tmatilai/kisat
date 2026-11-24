@@ -3,7 +3,7 @@ import { confirmCount, confirmRows, confirmSetting, confirmStartAt, watchConfirm
 import { dateRange, parseTs, scheduleDays } from '../lib/dates.js';
 import { meetDay } from '../lib/day.js';
 import { allocMark, allocPosition, relayInfo, relayLegParts, roundAllocated } from '../lib/results.js';
-import { compViewMode, dayPath, isDemoId, medalsPath } from '../lib/routes.js';
+import { compViewMode, dayPath, isDemoId, medalsPath, startPath } from '../lib/routes.js';
 import {
   countLine,
   fieldMayChange,
@@ -320,7 +320,7 @@ function drawDay(compId, day, loaded, { state, filter, cup, trackPick, allDays }
           ? el(
               'div',
               { class: 'list' },
-              rows.map(({ g, lines, provisional }) => watchedGroupRow(compId, g, lines, provisional, '', subsFor(g))),
+              rows.map((r) => watchedGroupRow(compId, r, '', subsFor(r.g))),
             )
           : el('div', { class: 'notice' }, 'Ei seurannan lähtöjä tänä päivänä.'),
       );
@@ -330,10 +330,10 @@ function drawDay(compId, day, loaded, { state, filter, cup, trackPick, allDays }
         el(
           'div',
           { class: 'list' },
-          withLines.map(({ g, lines, provisional }) =>
-            lines.length
-              ? watchedGroupRow(compId, g, lines, provisional, ' watched', subsFor(g))
-              : plainGroupRow(compId, g, subsFor(g)),
+          withLines.map((r) =>
+            r.lines.length
+              ? watchedGroupRow(compId, r, ' watched', subsFor(r.g))
+              : plainGroupRow(compId, r.g, subsFor(r.g)),
           ),
         ),
       );
@@ -593,12 +593,12 @@ function plainGroupRow(compId, g, subs = null) {
 
 // Builds a followed day-list row. The athlete grid goes under .row-head at the
 // row's full width, because it does not fit beside the status chip.
-function watchedGroupRow(compId, g, lines, provisional, extraClass, subs = null) {
+function watchedGroupRow(compId, { g, lines, provisional, classLabel }, extraClass, subs = null) {
   return el(
     'a',
     {
       class: `row watch-day-row${extraClass}`,
-      href: `/c/${compId}/g/${encodeURIComponent(g.key)}`,
+      href: startPath(compId, g.key, classLabel),
     },
     el('div', { class: 'row-head' }, rowHeadParts(g, subs?.named)),
     subs ? el('div', {}, subs.lines) : null,
@@ -692,6 +692,7 @@ async function groupLines(g, eventIds, targets, store, compId, startsAt) {
         store,
       );
       return {
+        classLabel: d.label,
         lines,
         confirmable,
         confirmsHere,
@@ -702,6 +703,8 @@ async function groupLines(g, eventIds, targets, store, compId, startsAt) {
     }),
   );
   return {
+    // The row opens its start at the first class with a followed line.
+    classLabel: g.entries.length > 1 ? perCategory.find((c) => c.lines.length)?.classLabel : null,
     lines: perCategory.flatMap((c) => c.lines),
     confirmable: perCategory.flatMap((c) => c.confirmable),
     confirmsHere: perCategory.some((c) => c.confirmsHere),
