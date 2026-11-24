@@ -545,6 +545,20 @@
       tr.ku td {
         opacity: 0.75;
       }
+      /* A ladder's sticky cells stay opaque, or the columns that scroll under
+         them would show through, so a guest's text fades instead. */
+      .tbl.ladder:not(.no-bib) tr.ku td:nth-child(-n + 3),
+      .tbl.ladder.no-bib tr.ku td:nth-child(-n + 2),
+      .tbl.standings tr.ku td.result {
+        opacity: 1;
+      }
+      .tbl.ladder tr.ku td.num,
+      .tbl.standings tr.ku td.result {
+        color: color-mix(in srgb, currentColor 75%, transparent);
+      }
+      .tbl.ladder tr.ku td.cell-name > * {
+        opacity: 0.75;
+      }
       /* A followed row (rowClass, app/event.js), drawn as docs/style.md,
          "Emphasis" says. The ladder's sticky cells take their own tint below. */
       tr.watched {
@@ -649,6 +663,18 @@
       .tbl.standings th.att {
         white-space: normal;
         overflow-wrap: anywhere;
+      }
+      /* Pisteet stays in view at the right while the legs scroll, so a phone
+         shows the names, a leg and the total (openWideTables, app/event.js). */
+      .tbl.standings th.result,
+      .tbl.standings td.result {
+        position: sticky;
+        right: 0;
+        z-index: 1;
+        background: var(--card);
+      }
+      .tbl.standings tr.watched td.result {
+        background: var(--watched-bg-opaque);
       }
       /* The note under a leg under way (legStateEl, app/event.js), in lower
          case and .chip-Progress's colour. */

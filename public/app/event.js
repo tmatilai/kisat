@@ -8,6 +8,7 @@ import {
   combinedStarted,
   combinedTotals,
   combinedWithdrawn,
+  latestLegIndex,
   multiEventLeg,
 } from '../lib/combined.js';
 import { confirmCount, confirmNote, confirmStartAt } from '../lib/confirmation.js';
@@ -457,11 +458,25 @@ async function renderGroup(compId, groupKey, licence = null) {
 
   appEl.classList.toggle('wide', needsWide);
   appEl.replaceChildren(...parts);
-  // A ladder opens scrolled to its Result column, and a refresh then puts back
-  // the reader's column (restorePlace, app/shell.js). Its sticky identity
-  // columns keep the names in view. scrollWidth is only known once the table
-  // is in the document.
-  for (const w of appEl.querySelectorAll('.ladder-views > .tbl-wrap')) w.scrollLeft = w.scrollWidth;
+  openWideTables(appEl);
+}
+
+// Scrolls each wide table under `root` to its latest results: a ladder to its
+// Result column, and a multi-event's standings to the leg in `data-leg`. A
+// refresh then restores the reader's column (restorePlace, app/shell.js). A
+// browser may lay out no table in a closed fold, so standingsShell calls this
+// again when the fold opens.
+function openWideTables(root) {
+  for (const w of root.querySelectorAll('.ladder-views > .tbl-wrap')) w.scrollLeft = w.scrollWidth;
+  for (const table of root.querySelectorAll('table.standings[data-leg]')) {
+    const cells = table.tHead.rows[0].cells;
+    const leg = cells[2 + Number(table.dataset.leg)].getBoundingClientRect();
+    const name = cells[1].getBoundingClientRect();
+    const points = cells[cells.length - 1].getBoundingClientRect();
+    // The leg's right edge meets the total's left one, unless that would hide
+    // its left edge under the name.
+    table.closest('.tbl-wrap').scrollLeft += Math.min(leg.right - points.left, leg.left - name.right);
+  }
 }
 
 // Renders a start one class at a time, each under its own heading and status
@@ -671,12 +686,22 @@ const standingsOpen = keptOpen('group');
 // Folds a leg's ottelu standings. A reader's open or closed choice survives
 // the refresh until the event view is left (keptOpen).
 function standingsShell(label, title, status, children) {
-  return el(
+  const fold = el(
     'details',
     { class: 'ottelu', ...standingsOpen(label, false) },
-    el('summary', {}, title, statusChip(status)),
+    el(
+      'summary',
+      {
+        onclick: () => {
+          if (!fold.open) fold.addEventListener('toggle', () => openWideTables(fold), { once: true });
+        },
+      },
+      title,
+      statusChip(status),
+    ),
     ...children,
   );
+  return fold;
 }
 
 // Marks a leg in progress with the word "kesken" under its heading. A status
@@ -719,12 +744,14 @@ function standingsWidth(numLegs, name = LADDER_NAME_MIN_PX) {
 // rank is 1., so with `scored` false the Sija column prints a dash.
 function combinedStandingsTable(rows, legs, targets, compId, scored = true, hereLegId = null) {
   const leader = combinedLeaderPoints(rows);
+  const openLeg = hereLegId != null ? legs.findIndex((l) => String(l.id) === String(hereLegId)) : latestLegIndex(legs);
   return wrap(
     el(
       'table',
       {
         class: 'tbl ladder no-bib standings',
         style: `min-width:${standingsWidth(legs.length)}px;max-width:${standingsWidth(legs.length, LADDER_NAME_MAX_PX)}px`,
+        'data-leg': openLeg > 0 ? String(openLeg) : null,
       },
       el(
         'thead',
@@ -1549,6 +1576,7 @@ async function renderCombined(compId, key, licence = null) {
 
   appEl.classList.toggle('wide', standingsWidth(legs.length) > LADDER_WIDE_THRESHOLD_PX);
   appEl.replaceChildren(...parts);
+  openWideTables(appEl);
 }
 
 export {
