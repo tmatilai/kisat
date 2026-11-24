@@ -20,8 +20,10 @@ import {
   helpTopics,
   navigate,
   nextRenderSeq,
+  readPlace,
   render,
   renderSeq,
+  restorePlace,
   runLeaves,
   scrollKey,
   scrollPositions,
@@ -31,7 +33,6 @@ import {
   setScrollKey,
   setUpdated,
   showError,
-  wantedScroll,
 } from './app/shell.js';
 import { standInFor } from './lib/elsewhere.js';
 import { logRender } from './lib/render-log.js';
@@ -130,11 +131,17 @@ async function renderRoute(isRefresh = false) {
   setFlash(null);
   setHelp(null);
   helpEl.hidden = true;
-  // The position is read through wantedScroll before any node is replaced. A
-  // refresh over a collapsed page then keeps the position the page cannot show.
-  // The map holds it too, in case the reader leaves before the data arrives.
-  const keepY = isRefresh ? wantedScroll() : null;
-  if (isRefresh && scrollKey) scrollPositions.set(scrollKey, keepY);
+  // A refresh keeps the reader's place (docs/views.md, "The refresh"). The map
+  // holds the position too, in case the reader leaves before the data loads.
+  let place = null;
+  const keepPlace = () => {
+    place = readPlace();
+    if (scrollKey) scrollPositions.set(scrollKey, place.y);
+  };
+  if (isRefresh) {
+    keepPlace();
+    document.addEventListener('scroll', keepPlace, { capture: true, passive: true });
+  }
   // Each view sets scrollKey once it renders, so an error page or an
   // activation link keeps no position. A refresh keeps the on-screen view's key.
   if (!isRefresh) setScrollKey(null);
@@ -170,11 +177,9 @@ async function renderRoute(isRefresh = false) {
     viewShown = true;
     // The position is restored once the content is in, as the placeholder would
     // clamp it. A view not seen this session opens at the top, or, when its link
-    // names an athlete, at that athlete's class. A refresh scrolls only if the
-    // page moved, and a short page leaves the offset in the map.
-    if (isRefresh) {
-      if (keepY != null && keepY !== window.scrollY) window.scrollTo(0, keepY);
-    } else if (route.athlete && !scrollPositions.has(scrollKey)) openAtSpotted();
+    // names an athlete, at that athlete's class.
+    if (isRefresh) restorePlace(place);
+    else if (route.athlete && !scrollPositions.has(scrollKey)) openAtSpotted();
     else window.scrollTo(0, (scrollKey && scrollPositions.get(scrollKey)) || 0);
     setUpdated(true, note ?? flash);
     (window.requestIdleCallback ?? setTimeout)(prefetchModules);
@@ -195,6 +200,8 @@ async function renderRoute(isRefresh = false) {
     const replace = !isRefresh || !viewShown;
     if (replace) showError(err);
     setUpdated(replace && meetGone(err));
+  } finally {
+    document.removeEventListener('scroll', keepPlace, { capture: true });
   }
 }
 

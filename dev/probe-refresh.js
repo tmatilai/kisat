@@ -5,7 +5,7 @@
 //   dev/probe.html?probe=probe-refresh&w=700&h=300
 // Below 700 px no ladder grid shows (index.html), and at 700 the 6-attempt
 // Kuula overflows its box. At 300 px tall the demo's short pages can scroll.
-export default async function probe({ D, W, ok, wait, groupKey, appJs, demoJs, settle }) {
+export default async function probe({ frame, D, W, log, ok, wait, groupKey, appJs, demoJs, settle }) {
   const KEYS = {
     karsinta: groupKey(11, 0, 'Pituus'), // two heats, the tallest demo field page
     kuula: groupKey(12, 30, 'Kuula'), // 6 attempts overflow at 700 px
@@ -59,6 +59,73 @@ export default async function probe({ D, W, ok, wait, groupKey, appJs, demoJs, s
   await open('karsinta');
   await open('kuula');
   ok('re-opening starts on the Result column again', wrap().scrollLeft === max());
+
+  // --- At phone width: the reader's place, not a pixel offset ---
+  // A multi-event's standings table scrolls sideways on a phone, and keeps the
+  // reader's column like a ladder. (Break on purpose: drop the scrollLeft loop
+  // from restorePlace, and this is 0.)
+  frame.width = 402;
+  appJs.navigate('/c/demo/o/T9%203-ottelu');
+  await settle();
+  const standings = () => D.querySelector('#app table.standings').closest('.tbl-wrap');
+  ok('the standings are wider than a phone', standings().scrollWidth > standings().clientWidth + 60);
+  standings().scrollLeft = 60;
+  W.scrollTo(0, 40);
+  await wait(200);
+  await refresh();
+  log(`standings after a refresh: left ${standings().scrollLeft}, y ${W.scrollY}`);
+  ok('a refresh keeps the standings column', standings().scrollLeft === 60 && W.scrollY === 40);
+
+  // A reader who scrolls while a refresh's data loads stays where they
+  // scrolled. The gate holds the results until the scroll is in. (Break on
+  // purpose: drop the scroll listener from renderRoute, and this is 40.)
+  const ungated = appJs.fetchJson;
+  let release;
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+  appJs.setFetchJson(async (url, opts) => {
+    if (url.includes('/results/')) await gate;
+    return ungated(url, opts);
+  });
+  const slow = appJs.render(true);
+  await wait(200);
+  W.scrollTo(0, 140);
+  await wait(200);
+  release();
+  await slow;
+  await settle();
+  appJs.setFetchJson(ungated);
+  log(`scrolled to 140 while the data loaded, then at ${W.scrollY}`);
+  ok('a scroll during the refresh is kept', W.scrollY === 140);
+
+  // Rows added to a class above the reader's push the page down by their
+  // height, so the reader's rows stay where they were. The 60m start lists four
+  // classes, each under its own heading. (Break on purpose: drop the anchor loop
+  // from restorePlace, and the last table moves down by the new rows.)
+  appJs.navigate(`/c/demo/g/${encodeURIComponent(groupKey(10, 45, '60m'))}`);
+  await settle();
+  const lastTable = () => [...D.querySelectorAll('#app .tbl-wrap')].pop();
+  W.scrollTo(0, lastTable().getBoundingClientRect().top + W.scrollY - 100);
+  await wait(200);
+  const readerTop = lastTable().getBoundingClientRect().top;
+  const heat = demoJs.DEMO_EVENTS.e26.Rounds[0].Heats[0];
+  const added = [1, 2].map((n) => ({ ...W.structuredClone(heat.Allocations[0]), Id: `late${n}`, AllocId: `late${n}` }));
+  heat.Allocations.push(...added);
+  const height = D.documentElement.scrollHeight;
+  await refresh();
+  const grown = D.documentElement.scrollHeight - height;
+  heat.Allocations.splice(-added.length);
+  log(
+    `last table: ${Math.round(readerTop)} before ${grown} px of rows were added above, ${Math.round(lastTable().getBoundingClientRect().top)} after`,
+  );
+  ok('the rows were added above the reader', grown > 40);
+  ok(
+    "rows added above keep the reader's rows in place",
+    Math.abs(lastTable().getBoundingClientRect().top - readerTop) < 1,
+  );
+  frame.width = 700;
+  await refresh();
 
   // --- Over the page: a sheet outlives the refresh ---
   // An open sheet and its unsaved edits outlive a render, and only a route
