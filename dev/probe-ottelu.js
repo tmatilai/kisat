@@ -1,6 +1,7 @@
 // Verifies the multi-events end to end (docs/views.md, "Multi-events"). It
 // checks the Ottelut section on the schedule view, the standings page, a
-// leg's own start with its points, and a multi-event not yet started. The
+// leg's own start with its points, a multi-event not yet started, and a leg
+// link that opens a shared start at the multi-event's class. The
 // logic is lib/combined.js's (combinedEventStarts, combinedLegColumns), and
 // app/event.js draws it (renderCombined, combinedStandingsTable, pointsEl).
 //
@@ -9,7 +10,7 @@
 // The demo holds every case, so no Worker is needed. One of its multi-events
 // has a scored leg, a running one and an unstarted one, and another has drawn
 // legs and no score. Each is modelled on a measured meet.
-export default async function probe({ D, W, log, ok, wait, groupKey, appJs, settle }) {
+export default async function probe({ frame, D, W, log, ok, wait, groupKey, appJs, settle }) {
   const go = async (hash) => {
     appJs.navigate(hash);
     await settle();
@@ -59,10 +60,11 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs, sett
   ok('and a chip for the multi-event as a whole', text(t9Row.querySelector('.chip')) === 'Käynnissä');
   ok('the one that has not started says so', text(otteluRows[0].querySelector('.chip')) === 'Eräjaot tehty');
   // The legs stay ordinary starts in the day list, the page's last top-level
-  // `.list`, as the Ottelut section's list sits inside the fold.
+  // `.list`, as the Ottelut section's list sits inside the fold. Two of the
+  // nine legs share a start.
   const dayTitles = [...rows('#app > .list').pop().querySelectorAll('.row-title')].map((n) => text(n));
   log(`legs in the day list: ${dayTitles.filter((t) => /3-ottelu/.test(t)).join(' | ')}`);
-  ok('the legs are still in the day list', dayTitles.filter((t) => /3-ottelu/.test(t)).length === 9);
+  ok('the legs are still in the day list', dayTitles.filter((t) => /3-ottelu/.test(t)).length === 8);
 
   // --- The fold ---
   // A shut fold stays shut on the way back. (Break on purpose: drop
@@ -102,14 +104,14 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs, sett
   // 40m's own round is stale at Progress, and the schedule's Official wins
   // (combinedLegColumns, lib/combined.js). (Break on purpose: read the status
   // off the SubEvent's own round and the finished 40m reads "kesken" too.)
-  // Each heading links to the leg's own start. (Break on purpose: render the
-  // label as plain text and these are 0 links.)
+  // Each heading links to the leg's own start, at the multi-event's class.
+  // (Break on purpose: render the label as plain text and these are 0 links.)
   const legLinks = [...table.querySelectorAll('thead a.leg-link')];
   log(`leg links: ${legLinks.map((a) => `${text(a)} -> ${a.getAttribute('href').slice(-24)}`).join(' | ')}`);
   ok('every column heading opens its own start', legLinks.length === 3);
   ok(
     "and the 40m's points to the 40m",
-    legLinks[0].getAttribute('href') === `/c/demo/g/${encodeURIComponent(groupKey(8, 45, '3-ottelu 40m'))}`,
+    legLinks[0].getAttribute('href') === `/c/demo/g/${encodeURIComponent(groupKey(8, 45, '3-ottelu 40m'))}#/sarja/T9`,
   );
   const states = [...table.querySelectorAll('thead .leg-state')].map((s) => text(s));
   log(`leg states: ${states.join(' | ')}`);
@@ -379,6 +381,52 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs, sett
     notices().every((t) => t.startsWith('Varmistaneita')),
   );
   ok('and its three legs are listed below', [...D.querySelectorAll('#app > .list')].pop().children.length === 3);
+
+  // --- A leg link opens its start at the multi-event's class ---
+  //
+  // The P9 and T11 Kuula share one start, which lists P9 first. The start's
+  // page is short, so the probe shortens the frame to let the page scroll
+  // T11's heading to the top.
+  const frameHeight = frame.height;
+  frame.height = 300;
+  await go('/c/demo/o/T11%203-ottelu');
+  const kuulaLeg = [...D.querySelectorAll('#app > .list')].pop().children[2];
+  log(`T11's Kuula row: ${text(kuulaLeg)} -> ${kuulaLeg.getAttribute('href')}`);
+  ok("the leg's row names the class", kuulaLeg.getAttribute('href').endsWith('#/sarja/T11'));
+  kuulaLeg.click();
+  await settle();
+  const catHeads = rows('#app h3.cat-head');
+  const t11Head = catHeads.find((h) => text(h).startsWith('T11'));
+  const headerHeight = D.querySelector('header').offsetHeight;
+  const headTop = () => Math.round(t11Head.getBoundingClientRect().top);
+  log(
+    `classes: ${catHeads.map((h) => text(h)).join(' | ')}; scrollY ${W.scrollY} of ${D.documentElement.scrollHeight - W.innerHeight}, ` +
+      `T11 at ${headTop()}, header ${headerHeight}`,
+  );
+  ok('the start lists P9 first', catHeads.length === 2 && text(catHeads[0]).startsWith('P9'));
+  // (Break on purpose: leave `spotted` off the class heading in
+  // categorySections, and the start opens at the top.)
+  ok('and opens at the T11 heading, under the header', W.scrollY > 0 && headTop() === headerHeight + 8);
+  // Each class's ottelu fold links the other legs at its own class. (Break on
+  // purpose: stop passing the class to combinedStandingsTable on a leg's
+  // page.)
+  const foldHrefs = rows('#app details.ottelu').map((f) =>
+    [...f.querySelectorAll('a.leg-link')].map((a) => a.getAttribute('href').replace(/^.*#/, '#')).join(' '),
+  );
+  log(`fold links: ${foldHrefs.join(' | ')}`);
+  ok(
+    'each fold links its legs at its own class',
+    foldHrefs.join('|') === '#/sarja/P9 #/sarja/P9|#/sarja/T11 #/sarja/T11',
+  );
+  // A revisit keeps the reader's place. (Break on purpose: drop the
+  // scrollPositions test before openAtSpotted in renderRoute.)
+  W.scrollTo(0, 0);
+  await go('/c/demo/o/T11%203-ottelu');
+  [...D.querySelectorAll('#app > .list')].pop().children[2].click();
+  await settle();
+  log(`the revisit: scrollY ${W.scrollY}`);
+  ok('a revisit opens where the reader left the start', W.scrollY === 0);
+  frame.height = frameHeight;
 
   // A key that names nothing gets an answer and not an error page.
   await go('/c/demo/o/N17%207-ottelu');

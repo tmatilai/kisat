@@ -149,9 +149,10 @@ function parseRoute(pathname, hash = '') {
   // group's, which would take "/laps" as the key's end.
   if ((m = path.match(/^\/c\/([\w-]+)\/g\/([^?]+)\/laps$/))) return { view: 'laps', compId: m[1], key: m[2] };
   // A start's and a multi-event's page take an athlete to highlight in the
-  // fragment (withAthleteTargets, lib/watch.js).
+  // fragment (withAthleteTargets, lib/watch.js). A start's page also takes a
+  // class to open at.
   if ((m = path.match(/^\/c\/([\w-]+)\/g\/([^?]+)$/)))
-    return { view: 'group', compId: m[1], key: m[2], ...parseAthleteYearsHash(hash) };
+    return { view: 'group', compId: m[1], key: m[2], ...parseAthleteYearsHash(hash), ...parseClassHash(hash) };
   // A day is YYYY-MM-DD in the path and the schedule's own key in the route
   // (dayPath).
   if ((m = path.match(/^\/c\/([\w-]+)\/d\/(\d{4}-\d{2}-\d{2})$/)))
@@ -331,6 +332,11 @@ function medalsPath(compId, ages = [], club = null) {
   return `/c/${compId}/mitalit${agesSegment(ages) ? `/${agesSegment(ages)}` : ''}${club ? `/s/${club}` : ''}`;
 }
 
+// Returns a start's path, with the class to open at in the fragment.
+function startPath(compId, groupKey, classLabel = null) {
+  return `/c/${compId}/g/${encodeURIComponent(groupKey)}${classLabel ? classHash(classLabel) : ''}`;
+}
+
 function medalStartPath(compId, name, athlete = null) {
   return `/c/${compId}/l/${encodeURIComponent(name)}${athlete ? athleteYearsHash(athlete) : ''}`;
 }
@@ -395,6 +401,25 @@ function parseAthleteYearsHash(rawHash) {
 
 function athleteYearsHash(athlete, year = null) {
   return `#/urheilija/${encodeURIComponent(athlete)}${year ? `/${year}` : ''}`;
+}
+
+// Parses a start's class fragment, `#/sarja/<class>`, or returns null. The
+// class is an entry's `label` (parseEventName, lib/schedule.js), such as `N17`
+// or `Mixed 15`.
+function parseClassHash(rawHash) {
+  const m = String(rawHash ?? '').match(/^#?\/?sarja\/([^/]+)\/?$/);
+  let classLabel;
+  try {
+    classLabel = m && decodeURIComponent(m[1]);
+  } catch {
+    return null;
+  }
+  if (!classLabel || !/^[\p{L}\p{N}][\p{L}\p{N} -]*$/u.test(classLabel)) return null;
+  return { classLabel };
+}
+
+function classHash(classLabel) {
+  return `#/sarja/${encodeURIComponent(classLabel)}`;
 }
 
 function seasonHash(scopeId, year = null, ages = [], club = null) {
@@ -684,6 +709,7 @@ export {
   VIEW_MODULES,
   anchorMoved,
   athleteYearsHash,
+  classHash,
   clubYearsHash,
   compViewMode,
   compViewSetMode,
@@ -705,6 +731,7 @@ export {
   medalsPath,
   menuAnchorPos,
   parseAthleteYearsHash,
+  parseClassHash,
   parseClubYearsHash,
   parseLinkHash,
   parseRoute,
@@ -720,6 +747,7 @@ export {
   siteAssetPath,
   siteMeta,
   siteMode,
+  startPath,
   tablePageHash,
   watchLink,
 };

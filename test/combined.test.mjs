@@ -16,7 +16,14 @@ import {
 import { buildDigest, scanDigest } from '../public/lib/digest.js';
 import { roundAllocated } from '../public/lib/results.js';
 import { buildRoster, combinedEventRoots } from '../public/lib/roster.js';
-import { combinedEventStatus, leastStatus, roundGroupKey } from '../public/lib/schedule.js';
+import {
+  classEntry,
+  combinedEventStatus,
+  groupForKey,
+  groupRounds,
+  leastStatus,
+  roundGroupKey,
+} from '../public/lib/schedule.js';
 import { DEMO_EVENTS, demoSchedule } from '../public/demo.js';
 
 // --- combined events (moniottelu): the legs found by name and the standings
@@ -27,6 +34,7 @@ test('combined events', () => {
     label: 'N17 7-ottelu',
     kind: '7-ottelu',
     discipline: 'Korkeus',
+    classLabel: 'N17',
   });
   assert.equal(multiEventLeg('T9 3-ottelu  40m').discipline, '40m');
   assert.equal(multiEventLeg('M22 10-ottelu  110m aidat').label, 'M22 10-ottelu');
@@ -301,6 +309,32 @@ test('combined events', () => {
     DEMO_EVENTS.e34.Rounds[0].Heats[0].Allocations.every((a) => a.CEPoints > 0),
     'and the legs must actually carry points, or the gate above proves nothing',
   );
+});
+
+// --- A leg link opens the leg's start at the multi-event's class ---
+test('a leg link names its class on the start', () => {
+  const schedule = demoSchedule();
+  const rows = Object.values(schedule).flat();
+  const groups = groupRounds(rows);
+  // The class a leg link carries is the `label` of the leg's own entry on its
+  // start. (Break on purpose: give multiEventLeg the multi-event's label as
+  // `classLabel`, and no leg finds its class.)
+  for (const start of combinedEventStarts(schedule)) {
+    for (const leg of start.legs) {
+      const group = groupForKey(groups, roundGroupKey(leg.round));
+      assert.equal(classEntry(group.entries, start.classLabel)?.round, leg.round, `${start.label} ${leg.discipline}`);
+    }
+  }
+  // Two classes share the Kuula start, and the second is found by its own
+  // label. (Break on purpose: return the start's first entry from classEntry.)
+  const kuula = groupForKey(groups, roundGroupKey(rows.find((r) => r.EventId === 'e58')));
+  assert.deepEqual(
+    kuula.entries.map((e) => e.label),
+    ['P9', 'T11'],
+  );
+  assert.equal(classEntry(kuula.entries, 'T11'), kuula.entries[1]);
+  assert.equal(classEntry(kuula.entries, 'T9'), null, 'a class the start does not hold');
+  assert.equal(classEntry(kuula.entries, null), null);
 });
 
 // --- combinedEventRoots: a multi-event's legs are one entry on the front

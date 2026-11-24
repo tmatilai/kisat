@@ -902,6 +902,9 @@ const DEMO_STARTS = [
     status: 'Unallocated',
     ts: demoTs(12, 30),
   },
+  // The T11 Kuula shares a start with the P9 Kuula, as the legs of several
+  // classes' multi-events do at a meet (2026-11). The start lists P9 first,
+  // so a leg link from the T11 3-ottelu has to scroll to T11.
   {
     eventId: 'e58',
     roundId: 'r58',
@@ -909,7 +912,7 @@ const DEMO_STARTS = [
     round: 'Loppukilpailu',
     category: 'Field',
     status: 'Unallocated',
-    ts: demoTs(16, 15),
+    ts: demoTs(16, 0),
   },
   // A throw and a vertical jump in progress, whose heats give the athlete in
   // turn (fieldAttemptOrder, lib/results.js).

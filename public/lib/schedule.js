@@ -236,6 +236,13 @@ function groupStatuses(entries) {
   return [...byStatus.values()];
 }
 
+// Returns the start's entry of the class that a link names (parseClassHash,
+// lib/routes.js).
+function classEntry(entries, classLabel) {
+  if (!classLabel) return null;
+  return (entries || []).find((e) => e.label === classLabel) || null;
+}
+
 // Says whether a start has been run, which one Official class settles. A class
 // nobody entered rests at Allocated beside the ones that ran, so a start
 // waiting on every class never ends (docs/tuloslista-api.md).
@@ -468,6 +475,7 @@ export {
   STATUS_ORDER,
   betterStatus,
   categoryParts,
+  classEntry,
   classlessStart,
   combinedEventStatus,
   compareCategories,
