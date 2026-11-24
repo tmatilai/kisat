@@ -447,8 +447,8 @@ export default async function probe({ frame, W, ok, wait, groupKey, appJs, settl
   ok('the count survived leaving and returning', app().textContent.includes('Tilanne'));
   const marked = tiles()[0];
   marked.dataset.probeMark = '1';
-  // The wait outlasts the event view's shortened refresh (GROUP_REFRESH_MS).
-  await wait(appJs.GROUP_REFRESH_MS / 100 + 500);
+  // The wait outlasts the event view's shortened refresh (LIVE_REFRESH_MS).
+  await wait(appJs.LIVE_REFRESH_MS / 100 + 500);
   ok('no tile was rebuilt under the finger', tiles()[0]?.dataset.probeMark === '1');
   ok('the clock is still ticking on its own node', /^\d+:\d\d$/.test(clock().textContent));
   ok('no refresh timer was installed for the counter', !seen.some((s) => s.phase === 'laps' && s.ms >= 1000));

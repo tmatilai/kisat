@@ -5,8 +5,6 @@
 - **The `EventId` pre-filter is not the final match.** It matches every round of an event. A start
   is dropped from `Seuratut` only when `matchedEntries` is empty for every class. Otherwise an
   athlete who ran only the heats would keep the semifinal in the list.
-- **The count lines are computed on every load and never cached**, because a published draw can
-  change during the meet (`docs/tuloslista-api.md`, "Heats and allocations").
 
 ## An undrawn round
 
@@ -51,6 +49,21 @@
   scrolls while the data loads stays where they scrolled.
 - **A failed refresh leaves the view on screen**, but replaces the loading indicator of a render it
   overtook.
+- **A refresh interval shorter than `LIVE_REFRESH_MS` gains little**, because the CDN's copy of a
+  document is already up to 29 s old (`docs/tuloslista-api.md`, "Caching").
+- **The day list and the medal page fetch a results document again only when `docMaxAge` has
+  passed.** A start and a multi-event fetch all of their documents, because the reader is watching
+  that page.
+- **A round's status and start time don't predict when its document changes.** A field event can run
+  hours past its start while its status lags (2026-11). So a followed document that Tuloslista wrote
+  in the last few minutes is fetched on every refresh, whatever its rounds' statuses are.
+- **A count line or a hurdle line can show a changed draw up to `DOC_MAX_AGE_MS` late**, because a
+  document that only those lines read is fetched less often, even while its round runs
+  (`docs/tuloslista-api.md`, "Heats and allocations").
+- **Only a refresh fetches the schedule every time.** Any other render reuses a schedule fetched in
+  the last 20 s, so opening a start from the day list doesn't wait for it.
+- **The roster, the meet body and `/properties` come from the browser's cache until their max-age
+  passes.** The Watch is fetched on every render, so an edit made on this device shows at once.
 
 ## The athlete and club sheets
 

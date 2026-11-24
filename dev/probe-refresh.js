@@ -130,7 +130,7 @@ export default async function probe({ frame, D, W, log, ok, wait, groupKey, appJ
   // --- Over the page: a sheet outlives the refresh ---
   // An open sheet and its unsaved edits outlive a render, and only a route
   // change closes it (docs/architecture.md, "Layers"). The schedule view holds
-  // the filter bar's sheets, and its SCHEDULE_REFRESH_MS runs the same tick.
+  // the filter bar's sheets and refreshes every LIVE_REFRESH_MS.
   appJs.navigate('/c/demo');
   await settle();
   const sheet = () => D.querySelector('.sheet');
@@ -183,7 +183,7 @@ export default async function probe({ frame, D, W, log, ok, wait, groupKey, appJ
   // visible tab's tick shows that the wait is long enough to see one.
   const realSetInterval = W.setInterval;
   W.setInterval = (fn, ms, ...rest) => realSetInterval.call(W, fn, ms / 100, ...rest);
-  const interval = appJs.SCHEDULE_REFRESH_MS / 100 + 300;
+  const interval = appJs.LIVE_REFRESH_MS / 100 + 300;
   appJs.navigate('/c/demo');
   await settle();
   const hide = (on) => {

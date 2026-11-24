@@ -27,6 +27,7 @@ import {
   HOME_VIEW_KEY,
   fetchCompProps,
   fetchJson,
+  fetchMeetBody,
   followTargets,
   loadActiveWatch,
   loadDistricts,
@@ -80,7 +81,7 @@ async function renderCup(compId, club = null, isRefresh = false) {
   const state = viewStateFor(compId);
   // Both filter kinds carry club ids and licences, so no roster is fetched.
   const [cup, detail, props, districts, targets] = await Promise.all([
-    fetchJson(`/api/meet/${compId}`).catch(() => null),
+    fetchMeetBody(compId),
     fetchJson(`/api/cup/${compId}`).catch(() => null),
     fetchCompProps(compId).catch(() => null),
     loadDistricts(compId),

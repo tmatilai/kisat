@@ -60,6 +60,7 @@ import {
 import { roundTables, startPageModel, startPageView, undrawnNotice } from '../lib/start.js';
 import { allocMatches } from '../lib/watch.js';
 import {
+  eventStoreFor,
   fetchEventDoc,
   fetchMeetBody,
   fetchSchedule,
@@ -1485,7 +1486,7 @@ async function renderCombined(compId, key, licence = null) {
   // Back goes to the first leg's day, as the Ottelut section belongs to no day.
   setBack(dayPath(compId, start.dates[0]));
 
-  const root = await loadCombinedRoot(compId, start.legs, schedule);
+  const root = await loadCombinedRoot(eventStoreFor(compId, schedule), start.legs);
   if (seq !== renderSeq) return;
   const rows = combinedTotals(root);
   // A leg's phase comes from the schedule's rows, because the root's copy of it

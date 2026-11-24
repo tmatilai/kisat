@@ -23,11 +23,13 @@ import {
 } from '../public/lib/results.js';
 import {
   API,
+  DOC_MAX_AGE_MS,
   betterStatus,
   combinedEventStatus,
   compareCategories,
   countLine,
   defaultResultView,
+  docMaxAge,
   eventStore,
   fieldMayChange,
   filedStart,
@@ -1188,4 +1190,73 @@ test('meetPhase', () => {
     'Allocated',
     'drawn and about to run, and it says so',
   );
+});
+
+test('docMaxAge', () => {
+  const MIN = 60_000;
+  const schedule = demoSchedule();
+  const rowOf = (eventId) =>
+    Object.values(schedule)
+      .flat()
+      .find((r) => r.EventId === eventId);
+  // Returns the instant `minutes` after a row's start.
+  const at = (row, minutes) => tsKey(row.BeginDateTimeWithTZ) + minutes * MIN;
+  const modified = (now, quietMin) => (quietMin == null ? null : now - quietMin * MIN);
+  const followed = (eventId, now, quietMin, sched = schedule) =>
+    docMaxAge(sched, eventId, { followed: true, modifiedAt: modified(now, quietMin) }, now);
+
+  // e33 is a drawn round still to come, e4 a round in progress and e1 an
+  // Official one. e9 has its heats Official, its semifinal in progress and its
+  // final to come.
+  const drawn = rowOf('e33');
+  const running = rowOf('e4');
+  const done = rowOf('e1');
+  assert.deepEqual(
+    ['e33', 'e4', 'e1'].map((id) => rowOf(id).Status),
+    ['Allocated', 'Progress', 'Official'],
+  );
+
+  // A followed round is live from 15 minutes before its start, until it is Official.
+  assert.equal(followed('e33', at(drawn, -14), 60), 0, 'due within 15 minutes');
+  // (Break on purpose: drop the SOON_MS test, and this is 0.)
+  assert.equal(followed('e33', at(drawn, -16), 60), 2 * MIN, 'due later, and quiet for an hour');
+  assert.equal(followed('e33', at(drawn, 90), 60), 0, 'past its start, with its status behind');
+  // (Break on purpose: drop the LATE_MS test, and this is 0.)
+  assert.equal(followed('e33', at(drawn, 121), 180), 2 * MIN, 'two hours past its start with nothing written');
+  // (Break on purpose: drop the Progress test, and this is 120000.)
+  assert.equal(followed('e4', at(running, -60), 60), 0, 'in progress, whatever its start');
+  assert.equal(followed('e9', at(rowOf('e9'), -60), 60), 0, 'one round of the event in progress');
+
+  // A followed document written in the last five minutes is live whatever its
+  // rounds say. (Break on purpose: drop the RECENT_MS test, and this is 3000.)
+  assert.equal(followed('e1', at(done, 200), 0.5), 0, 'a correction after Official');
+  assert.equal(followed('e33', at(drawn, -300), 4), 0, 'a confirmation before the draw');
+
+  // Any other followed document backs off with the time since its last write.
+  assert.equal(followed('e33', at(drawn, -300), 10), MIN, 'quiet for 10 minutes');
+  assert.equal(followed('e33', at(drawn, -300), 60 * 24), 2 * MIN, 'quiet for a day');
+  assert.equal(followed('e33', at(drawn, -300)), 2 * MIN, 'no Last-Modified');
+  // (Break on purpose: make FINISHED_MAX_MS FOLLOWED_MAX_MS, and this is 120000.)
+  assert.equal(followed('e1', at(done, 200), 30), 3 * MIN, 'Official, quiet for 30 minutes');
+  assert.equal(followed('e1', at(done, 200), 120), 5 * MIN, 'Official, quiet for two hours');
+  // A multi-event's root has no schedule row, and its own round never leaves
+  // Unallocated (docs/tuloslista-api.md), so its writes alone decide.
+  assert.equal(followed('root', at(done, 0), 2), 0, 'a root written two minutes ago');
+  assert.equal(followed('root', at(done, 0), 60), 2 * MIN, 'a root quiet for an hour');
+  assert.equal(
+    followed('x', at(done, 0), 60, { d: [{ EventId: 'x', Status: 'Allocated', BeginDateTimeWithTZ: 'huomenna' }] }),
+    2 * MIN,
+    'a start time that does not parse is never live',
+  );
+
+  // An unfollowed document is only counted, so it stays in use for two to ten
+  // minutes, even while its round runs.
+  const unfollowed = (eventId, now, quietMin) =>
+    docMaxAge(schedule, eventId, { modifiedAt: modified(now, quietMin) }, now);
+  // (Break on purpose: give an unfollowed document the followed tiers, and this is 0.)
+  assert.equal(unfollowed('e4', at(running, 5), 1), 2 * MIN, 'in progress and just written');
+  assert.equal(unfollowed('e33', at(drawn, -300), 60), 6 * MIN, 'quiet for an hour');
+  assert.equal(unfollowed('e33', at(drawn, -300), 60 * 5), DOC_MAX_AGE_MS, 'quiet for five hours');
+  assert.equal(unfollowed('e33', at(drawn, -300)), DOC_MAX_AGE_MS, 'no Last-Modified');
+  assert.equal(DOC_MAX_AGE_MS, 10 * MIN);
 });

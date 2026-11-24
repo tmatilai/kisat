@@ -4,6 +4,8 @@ import { normalizeRenderLog } from '../lib/render-log.js';
 import { compViewSetMode, compViewState, compViewUpdate, isDemoId } from '../lib/routes.js';
 import {
   API,
+  DOC_MAX_AGE_MS,
+  docMaxAge,
   eventStore,
   groupForKey,
   groupRounds,
@@ -44,13 +46,18 @@ async function fetchJson(url, opts = {}) {
   const startedAt = performance.now();
   let r;
   try {
-    r = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(10_000), ...opts, headers });
+    // The browser revalidates every request, so an unchanged results document
+    // costs a 304 without a body (docs/tuloslista-api.md, "Caching").
+    r = await fetch(url, { cache: 'no-cache', signal: AbortSignal.timeout(10_000), ...opts, headers });
   } finally {
     if (cost) {
       cost.fetches += 1;
       cost.fetchMs = Math.max(cost.fetchMs, performance.now() - startedAt);
     }
   }
+  // The page can read Last-Modified (docs/tuloslista-api.md, "Caching").
+  const modified = Date.parse(r.headers.get('last-modified') ?? '');
+  if (r.ok && !Number.isNaN(modified)) lastModified.set(url, modified);
   if (!r.ok) {
     const body = await r.text().catch(() => '');
     const err = new Error(body || `HTTP ${r.status} — ${url}`);
@@ -62,6 +69,9 @@ async function fetchJson(url, opts = {}) {
   }
   return r.status === 204 ? null : r.json();
 }
+
+// Maps a URL to its response's Last-Modified in ms.
+const lastModified = new Map();
 
 // Swaps fetchJson for a stub. A probe in dev/ calls appJs.setFetchJson(stub)
 // and puts the original back the same way, since assigning appJs.fetchJson
@@ -91,7 +101,7 @@ async function followTargets(compId, state, withRoster = true, licence = null) {
   const wantRoster = (withRoster && (wantWatch || state.focus?.kind === 'club')) || Boolean(licence);
   const [watch, roster] = await Promise.all([
     wantWatch ? loadActiveWatch(state.watchId) : null,
-    wantRoster ? fetchJson(`/api/roster/${compId}`).catch(() => null) : null,
+    wantRoster ? fetchRoster(compId) : null,
   ]);
   const targets = state.focus
     ? focusTargets(state.focus, roster)
@@ -288,13 +298,25 @@ function officialMenuRows(row, compId) {
   return href ? [{ label: 'Viralliset tulokset', href, external: true }] : [];
 }
 
+// Uses the browser's cached copy until the response's max-age passes
+// (docs/views.md, "The refresh").
+const BROWSER_CACHE = { cache: 'default' };
+
 // Fetches the meet body. A meet that stands alone has none, because it is no
 // cup meet and runs no varmistus, and the call would answer 400. The Juoksut
 // host answers it with 404 (docs/backend.md). Both are skipped.
 function fetchMeetBody(compId) {
   if (SITE_MODE === 'juoksut' || ALONE_ID_RE.test(compId)) return null;
-  return fetchJson(`/api/meet/${compId}`).catch(() => null);
+  return fetchJson(`/api/meet/${compId}`, BROWSER_CACHE).catch(() => null);
 }
+
+function fetchRoster(compId) {
+  return fetchJson(`/api/roster/${compId}`, BROWSER_CACHE).catch(() => null);
+}
+
+// A render other than a refresh reuses a schedule fetched this recently
+// (docs/views.md, "The refresh").
+const SCHEDULE_REUSE_MS = 20_000;
 
 // Fetches a meet's schedule. A meet that stands alone reads it from the
 // Worker, which reads a race's class starts from its files, and a race's falls
@@ -302,10 +324,11 @@ function fetchMeetBody(compId) {
 // and reads the grafted copy instead once the graft applies (resultsBase) and
 // answers (docs/views.md, "Results on another site").
 async function fetchSchedule(compId) {
+  const reuse = renderCost?.refresh ? null : () => SCHEDULE_REUSE_MS;
   const row = await aloneRow(compId);
   if (row) return fetchJson(`/api/results/${compId}`).catch((err) => (row.ol ? olSchedule(row) : Promise.reject(err)));
   const file = loadElsewhere();
-  const own = await fetchJson(`${API}/competition/${compId}`);
+  const own = await keptJson(`${API}/competition/${compId}`, reuse);
   const base = await resultsBase(compId, own, file);
   const grafted = base ? await fetchJson(base).catch(() => null) : null;
   return grafted || own;
@@ -313,7 +336,7 @@ async function fetchSchedule(compId) {
 
 async function fetchCompProps(compId) {
   const row = await aloneRow(compId);
-  return row ? olProperties(row) : fetchJson(`${API}/competition/${compId}/properties`);
+  return row ? olProperties(row) : fetchJson(`${API}/competition/${compId}/properties`, BROWSER_CACHE);
 }
 
 // Loads elsewhere.json, the same file the Worker reads. The promise is cached,
@@ -338,21 +361,66 @@ async function resultsBase(compId, schedule, file = loadElsewhere()) {
   return graftApplies(await file, compId, schedule, today) ? `/api/results/${compId}` : null;
 }
 
+// Maps the URL of an event document or a schedule to its last fetch: the body
+// or the 404 error, and when the fetch started. No docMaxAge exceeds
+// DOC_MAX_AGE_MS, so keepDoc drops the older entries.
+const keptDocs = new Map();
+
+function keepDoc(url, entry) {
+  for (const [key, kept] of keptDocs) if (entry.at - kept.at >= DOC_MAX_AGE_MS) keptDocs.delete(key);
+  keptDocs.set(url, entry);
+}
+
+// Returns the kept copy of a document while it is younger than
+// `maxAge(modifiedAt, now)` ms, and fetches the document otherwise. A 404 is
+// kept too, because Tuloslista returns one for a class nobody entered
+// (roundDetail, lib/schedule.js). A copy dated after `now`, because the clock
+// was set back, is fetched again.
+async function keptJson(url, maxAge = null) {
+  const now = Date.now();
+  const kept = keptDocs.get(url);
+  const age = kept ? now - kept.at : -1;
+  if (maxAge && age >= 0 && age < maxAge(lastModified.get(url) ?? null, now)) {
+    if (kept.error) throw kept.error;
+    return kept.body;
+  }
+  try {
+    const body = await fetchJson(url);
+    keepDoc(url, { body, error: null, at: now });
+    return body;
+  } catch (error) {
+    if (error.status === 404) keepDoc(url, { body: null, error, at: now });
+    throw error;
+  }
+}
+
 // Fetches one event's document, from the Worker for a grafted meet and from
 // tuloslista otherwise. An empty graft falls back to tuloslista, as the graft
 // lands hours after the last day. A meet that stands alone has no fallback.
-async function fetchEventDoc(compId, schedule, eventId) {
-  if (ALONE_ID_RE.test(compId)) return fetchJson(`/api/results/${compId}/${eventId}`);
+// `maxAge` is keptJson's.
+async function fetchEventDoc(compId, schedule, eventId, maxAge = null) {
+  if (ALONE_ID_RE.test(compId)) return keptJson(`/api/results/${compId}/${eventId}`, maxAge);
   const base = await resultsBase(compId, schedule);
-  const grafted = base ? await fetchJson(`${base}/${eventId}`).catch(() => null) : null;
-  return grafted || fetchJson(`${API}/results/${compId}/${eventId}`);
+  const grafted = base ? await keptJson(`${base}/${eventId}`, maxAge).catch(() => null) : null;
+  return grafted || keptJson(`${API}/results/${compId}/${eventId}`, maxAge);
 }
 
 // Holds one render's event documents (eventStore, lib/schedule.js). Each one is
-// reconciled as it is fetched (reconcileStatuses).
-function eventStoreFor(compId, schedule) {
+// reconciled as it is read (reconcileStatuses). Without `followedIds`, every
+// read fetches. With it, docMaxAge decides when a document is fetched again. A
+// followed leg's multi-event root counts as followed, because the roster lists
+// only the legs.
+function eventStoreFor(compId, schedule, followedIds = null) {
   const statusById = scheduleStatuses(schedule);
-  return eventStore(async (eventId) => reconcileStatuses(await fetchEventDoc(compId, schedule, eventId), statusById));
+  const followed = followedIds && new Set(followedIds);
+  const maxAge = (eventId) =>
+    followed &&
+    ((modifiedAt, now) => docMaxAge(schedule, eventId, { modifiedAt, followed: followed.has(eventId) }, now));
+  return eventStore(async (eventId) => {
+    const data = await fetchEventDoc(compId, schedule, eventId, maxAge(eventId));
+    if (followed?.has(eventId) && data?.RootId) followed.add(data.RootId);
+    return reconcileStatuses(data, statusById);
+  });
 }
 
 // Loads one start's categories through a store of its own. renderComp, which
@@ -371,19 +439,16 @@ async function loadGroup(compId, groupKey) {
   return { group, schedule, detailed: await loadGroupDetail(compId, group, schedule) };
 }
 
-// Fetches the multi-event's root document. Only a leg carries its id (`RootId`),
-// so the legs are tried in turn. A leg nobody entered has no document
-// (2026-08), so a leg that fails is skipped.
-async function loadCombinedRoot(compId, legs, schedule) {
+// Reads the multi-event's root document through an event store. Only a leg
+// carries its id (`RootId`), so the legs are tried in turn. A leg nobody
+// entered has no document (2026-08), so a leg that fails is skipped.
+async function loadCombinedRoot(store, legs) {
   for (const leg of legs) {
-    let data;
-    try {
-      data = await fetchEventDoc(compId, schedule, leg.eventId);
-    } catch {
-      continue;
-    }
+    const { data } = await store.get(leg.eventId);
     if (!data?.RootId) continue;
-    return fetchEventDoc(compId, schedule, data.RootId);
+    const root = await store.get(data.RootId);
+    if (root.error) throw root.error;
+    return root.data;
   }
   return null;
 }
@@ -429,6 +494,7 @@ export {
   fetchEventDoc,
   fetchJson,
   fetchMeetBody,
+  fetchRoster,
   fetchSchedule,
   followTargets,
   forgetWatch,
