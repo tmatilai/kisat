@@ -152,6 +152,12 @@ function combinedLegColumns(root, legs = []) {
     });
 }
 
+// Returns the index of the last of combinedLegColumns' legs with a result, or
+// -1.
+function latestLegIndex(legs) {
+  return legs.findLastIndex((l) => [...l.results.values()].some((a) => a?.Result));
+}
+
 export {
   combinedAthleteKey,
   combinedCounts,
@@ -163,5 +169,6 @@ export {
   combinedStarted,
   combinedTotals,
   combinedWithdrawn,
+  latestLegIndex,
   multiEventLeg,
 };

@@ -196,6 +196,37 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs, sett
     'with Sija and Nimi pinned and the legs not',
     sticky(0) === 'sticky' && sticky(1) === 'sticky' && sticky(2) !== 'sticky',
   );
+
+  // Pisteet stays in view at the right too, and the table opens on the latest
+  // leg with a result beside it, here Pituus (openWideTables, app/event.js).
+  const box = (n) => n.getBoundingClientRect();
+  const inView = (t, label) => {
+    const cells = [...t.querySelectorAll('thead th')];
+    const leg = box(cells.find((th) => text(th).startsWith(label)));
+    const points = box(cells[cells.length - 1]);
+    return leg.left >= box(cells[1]).right - 0.5 && leg.right <= points.left + 0.5;
+  };
+  const pointsCell = box(table.querySelector('thead th:last-child'));
+  log(
+    `opened at scrollLeft ${wrap.scrollLeft}, Pisteet ${Math.round(pointsCell.left)}-${Math.round(pointsCell.right)} of ${Math.round(box(wrap).right)}`,
+  );
+  // (Break on purpose: drop the sticky Pisteet rule from index.html.)
+  ok('Pisteet is in view', pointsCell.right <= box(wrap).right + 0.5);
+  // (Break on purpose: leave `data-leg` off combinedStandingsTable's table.)
+  ok('and the latest leg with a result is beside it', inView(table, 'Pituus'));
+  // A guest's row is faded, but its sticky cells stay opaque over the legs that
+  // scroll under them. (Break on purpose: drop the `tr.ku` sticky rule from
+  // index.html, and these read 0.75.)
+  const guestRow = table.querySelector('tbody tr.ku');
+  const guest = [...guestRow.children].map((td) => W.getComputedStyle(td).opacity);
+  log(`the guest's cells: ${guest.join(' ')}`);
+  ok('a guest row fades only the cells that scroll', guest.join(' ') === '1 1 0.75 0.75 0.75 1');
+  // The sticky cells fade their text instead. (Break on purpose: drop the
+  // `td.num` rule, or the `td.cell-name > *` rule, from index.html.)
+  const rankColor = W.getComputedStyle(guestRow.querySelector('td.num')).color;
+  const nameFade = W.getComputedStyle(guestRow.querySelector('td.cell-name > *')).opacity;
+  log(`the guest's sticky text: rank ${rankColor}, name ${nameFade}`);
+  ok('and fades the text of its sticky cells', /0\.75\)$/.test(rankColor) && nameFade === '0.75');
   // Three legs fit the ordinary 1000 px main, and a decathlon's ten do not.
   ok('a short multi-event does not widen the page', !D.getElementById('app').classList.contains('wide'));
 
@@ -252,6 +283,23 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs, sett
         Node.DOCUMENT_POSITION_PRECEDING,
   );
   ok("and its heading carries the ottelu's own chip", /Käynnissä$/.test(legTitle));
+
+  // On a leg's page the standings open on that leg, though Kuula has no
+  // result yet. Chrome lays out a closed fold, so the render has scrolled the
+  // table already. The probe sets it back to 0, as a browser that lays out no
+  // closed fold leaves it, and opens the fold. (Break on purpose: drop the
+  // summary's onclick from standingsShell, and Kuula stays under Pisteet.)
+  await go(`/c/demo/g/${encodeURIComponent(groupKey(12, 45, '3-ottelu Kuula'))}`);
+  const kuulaFold = D.querySelector('#app details.ottelu');
+  log(
+    `Kuula's fold: open ${kuulaFold.open}, scrollLeft ${kuulaFold.querySelector('.tbl-wrap').scrollLeft} at the render`,
+  );
+  kuulaFold.querySelector('.tbl-wrap').scrollLeft = 0;
+  kuulaFold.querySelector('summary').click();
+  await wait(200);
+  log(`Kuula's fold opened: scrollLeft ${kuulaFold.querySelector('.tbl-wrap').scrollLeft}`);
+  ok('the fold opened', kuulaFold.open);
+  ok("a leg's page opens the standings on that leg", inView(kuulaFold.querySelector('table.standings'), 'Kuula'));
 
   // An ordinary event's allocations carry CEPoints 0 too, so pointsRail gates
   // the score on IsCombinedEvent. A gate on the value would print "0 p." on
@@ -320,6 +368,9 @@ export default async function probe({ D, W, log, ok, wait, groupKey, appJs, sett
     empty &&
       [...empty.querySelectorAll('thead th')].map((th) => text(th)).join('|') === 'Sija|Nimi|40m|Pituus|Kuula|Pisteet',
   );
+  // With no result in any leg, the table opens on the first one. (Break on
+  // purpose: open on the last leg when none has a result.)
+  ok('and the table opens on the first leg', empty.closest('.tbl-wrap').scrollLeft === 0);
   // (Break on purpose: write a sentence about the unscored total.)
   const notices = () => [...D.querySelectorAll('#app .notice')].map((n) => text(n));
   log(`notices: ${JSON.stringify(notices())}`);

@@ -10,6 +10,7 @@ import {
   combinedStarted,
   combinedTotals,
   combinedWithdrawn,
+  latestLegIndex,
   multiEventLeg,
 } from '../public/lib/combined.js';
 import { buildDigest, scanDigest } from '../public/lib/digest.js';
@@ -178,6 +179,9 @@ test('combined events', () => {
     ['40m', 'Pituus', 'Kuula'],
     'the order the legs are contested in, from SubEvents[].Index',
   );
+  // The standings open on the latest leg with a result (openWideTables,
+  // app/event.js). (Break on purpose: take the first such leg, and this is 0.)
+  assert.equal(latestLegIndex(legs), 1, 'Pituus is under way, and Kuula has no result yet');
   // (Break on purpose: read a leg's field from Rounds[0].Heats[0] and the
   // 40m column loses its second heat.)
   assert.equal(legs[0].results.size, 7, 'both heats of the 40m, not the first alone');
@@ -277,6 +281,7 @@ test('combined events', () => {
     ['40m', 'Pituus', 'Kuula'],
   );
   assert.ok(emptyLegs.every((l) => l.results.size === 4 && [...l.results.values()].every((a) => !a.Result)));
+  assert.equal(latestLegIndex(emptyLegs), -1, 'drawn legs with no result yet');
   assert.ok(
     entered.every((a) => emptyLegs[0].results.has(combinedAthleteKey(a))),
     'an enrolment joins to a leg on the same athlete id an allocation does',
