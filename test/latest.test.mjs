@@ -11,6 +11,7 @@ import {
   latestLineKey,
   latestStarts,
   latestUnseen,
+  markLatestSeen,
   putLatest,
   updateLatest,
 } from '../public/lib/latest.js';
@@ -103,6 +104,33 @@ test('updateLatest: when a line changed', () => {
   assert.equal(latestFresh(third.lines['r:a2'], t1 + MIN + LATEST_FRESH_MS - 1), true);
   assert.equal(latestFresh(third.lines['r:a2'], t1 + MIN + LATEST_FRESH_MS), false);
   assert.equal(latestFresh(third.lines['r:a3'], t0), false, 'a guess is never fresh');
+});
+
+test('markLatestSeen: a line is new since the previous visit', () => {
+  const t0 = 1_000 * MIN;
+  const snapshot = { savedAt: t0, seenAt: null, lines: { a: { fp: 'x', at: t0 - 20 * MIN } } };
+  const first = markLatestSeen(snapshot, t0);
+  assert.equal(first.visit.since, null, 'the first visit has no previous one');
+  const left = markLatestSeen(first, t0 + 30_000);
+  assert.deepEqual([left.seenAt, left.visit], [t0 + 30_000, first.visit], 'a refresh continues the visit');
+  // A change after the reader left lights the dot, and the next visit marks it
+  // though it is older than LATEST_FRESH_MS. (Break on purpose: leave `visit`
+  // out of latestFresh.)
+  const change = { fp: 'y', at: t0 + 5 * MIN };
+  assert.equal(latestUnseen({ ...left, lines: { a: change } }), true);
+  const back = markLatestSeen(left, t0 + 30 * MIN);
+  assert.deepEqual(back.visit, { since: t0 + 30_000, at: t0 + 30 * MIN });
+  assert.equal(latestFresh(change, back.seenAt, back.visit), true, 'a change since the previous visit');
+  assert.equal(latestFresh(snapshot.lines.a, back.seenAt, back.visit), false, 'a change before it');
+  let later = back;
+  for (let t = back.seenAt + 30_000; t <= t0 + 60 * MIN; t += 30_000) later = markLatestSeen(later, t);
+  assert.equal(later.visit, back.visit, 'the visit goes on');
+  assert.equal(latestFresh(change, later.seenAt, later.visit), true, 'its marks stay through the visit');
+  // (Break on purpose: drop the `entry.at <= visit.at` test.)
+  const during = { fp: 'z', at: t0 + 40 * MIN };
+  assert.equal(latestFresh(during, later.seenAt, later.visit), false, 'a change during the visit has the plain window');
+  assert.equal(latestFresh({ ...change, approx: true }, back.seenAt, back.visit), false, 'a guess is never new');
+  assert.equal(updateLatest(later, [], t0 + 61 * MIN).visit, later.visit, 'updateLatest keeps the visit');
 });
 
 test('latestAge', () => {

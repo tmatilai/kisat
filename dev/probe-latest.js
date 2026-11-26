@@ -42,15 +42,17 @@ export default async function probe({ D, W, log, ok, appJs, demoJs, settle }) {
 
   // --- A change found in Seuratut ---
   // The changed line shares its round with another followed line, so the
-  // row has a line to dim.
+  // row has a line to dim. The change is older than LATEST_FRESH_MS, so only
+  // the previous visit marks it.
   const round = (k) => k.split(':')[0];
   const changed = keys.find((k) => keys.some((o) => o !== k && round(o) === round(k)));
   ok('the demo has a round of two followed lines', !!changed);
   const snapshot = stored();
   snapshot[dayKey].lines[changed].fp = 'changed';
+  snapshot[dayKey].seenAt = W.Date.now() - 30 * 60_000;
   W.localStorage.setItem('kisatLatest', JSON.stringify(snapshot));
   // A real change comes with a new Last-Modified.
-  demoJs.DEMO_WRITES.set(round(changed), W.Date.now());
+  demoJs.DEMO_WRITES.set(round(changed), W.Date.now() - 20 * 60_000);
   await appJs.render(true);
   await settle();
   ok('lights the dot on Uusimmat', !!segBtn('Uusimmat')?.querySelector('.seg-dot'));
@@ -59,6 +61,7 @@ export default async function probe({ D, W, log, ok, appJs, demoJs, settle }) {
   await press('Uusimmat');
   const rows = [...D.querySelectorAll('#app > .list > a.row')];
   ok('lists the changed start first', !!rows[0] && rows.length > 1);
+  // (Break on purpose: leave `visit` out of latestFresh.)
   ok(
     'and tints that row alone',
     rows[0].classList.contains('watched') && rows.slice(1).every((r) => !r.classList.contains('watched')),
@@ -77,7 +80,7 @@ export default async function probe({ D, W, log, ok, appJs, demoJs, settle }) {
     "every row shows its start's time",
     rows.every((r) => r.querySelector('.row-time')?.textContent === startTime(r)),
   );
-  ok('and the age of the change', sub(rows[0]).endsWith(' · juuri nyt'));
+  ok('and the age of the change', sub(rows[0]).endsWith(' · 20 min sitten'));
   // A row whose change came before the first render shows the age of the
   // document's Last-Modified (demoModifiedAt, demo.js). (Break on purpose: stop
   // setting lastModified for a demo document in fetchJson.)
