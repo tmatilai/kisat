@@ -2,8 +2,11 @@
 
 import { allocKey } from './results.js';
 
-// A line that changed this recently is marked as new.
+// During a visit, a line that changed this recently is marked as new.
 const LATEST_FRESH_MS = 5 * 60_000;
+// A visit to Uusimmat ends after this long off screen. It must be longer than
+// a refresh's interval, or each refresh would start a new visit.
+const LATEST_VISIT_GAP_MS = 60_000;
 // A meet day's snapshot is dropped this long after its last write.
 const LATEST_TTL_MS = 2 * 24 * 60 * 60_000;
 
@@ -44,11 +47,21 @@ function updateLatest(prev, lines, now) {
         ? { fp, at: modifiedAt ?? null, approx: true }
         : { fp, at: Math.min(now, modifiedAt ?? now) };
   }
-  return { savedAt: now, seenAt: prev?.seenAt ?? null, lines: out };
+  return { savedAt: now, seenAt: prev?.seenAt ?? null, visit: prev?.visit ?? null, lines: out };
 }
 
-function latestFresh(entry, now) {
-  return !!entry && !entry.approx && entry.at != null && now - entry.at < LATEST_FRESH_MS;
+// `visit.since` is when the previous visit ended, and `visit.at` when this one
+// began.
+function markLatestSeen(snapshot, now) {
+  const newVisit = snapshot.seenAt == null || now - snapshot.seenAt > LATEST_VISIT_GAP_MS;
+  const visit = newVisit ? { since: snapshot.seenAt, at: now } : snapshot.visit;
+  return { ...snapshot, seenAt: now, visit };
+}
+
+function latestFresh(entry, now, visit = null) {
+  if (!entry || entry.approx || entry.at == null) return false;
+  const unseen = visit?.since != null && entry.at > visit.since && entry.at <= visit.at;
+  return unseen || now - entry.at < LATEST_FRESH_MS;
 }
 
 // `seenAt` is when Uusimmat was last on screen (trackLatest, app/meet.js).
@@ -98,6 +111,7 @@ export {
   latestLineKey,
   latestStarts,
   latestUnseen,
+  markLatestSeen,
   putLatest,
   updateLatest,
 };

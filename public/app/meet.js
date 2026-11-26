@@ -9,6 +9,7 @@ import {
   latestLineKey,
   latestStarts,
   latestUnseen,
+  markLatestSeen,
   updateLatest,
 } from '../lib/latest.js';
 import { allocMark, allocPosition, relayInfo, relayLegParts, roundAllocated } from '../lib/results.js';
@@ -221,7 +222,7 @@ function trackLatest(compId, date, withLines, mode) {
     starts.flatMap((r) => r.items),
     now,
   );
-  if (mode === 'latest' && !document.hidden) snapshot = { ...snapshot, seenAt: now };
+  if (mode === 'latest' && !document.hidden) snapshot = markLatestSeen(snapshot, now);
   storeLatest(dayKey, snapshot);
   return { starts, snapshot, now };
 }
@@ -667,7 +668,7 @@ function watchedGroupRow(compId, { g, lines, provisional, classLabel }, extraCla
 function latestRows(compId, { starts, snapshot, now }) {
   const lines = snapshot.lines;
   return latestStarts(starts, snapshot).map(({ g, items, at }) => {
-    const fresh = items.filter((x) => latestFresh(lines[x.key], now));
+    const fresh = items.filter((x) => latestFresh(lines[x.key], now, snapshot.visit));
     if (fresh.length) for (const x of items) if (!fresh.includes(x)) x.line.classList.add('latest-old');
     const newest = items.find((x) => at != null && lines[x.key]?.at === at) || items[0];
     // The fragment takes a licence (docs/architecture.md, "The route table").
